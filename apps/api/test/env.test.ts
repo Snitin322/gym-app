@@ -78,7 +78,7 @@ describe('loadEnv', () => {
     expect(env).toMatchObject({
       WHATSAPP_OTP_TEMPLATE: 'login_code',
       WHATSAPP_TEMPLATE_LANGUAGE: 'en_US',
-      WHATSAPP_API_VERSION: 'v23.0',
+      WHATSAPP_API_VERSION: 'v26.0',
     })
   })
 })

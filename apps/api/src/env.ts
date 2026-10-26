@@ -45,7 +45,7 @@ const envSchema = z
     /** Approved "Authentication" template with a copy-code button. */
     WHATSAPP_OTP_TEMPLATE: z.string().default('login_code'),
     WHATSAPP_TEMPLATE_LANGUAGE: z.string().default('en_US'),
-    WHATSAPP_API_VERSION: z.string().regex(/^v\d+\.\d+$/, 'must look like v23.0').default('v23.0'),
+    WHATSAPP_API_VERSION: z.string().regex(/^v\d+\.\d+$/, 'must look like v26.0').default('v26.0'),
   })
   .refine((env) => env.OTP_TEST_PHONES.length === 0 || env.OTP_TEST_CODE, {
     message: 'is required when OTP_TEST_PHONES is set',

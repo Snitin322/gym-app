@@ -11,7 +11,7 @@ Multi-tenant gym management platform (members, trainers, owner/admin) delivered 
 - **Phase 1 — Backend setup:** done. Fastify API, Prisma, Neon Postgres, health check (runs locally; API hosting comes with Phase 2).
 - **Phase 2 — Login and tenancy:** 2a (API: phone OTP login, sessions, roles, per-gym data isolation) done; 2b (login screens) and 2c (API hosting) next.
 
-Login codes are sent on WhatsApp when `OTP_PROVIDER=whatsapp` (see the `WHATSAPP_*` settings in `apps/api/.env.example`). With `OTP_PROVIDER=console` they appear in the API log (`pnpm dev` terminal) instead.
+Login codes are sent on WhatsApp when `OTP_PROVIDER=whatsapp` — set it up with [docs/WHATSAPP_SETUP.md](docs/WHATSAPP_SETUP.md). With `OTP_PROVIDER=console` they appear in the API log (`pnpm dev` terminal) instead.
 
 If `pnpm db:deploy` fails with "Can't reach database server" on Jio Fiber, the router's DNS is refusing Neon hostnames: set Windows DNS to `1.1.1.1` / `8.8.8.8`.
 
