@@ -35,6 +35,7 @@ The member and trainer experience ships as a **PWA** (installable web app). The 
 * Every tenant-owned table has a `gym\_id` column (FK to `gyms`), indexed.
 * `gym\_id` is **always** taken from the authenticated user's session, **never** from the request body, query or URL.
 * Every query on tenant data must filter by `gym\_id`. Use a shared helper / Prisma middleware that enforces this; do not write raw tenant queries without it.
+  * Implementation: `forTenant()` in `apps/api/src/db/tenant.ts`. Protected routes use `getAuth(request).db`. Add every new tenant model to `TENANT_MODELS` (a test enforces it). Only bootstrap, health and auth code may import `db/unscoped` (ESLint enforces it). No nested writes or raw SQL on tenant tables.
 * Write a test for every new endpoint proving a user from gym A cannot read or modify gym B's data.
 
 ### Money

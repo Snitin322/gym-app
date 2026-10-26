@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { healthResponseSchema } from '@onthec/shared'
 import { buildApp } from '../src/app'
-import { fakeDb, testEnv } from './helpers'
+import { fakeDb, noopSender, testEnv } from './helpers'
 
 let app: FastifyInstance | undefined
 
@@ -13,7 +13,7 @@ afterEach(async () => {
 
 describe('GET /api/v1/health', () => {
   it('returns ok when the database answers', async () => {
-    app = await buildApp({ env: testEnv(), db: fakeDb(async () => [{ '?column?': 1 }]) })
+    app = await buildApp({ env: testEnv(), otpSender: noopSender, db: fakeDb(async () => [{ '?column?': 1 }]) })
 
     const res = await app.inject({ method: 'GET', url: '/api/v1/health' })
 
@@ -24,6 +24,7 @@ describe('GET /api/v1/health', () => {
   it('returns 503 DB_UNAVAILABLE in the standard error shape when the database is down', async () => {
     app = await buildApp({
       env: testEnv(),
+      otpSender: noopSender,
       db: fakeDb(async () => {
         throw new Error('connection refused')
       }),
@@ -38,7 +39,7 @@ describe('GET /api/v1/health', () => {
 
 describe('error handling', () => {
   it('returns 404 NOT_FOUND in the standard error shape for unknown routes', async () => {
-    app = await buildApp({ env: testEnv(), db: fakeDb(async () => []) })
+    app = await buildApp({ env: testEnv(), otpSender: noopSender, db: fakeDb(async () => []) })
 
     const res = await app.inject({ method: 'GET', url: '/api/v1/nope' })
 
@@ -47,7 +48,7 @@ describe('error handling', () => {
   })
 
   it('hides internal error details from the client', async () => {
-    app = await buildApp({ env: testEnv(), db: fakeDb(async () => []) })
+    app = await buildApp({ env: testEnv(), otpSender: noopSender, db: fakeDb(async () => []) })
     app.get('/boom', async () => {
       throw new Error('secret stack detail')
     })
@@ -63,6 +64,7 @@ describe('CORS', () => {
   it('allows configured web origins only', async () => {
     app = await buildApp({
       env: testEnv({ WEB_ORIGINS: 'https://gym-app.example.dev' }),
+      otpSender: noopSender,
       db: fakeDb(async () => []),
     })
 

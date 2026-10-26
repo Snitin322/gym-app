@@ -19,10 +19,13 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.0.1",
+    "@fastify/rate-limit": "^10.3.0",
     "@onthec/shared": "workspace:*",
     "@prisma/client": "^6.16.0",
     "fastify": "^5.4.0",
+    "jose": "^6.0.11",
     "zod": "^4.1.0"
   },
   "devDependencies": {

@@ -15,4 +15,34 @@ export default tseslint.config([
       globals: globals.node,
     },
   },
+  {
+    // Tenant isolation: feature code must use the tenant-scoped client (request.auth.db).
+    // Only bootstrap, health, auth (runs before a gym is known) and the db layer may touch the raw client.
+    files: ['apps/api/src/**/*.ts'],
+    ignores: [
+      'apps/api/src/app.ts',
+      'apps/api/src/server.ts',
+      'apps/api/src/seed.ts',
+      'apps/api/src/db/**',
+      'apps/api/src/plugins/auth.ts',
+      'apps/api/src/routes/auth.ts',
+      'apps/api/src/routes/health.ts',
+      'apps/api/src/services/auth/**',
+      'apps/api/src/services/health.ts',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/db/unscoped'],
+              message:
+                'Use the tenant-scoped client (request.auth.db / TenantDb). The unscoped client can read every gym.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ])

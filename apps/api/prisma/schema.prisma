@@ -1,6 +1,7 @@
 // Database schema. Conventions (see CLAUDE.md):
 // - snake_case table/column names via @@map/@map, camelCase in TypeScript
-// - every tenant-owned table gets gym_id (FK to gyms) + an index
+// - every tenant-owned table gets gym_id (FK to gyms) + an index, and is listed in
+//   TENANT_MODELS in src/db/tenant.ts (a test fails if one is missing)
 // - money as integer paise, timestamps as timestamptz (UTC), membership dates as date
 
 generator client {
@@ -11,6 +12,24 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  member
+  trainer
+  admin
+  owner
+
+  @@map("role")
+}
+
+enum ConsentPurpose {
+  terms
+  privacy
+  whatsapp
+  marketing
+
+  @@map("consent_purpose")
 }
 
 model Gym {
@@ -26,5 +45,86 @@ model Gym {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  users         User[]
+  refreshTokens RefreshToken[]
+  consents      Consent[]
+
   @@map("gyms")
+}
+
+/// A person's account at one gym. The same phone can have accounts at several gyms.
+model User {
+  id        String    @id @default(uuid()) @db.Uuid
+  gymId     String    @map("gym_id") @db.Uuid
+  /// E.164, e.g. +919876543210
+  phone     String
+  name      String
+  role      Role
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  /// Set by the account deletion / anonymisation flow; such users cannot log in.
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
+
+  gym           Gym            @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  refreshTokens RefreshToken[]
+  consents      Consent[]
+
+  @@unique([gymId, phone])
+  @@index([phone])
+  @@map("users")
+}
+
+/// Login codes. Not tenant-owned: a code is requested before we know which gym the user wants.
+model OtpChallenge {
+  id         String    @id @default(uuid()) @db.Uuid
+  phone      String
+  /// HMAC of phone + code; the code itself is never stored.
+  codeHash   String    @map("code_hash")
+  attempts   Int       @default(0)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([phone, createdAt])
+  @@map("otp_challenges")
+}
+
+/// Rotating refresh tokens. Each login starts a family; reuse of a rotated token revokes the family.
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  gymId     String    @map("gym_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  familyId  String    @map("family_id") @db.Uuid
+  /// SHA-256 of the token; the token itself only lives in the user's cookie.
+  tokenHash String    @unique @map("token_hash")
+  userAgent String?   @map("user_agent")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  gym  Gym  @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([gymId])
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+/// DPDP consent records: one row per purpose and notice version accepted.
+model Consent {
+  id            String         @id @default(uuid()) @db.Uuid
+  gymId         String         @map("gym_id") @db.Uuid
+  userId        String         @map("user_id") @db.Uuid
+  purpose       ConsentPurpose
+  noticeVersion String         @map("notice_version")
+  grantedAt     DateTime       @default(now()) @map("granted_at") @db.Timestamptz(3)
+  withdrawnAt   DateTime?      @map("withdrawn_at") @db.Timestamptz(3)
+
+  gym  Gym  @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([gymId])
+  @@index([userId])
+  @@map("consents")
 }

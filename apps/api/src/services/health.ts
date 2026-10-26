@@ -1,5 +1,5 @@
 import { ErrorCode } from '@onthec/shared'
-import type { Db } from '../db'
+import type { Db } from '../db/unscoped'
 import { AppError } from '../errors'
 
 export async function assertDatabaseReachable(db: Pick<Db, '$queryRaw'>) {

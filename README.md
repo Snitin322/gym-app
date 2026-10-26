@@ -9,6 +9,9 @@ Multi-tenant gym management platform (members, trainers, owner/admin) delivered 
 
 - **Phase 0 — Installable PWA shell:** done. Live at https://gym-app.snitin322.workers.dev
 - **Phase 1 — Backend setup:** done. Fastify API, Prisma, Neon Postgres, health check (runs locally; API hosting comes with Phase 2).
+- **Phase 2 — Login and tenancy:** 2a (API: phone OTP login, sessions, roles, per-gym data isolation) done; 2b (login screens) and 2c (API hosting) next.
+
+While `SMS_PROVIDER=console`, login codes appear in the API log (`pnpm dev` terminal) instead of being sent by SMS.
 
 If `pnpm db:deploy` fails with "Can't reach database server" on Jio Fiber, the router's DNS is refusing Neon hostnames: set Windows DNS to `1.1.1.1` / `8.8.8.8`.
 

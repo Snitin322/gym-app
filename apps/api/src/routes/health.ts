@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { HealthResponse } from '@onthec/shared'
-import type { Db } from '../db'
+import type { Db } from '../db/unscoped'
 import { assertDatabaseReachable } from '../services/health'
 
 export function healthRoutes(db: Db): FastifyPluginAsync {

@@ -1,6 +1,7 @@
 import { buildApp } from './app'
-import { createDb } from './db'
+import { createDb } from './db/unscoped'
 import { loadEnv } from './env'
+import { consoleOtpSender } from './services/auth/sms'
 
 if (process.env.NODE_ENV !== 'production') {
   try {
@@ -12,7 +13,11 @@ if (process.env.NODE_ENV !== 'production') {
 
 const env = loadEnv()
 const db = createDb()
-const app = await buildApp({ env, db })
+const app = await buildApp({ env, db, otpSender: consoleOtpSender })
+
+if (env.SMS_PROVIDER === 'console') {
+  app.log.warn('SMS_PROVIDER=console: login codes are written to this log, not sent by SMS.')
+}
 
 async function shutdown(signal: NodeJS.Signals) {
   app.log.info(`${signal} received, shutting down`)

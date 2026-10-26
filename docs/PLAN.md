@@ -124,14 +124,23 @@ Each phase ends with: tests pass, lint passes, typecheck passes, commit (and a s
 **Done when** `pnpm install && pnpm db:deploy && pnpm db:seed && pnpm dev` works against Neon on a fresh clone and CI is green.
 
 ### Phase 2 — Auth and tenancy
-- API: `POST /auth/otp/request`, `POST /auth/otp/verify` → returns gym list (or tokens if one gym), `POST /auth/select-gym`, `POST /auth/refresh`, `POST /auth/logout`, `GET /me`.
-- Dev OTP provider that logs the code; MSG91 provider behind an interface.
-- JWT access token (15 min, in memory on the client) + rotating refresh token cookie (`httpOnly; Secure; SameSite=Lax; Path=/auth`, 30 days).
-- `requireRole(...roles)` guard; tenant context plugin; scoped Prisma extension.
-- Consent capture on first login (terms + privacy notice version).
-- Web: login screen (phone → OTP → gym picker), auth context, protected route wrapper, role-based redirect to `/m`, `/t` or `/admin`.
-- Seed: two gyms, each with an owner, an admin, a trainer and two members.
-- **Tests**: OTP expiry/attempt limits, refresh rotation + reuse detection, role guard, and the tenant isolation suite (template every later endpoint copies: gym A user gets 404 — not 403 — on gym B ids, and lists never include gym B rows).
+
+Approved decisions: phone-first login then pick a gym; no self sign-up (only people the gym added can log in); console OTP + `.env` test numbers until MSG91/DLT is live; API on Render (Singapore) behind the Cloudflare Worker at `/api/*` so the refresh cookie is first-party (Safari).
+
+**2a — API auth and tenancy (done)**
+- Tables: `users` (unique gym+phone), `otp_challenges` (HMAC'd codes, not tenant-owned), `refresh_tokens` (rotating, per-login family), `consents`.
+- Endpoints under `/api/v1`: `auth/otp/request`, `auth/otp/verify` (session, or `select_gym` + 5-min selection token), `auth/select-gym`, `auth/refresh`, `auth/logout`, `me`, `me/consent`, `users`, `users/:id` (admin/owner).
+- OTP: 6 digits, 5 min, 3 sends / 15 min / phone, 5 attempts per code (counted atomically); unregistered numbers get `ACCOUNT_NOT_FOUND` and no SMS. Per-IP limits on all auth routes.
+- Tokens: HS256 access JWT, 15 min; refresh token in `httpOnly; SameSite=Lax; Path=/api/v1/auth` cookie (Secure in production), 30 days, rotated on every use; reusing a rotated token revokes the whole family.
+- Tenancy: `forTenant(db, gymId)` Prisma extension (`src/db/tenant.ts`) adds the gym filter to every read/update/delete on tenant models, stamps `gymId` on creates and throws `TenantViolationError` for another gym's id. Protected routes only get `request.auth.db`. ESLint blocks importing `db/unscoped` outside bootstrap, health and auth code. A test fails if a model with `gymId` is missing from `TENANT_MODELS`.
+- Seed: Onthec Gym + owner from `SEED_OWNER_PHONE` / `SEED_OWNER_NAME`.
+- Tests: OTP flow and limits, multi-gym selection, refresh rotation + reuse, logout, roles, and the isolation template every later endpoint copies (gym A gets 404 — identical to "missing" — on gym B ids; lists never include gym B rows).
+
+**2b — Login screens (next)**
+- React Router, TanStack Query, Tailwind. Phone → OTP (SMS autofill) → gym picker if needed → consent → role home placeholder + logout. 360px.
+
+**2c — Deploy the API**
+- Render free web service (Singapore), `TRUST_PROXY=true`, Neon in Singapore. Cloudflare Worker routes `/api/*` to Render; everything else stays static assets.
 
 ### Phase 3 — Members and plans
 - Admin: plans CRUD (deactivate, don't delete), members list with search/filter (active / expiring in 7 days / expired), create member (creates user + member), member detail page, assign membership manually, freeze/unfreeze.

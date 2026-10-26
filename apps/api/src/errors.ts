@@ -1,5 +1,6 @@
 import type { FastifyError, FastifyInstance } from 'fastify'
-import { ZodError, z } from 'zod'
+import { Prisma } from '@prisma/client'
+import { ZodError } from 'zod'
 import { ErrorCode, type ApiErrorBody } from '@onthec/shared'
 
 /** Throw from services for expected failures; the error handler turns it into the API error shape. */
@@ -29,7 +30,13 @@ export function registerErrorHandling(app: FastifyInstance) {
       return reply.status(error.statusCode).send(errorBody(error.code, error.message))
     }
     if (error instanceof ZodError) {
-      return reply.status(400).send(errorBody(ErrorCode.VALIDATION_ERROR, z.prettifyError(error)))
+      // Plain sentences, because the app shows these to users ("Enter a valid 10-digit Indian mobile number").
+      const message = [...new Set(error.issues.map((issue) => issue.message))].join('. ')
+      return reply.status(400).send(errorBody(ErrorCode.VALIDATION_ERROR, message))
+    }
+    // update/delete of a row that doesn't exist, or belongs to another gym through the tenant client.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return reply.status(404).send(errorBody(ErrorCode.NOT_FOUND, 'Not found'))
     }
 
     // Fastify's own client errors (bad JSON, payload too large, ...) carry a 4xx statusCode.
