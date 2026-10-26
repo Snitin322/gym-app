@@ -1,0 +1,10 @@
+// Cloudflare Workers deploy config: serves the built PWA as static assets.
+// Build first with `pnpm --filter web build`, then `npx wrangler deploy`.
+{
+  "name": "gym-app",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./apps/web/dist",
+    "not_found_handling": "single-page-application"
+  }
+}
