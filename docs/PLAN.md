@@ -6,20 +6,20 @@ This expands on [CLAUDE.md](../CLAUDE.md). CLAUDE.md holds the rules; this file 
 
 ## 1. Open decisions
 
-Recommended defaults are in bold. Phase 0 can start with all of these unresolved except #1.
+Recommended defaults are in bold. Phase 0 only needs #9 (where to host the web app).
 
 | # | Decision | Options | Recommendation | Needed by |
 |---|----------|---------|----------------|-----------|
-| 1 | API framework | Express / Fastify | **Fastify** — built-in schema hooks, faster, good TS types; Zod via `fastify-type-provider-zod` | Phase 0 |
-| 2 | How a user picks their gym at login | Subdomain per gym / gym code / phone-first then pick gym | **Phone-first**: verify OTP, then list the gyms that phone has an account in (auto-select if one). Keeps `gym_id` out of URLs and works for one PWA install | Phase 1 |
-| 3 | SMS OTP provider | MSG91 / Twilio / WhatsApp OTP / Firebase Auth | **MSG91** (India DLT-compliant templates). Requires DLT registration of sender ID + template — start this early, it takes days–weeks | Phase 1 |
-| 4 | Are plan prices GST-inclusive? | Inclusive / exclusive | **Inclusive** (what Indian gyms quote). Server back-calculates base and tax | Phase 2 |
-| 5 | Is the gym GST-registered? | Yes (tax invoice) / No (bill of supply) | Support both: `gyms.gstin` nullable; if null, issue a bill of supply with zero tax | Phase 3 |
-| 6 | Offline payments (cash / UPI at desk) | Support / Razorpay only | **Support** — admin records a manual payment; most Indian gyms still take cash | Phase 3 |
-| 7 | Late-cancel policy for PT | Free cancel up to N hours before; later = session used | **12 hours**, configurable per gym in `gyms.settings` | Phase 4 |
-| 8 | WhatsApp provider | Meta Cloud API direct / BSP (Interakt, Gupshup, AiSensy) | **Meta Cloud API** if you can verify a Meta Business account; BSP otherwise. Templates need Meta approval | Phase 7 |
-| 9 | Hosting | see §8 | **Postgres + API in Mumbai region**; web on Cloudflare Pages | Phase 8 (choose by Phase 3 for webhooks) |
-| 10 | Gym name, branding, logo | — | Need from owner | Phase 8 |
+| 1 | API framework | Express / Fastify | **Fastify** — built-in schema hooks, faster, good TS types; Zod via `fastify-type-provider-zod` | Phase 1 |
+| 2 | How a user picks their gym at login | Subdomain per gym / gym code / phone-first then pick gym | **Phone-first**: verify OTP, then list the gyms that phone has an account in (auto-select if one). Keeps `gym_id` out of URLs and works for one PWA install | Phase 2 |
+| 3 | SMS OTP provider | MSG91 / Twilio / WhatsApp OTP / Firebase Auth | **MSG91** (India DLT-compliant templates). Requires DLT registration of sender ID + template — start this early, it takes days–weeks | Phase 2 |
+| 4 | Are plan prices GST-inclusive? | Inclusive / exclusive | **Inclusive** (what Indian gyms quote). Server back-calculates base and tax | Phase 3 |
+| 5 | Is the gym GST-registered? | Yes (tax invoice) / No (bill of supply) | Support both: `gyms.gstin` nullable; if null, issue a bill of supply with zero tax | Phase 4 |
+| 6 | Offline payments (cash / UPI at desk) | Support / Razorpay only | **Support** — admin records a manual payment; most Indian gyms still take cash | Phase 4 |
+| 7 | Late-cancel policy for PT | Free cancel up to N hours before; later = session used | **12 hours**, configurable per gym in `gyms.settings` | Phase 5 |
+| 8 | WhatsApp provider | Meta Cloud API direct / BSP (Interakt, Gupshup, AiSensy) | **Meta Cloud API** if you can verify a Meta Business account; BSP otherwise. Templates need Meta approval | Phase 8 |
+| 9 | Hosting | see §8 | Web: **Cloudflare Pages** (or Vercel / Netlify) — HTTPS is required for Home Screen install. Later: Postgres + API in Mumbai region | Web: Phase 0. API: Phase 1 (public URL by Phase 4 for webhooks) |
+| 10 | Branding | — | Name is **Onthec Gym**; placeholder logo and lime-on-dark colours in Phase 0 — swap for the real logo when available | Phase 9 |
 
 ---
 
@@ -98,20 +98,31 @@ Additions and refinements to the list in CLAUDE.md. All tables get `id` (UUID v7
 
 Each phase ends with: tests pass, lint passes, typecheck passes, commit (and a short demo note in the PR / commit body).
 
-### Phase 0 — Setup
-- pnpm workspace: `apps/web`, `apps/api`, `packages/shared`, `prisma/`.
-- TypeScript strict, shared `tsconfig.base.json`; ESLint (flat config) + Prettier; `eslint-plugin-import` rule blocking `db/unscoped` imports.
+### Phase 0 — Installable PWA shell
+- pnpm workspace with `apps/web` only (React + Vite + TypeScript strict).
+- One screen: logo + "Welcome to Onthec Gym".
+- `vite-plugin-pwa`: web app manifest (name, `display: standalone`, theme colours), service worker that precaches the app shell, auto-update.
+- Icons generated from `apps/web/public/logo.svg` by `@vite-pwa/assets-generator`: 64/192/512, maskable 512 (Android), apple-touch-icon 180 (iOS), favicon.
+- iOS meta tags: `apple-mobile-web-app-capable`, status bar style, title, apple-touch-icon; safe-area padding for the notch.
+- Install help: "Install app" button on Android/desktop Chrome (`beforeinstallprompt`); step-by-step "Share → Add to Home Screen" card on iPhone/iPad; hidden once installed.
+- ESLint, Vitest (install-platform detection tests), GitHub Actions CI.
+- Deploy to an HTTPS static host so it can be installed from a real phone.
+
+**Done when** CI is green and, from the deployed URL, the app can be added to the Home Screen on an iPhone (Safari) and an Android phone (Chrome), and opens full-screen with the Onthec Gym icon and name.
+
+### Phase 1 — Backend setup
+- Add `apps/api`, `packages/shared`, `prisma/` to the workspace.
+- Shared `tsconfig.base.json`; Prettier; `eslint-plugin-import` rule blocking `db/unscoped` imports.
 - Docker Compose: Postgres 16 (+ a second DB for tests).
 - Env loading validated by Zod at startup (`apps/api/src/env.ts`); `.env.example` committed.
 - Prisma set up with a `gyms` table and seed script.
-- Vitest in all packages; one smoke test each.
-- GitHub Actions: install → lint → typecheck → test (with a Postgres service container).
-- Health endpoint `GET /health`; web app renders a placeholder page that calls it.
-- Root scripts: `dev`, `build`, `test`, `lint`, `typecheck`, `db:migrate`, `db:seed`, `db:reset`.
+- CI gains a Postgres service container.
+- Health endpoint `GET /health`; web app shows API status.
+- Root scripts: `db:migrate`, `db:seed`, `db:reset`; `dev` runs web + api.
 
 **Done when** `pnpm install && docker compose up -d && pnpm db:migrate && pnpm dev` works on a fresh clone and CI is green.
 
-### Phase 1 — Auth and tenancy
+### Phase 2 — Auth and tenancy
 - API: `POST /auth/otp/request`, `POST /auth/otp/verify` → returns gym list (or tokens if one gym), `POST /auth/select-gym`, `POST /auth/refresh`, `POST /auth/logout`, `GET /me`.
 - Dev OTP provider that logs the code; MSG91 provider behind an interface.
 - JWT access token (15 min, in memory on the client) + rotating refresh token cookie (`httpOnly; Secure; SameSite=Lax; Path=/auth`, 30 days).
@@ -121,14 +132,14 @@ Each phase ends with: tests pass, lint passes, typecheck passes, commit (and a s
 - Seed: two gyms, each with an owner, an admin, a trainer and two members.
 - **Tests**: OTP expiry/attempt limits, refresh rotation + reuse detection, role guard, and the tenant isolation suite (template every later endpoint copies: gym A user gets 404 — not 403 — on gym B ids, and lists never include gym B rows).
 
-### Phase 2 — Members and plans
+### Phase 3 — Members and plans
 - Admin: plans CRUD (deactivate, don't delete), members list with search/filter (active / expiring in 7 days / expired), create member (creates user + member), member detail page, assign membership manually, freeze/unfreeze.
 - Member: home screen — current plan, start/end, **days left**, status badge; membership history.
 - Trainer: list of assigned members (read-only basics).
 - Nightly job: expire memberships, activate `upcoming` ones.
 - **Tests**: renewal start-date rule, freeze extension and limits, days-left across IST midnight, status job idempotency, isolation.
 
-### Phase 3 — Payments and invoices
+### Phase 4 — Payments and invoices
 - Member: "Renew / Buy plan" → `POST /payments/orders` (server creates Razorpay order from the plan price, never from client amount) → Razorpay Checkout → `POST /payments/verify` (signature check, shows "processing") → webhook `payment.captured` / `order.paid` marks paid and fulfils.
 - Webhook: verify `X-Razorpay-Signature` with webhook secret over the raw body; idempotent via `webhook_events`; handles `payment.failed`, `refund.processed`.
 - Admin: record manual payment (cash/UPI), refund (Razorpay API for online, manual record for cash), payment list with filters, export CSV.
@@ -136,7 +147,7 @@ Each phase ends with: tests pass, lint passes, typecheck passes, commit (and a s
 - Member: payment history with invoice download.
 - **Tests**: duplicate webhook delivery, webhook before/after client verify (either order), bad signature rejected, amount mismatch rejected, GST rounding table (many prices), FY rollover on 1 April IST, gap-free numbering under concurrent payments, isolation.
 
-### Phase 4 — PT packages and booking
+### Phase 5 — PT packages and booking
 - Admin: PT packages CRUD; sell a package (online or manual payment → `pt_purchase` + ledger `+N`); assign trainer.
 - Trainer: weekly availability editor, time off, day/week schedule, mark complete / no-show with notes.
 - Member: balance + expiry per purchase, book from free slots (availability − time off − booked), reschedule/cancel (late-cancel policy), confirm/dispute completed sessions.
@@ -144,7 +155,7 @@ Each phase ends with: tests pass, lint passes, typecheck passes, commit (and a s
 - Jobs: auto-confirm after 24h, expire unused sessions at `expires_on` (ledger `expired` rows).
 - **Tests**: ledger balance invariants, concurrent booking of the last session, trainer double-booking blocked, late cancel deducts, dispute refund, auto-confirm idempotency, slot generation across time off, isolation.
 
-### Phase 5 — QR check-in
+### Phase 6 — QR check-in
 - Member: full-screen QR pass that rotates every 30s with a countdown; brightness hint.
 - Front desk: scanner screen (`@zxing/browser` or `html5-qrcode`, camera on a tablet/phone) → big green/red result with member photo, name, plan, days left; manual check-in by search.
 - Rules: deny if expired/frozen/no membership (red, with reason); dedupe window.
@@ -152,13 +163,13 @@ Each phase ends with: tests pass, lint passes, typecheck passes, commit (and a s
 - *Offline note*: the member pass needs a signing key on the device to work offline; simplest safe option for MVP is **online-only generation** (pass fetched every 30s). Revisit if gym Wi-Fi is poor.
 - **Tests**: token expiry, tampering, cross-gym token rejected, dedupe, frozen membership denied.
 
-### Phase 6 — Admin dashboard
+### Phase 7 — Admin dashboard
 - Cards: active members, expiring this week, expired last 30 days (renewal targets), revenue today / this month (by method), pending dues, PT sessions this week, today's check-ins.
 - Leads: list, create, status pipeline (`new → contacted → trial → converted / lost`), follow-up date, convert-to-member.
 - All aggregates computed in SQL with IST date boundaries; indexes reviewed with `EXPLAIN`.
 - **Tests**: aggregates on a fixed seed, IST boundary cases, isolation (dashboard numbers never include other gyms).
 
-### Phase 7 — Notifications
+### Phase 8 — Notifications
 - Web push: subscribe/unsubscribe, VAPID keys in env, service worker handler, remove dead subscriptions on 404/410.
 - WhatsApp: approved templates — `membership_expiry_7d`, `_3d`, `_0d`, `pt_session_reminder` (2h before), `payment_receipt` (with invoice link). Only send if WhatsApp consent recorded.
 - Daily scheduler at 09:00 IST; `notifications_log.dedupe_key` prevents double sends; quiet hours.
@@ -166,9 +177,8 @@ Each phase ends with: tests pass, lint passes, typecheck passes, commit (and a s
 - *iOS note*: web push on iPhone only works when the PWA is installed to the Home Screen (iOS 16.4+) — WhatsApp is the reliable channel there.
 - **Tests**: scheduler picks the right members on each day offset, dedupe, consent respected, provider failures logged and retried.
 
-### Phase 8 — PWA polish and deploy
-- Manifest, icons (192/512/maskable), theme colours from gym branding, offline app shell (Workbox via `vite-plugin-pwa`), "update available" prompt.
-- Install prompt (Android `beforeinstallprompt`) + iPhone "Share → Add to Home Screen" guide.
+### Phase 9 — PWA polish and production
+- Real logo/branding, iOS splash screens, offline handling for data screens (cached last-known membership, "you're offline" banner), "update available" prompt.
 - 360px audit of every member/trainer screen; Lighthouse PWA + accessibility pass.
 - Production: env/secrets, migrations on deploy, daily DB backups with a tested restore, Sentry (web + API), uptime check, Razorpay live keys + live webhook URL.
 - Account deletion flow (DPDP): request → admin notified → after confirmation, anonymise name/phone/photos/measurements; keep payments and invoices (GST record retention) linked to the anonymised user.
@@ -213,15 +223,16 @@ Each phase ends with: tests pass, lint passes, typecheck passes, commit (and a s
 
 | Phase | Size | Notes |
 |-------|------|-------|
-| 0 Setup | S | |
-| 1 Auth + tenancy | M | DLT registration for SMS runs in parallel |
-| 2 Members + plans | M | |
-| 3 Payments + invoices | L | Razorpay account + KYC needed for live mode |
-| 4 PT booking | L | most business rules live here |
-| 5 QR check-in | S–M | |
-| 6 Dashboard | M | |
-| 7 Notifications | M | Meta template approval runs in parallel |
-| 8 PWA + deploy | M | |
+| 0 PWA shell | S | needs a static HTTPS host |
+| 1 Backend setup | S | |
+| 2 Auth + tenancy | M | DLT registration for SMS runs in parallel |
+| 3 Members + plans | M | |
+| 4 Payments + invoices | L | Razorpay account + KYC needed for live mode |
+| 5 PT booking | L | most business rules live here |
+| 6 QR check-in | S–M | |
+| 7 Dashboard | M | |
+| 8 Notifications | M | Meta template approval runs in parallel |
+| 9 PWA polish + production | M | |
 
 ## 10. Things to start outside the code now
 

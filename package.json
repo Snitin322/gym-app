@@ -1,0 +1,17 @@
+{
+  "name": "onthec-gym",
+  "private": true,
+  "packageManager": "pnpm@10.12.4",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm -r build",
+    "preview": "pnpm --filter web preview",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "icons": "pnpm --filter web icons"
+  }
+}

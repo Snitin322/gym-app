@@ -3,7 +3,7 @@
 ## What we're building
 
 A gym management platform with three user roles: **members**, **trainers** and **owner/admin**.
-Phase 1 runs at one gym ("\[Gym Name]"), but the system must be **multi-tenant from day one** so other gyms can be onboarded later as paying customers (SaaS).
+Phase 1 runs at one gym ("Onthec Gym"), but the system must be **multi-tenant from day one** so other gyms can be onboarded later as paying customers (SaaS).
 
 The member and trainer experience ships as a **PWA** (installable web app). The admin panel is the same web app, with desktop-optimised routes. Native store apps (React Native / Capacitor) may come later, so keep business logic in the API and shared packages, not in UI components.
 
@@ -91,17 +91,18 @@ The member and trainer experience ships as a **PWA** (installable web app). The 
 
 ## Build phases (MVP)
 
-Work one phase at a time. At the end of each phase: tests pass, lint passes, commit.
+Work one phase at a time, adding features one by one. At the end of each phase: tests pass, lint passes, commit.
 
-0. **Setup** — monorepo, TypeScript, lint/format, Prisma, Postgres (Docker for local), env handling, CI
-1. **Auth and tenancy** — gyms, users, phone OTP login, roles, tenant middleware + isolation tests
-2. **Members and plans** — admin creates plans and members; member sees plan, expiry, days left
-3. **Payments and invoices** — Razorpay renew/buy flow, webhook, GST invoice PDF, payment history
-4. **PT packages and booking** — trainer availability, booking/reschedule/cancel, session ledger, trainer marks complete, member confirm/dispute
-5. **QR check-in** — member QR pass (signed, rotating token), front-desk scanner screen, attendance history
-6. **Admin dashboard** — active/expiring/expired members, renewals due this week, revenue, pending dues, leads
-7. **Notifications** — web push + WhatsApp reminders: expiry (7/3/0 days), PT session reminder, payment receipt
-8. **PWA polish and deploy** — manifest, icons, offline app shell, install prompt + iPhone "Add to Home Screen" guide, production deploy
+0. **Installable PWA shell** — pnpm monorepo with `apps/web` only; "Welcome to Onthec Gym" screen; manifest, icons, service worker, iOS meta tags; install button (Android) + "Add to Home Screen" guide (iPhone); lint, test, CI; deployed over HTTPS so it can be added to the Home Screen on iOS and Android. **No backend, no payments.**
+1. **Backend setup** — `apps/api`, `packages/shared`, Prisma, Postgres (Docker for local), env handling
+2. **Auth and tenancy** — gyms, users, phone OTP login, roles, tenant middleware + isolation tests
+3. **Members and plans** — admin creates plans and members; member sees plan, expiry, days left
+4. **Payments and invoices** — Razorpay renew/buy flow, webhook, GST invoice PDF, payment history
+5. **PT packages and booking** — trainer availability, booking/reschedule/cancel, session ledger, trainer marks complete, member confirm/dispute
+6. **QR check-in** — member QR pass (signed, rotating token), front-desk scanner screen, attendance history
+7. **Admin dashboard** — active/expiring/expired members, renewals due this week, revenue, pending dues, leads
+8. **Notifications** — web push + WhatsApp reminders: expiry (7/3/0 days), PT session reminder, payment receipt
+9. **PWA polish and production** — offline app shell for data screens, update prompt, branding, production hardening (backups, Sentry, live keys)
 
 ## Out of scope for MVP (do not build yet)
 
@@ -121,12 +122,16 @@ Workout logging, diet plans, challenges/leaderboards, loyalty points, in-app sto
 
 ```
 pnpm install
-pnpm dev          # run web + api
+pnpm dev          # run the web app (Vite dev server, PWA disabled)
+pnpm build        # typecheck + production build (generates the service worker)
+pnpm preview      # serve the production build, to test install/offline
 pnpm test
 pnpm lint
-pnpm db:migrate
-pnpm db:seed
+pnpm typecheck
+pnpm icons        # regenerate PWA icons from apps/web/public/logo.svg
 ```
+
+Planned (from Phase 1): `pnpm db:migrate`, `pnpm db:seed`.
 
 (Update this section as scripts are added.)
 
