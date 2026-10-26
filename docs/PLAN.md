@@ -111,16 +111,17 @@ Each phase ends with: tests pass, lint passes, typecheck passes, commit (and a s
 **Done when** CI is green and, from the deployed URL, the app can be added to the Home Screen on an iPhone (Safari) and an Android phone (Chrome), and opens full-screen with the Onthec Gym icon and name.
 
 ### Phase 1 — Backend setup
-- Add `apps/api`, `packages/shared`, `prisma/` to the workspace.
-- Shared `tsconfig.base.json`; Prettier; `eslint-plugin-import` rule blocking `db/unscoped` imports.
-- Docker Compose: Postgres 16 (+ a second DB for tests).
-- Env loading validated by Zod at startup (`apps/api/src/env.ts`); `.env.example` committed.
-- Prisma set up with a `gyms` table and seed script.
-- CI gains a Postgres service container.
-- Health endpoint `GET /health`; web app shows API status.
-- Root scripts: `db:migrate`, `db:seed`, `db:reset`; `dev` runs web + api.
+- Add `apps/api` (Fastify) and `packages/shared` to the workspace; shared `tsconfig.base.json` and root ESLint config for Node packages.
+- Database: **Neon** (free cloud Postgres) — `neondb` for development, `onthec_test` for tests. No Docker on the dev machine; CI uses a Postgres 17 service container.
+- Env loading validated by Zod at startup (`apps/api/src/env.ts`); `apps/api/.env.example` committed.
+- Prisma schema in `apps/api/prisma/` with the `gyms` table; idempotent seed creates Onthec Gym.
+- Standard error shape and error codes (`packages/shared/src/errors.ts`); CORS limited to the web origins.
+- Health endpoint `GET /api/v1/health` (checks the DB).
+- API production build bundled with tsup (`apps/api/dist/server.js`).
+- Root scripts: `db:migrate`, `db:deploy`, `db:seed`, `db:reset`, `db:studio`; `dev` runs web + api.
+- Deferred to Phase 2: Prettier, the `db/unscoped` import lint rule (arrives with the tenant-scoped client), API hosting.
 
-**Done when** `pnpm install && docker compose up -d && pnpm db:migrate && pnpm dev` works on a fresh clone and CI is green.
+**Done when** `pnpm install && pnpm db:deploy && pnpm db:seed && pnpm dev` works against Neon on a fresh clone and CI is green.
 
 ### Phase 2 — Auth and tenancy
 - API: `POST /auth/otp/request`, `POST /auth/otp/verify` → returns gym list (or tokens if one gym), `POST /auth/select-gym`, `POST /auth/refresh`, `POST /auth/logout`, `GET /me`.

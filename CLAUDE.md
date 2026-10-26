@@ -22,10 +22,10 @@ The member and trainer experience ships as a **PWA** (installable web app). The 
 ## Repo structure
 
 ```
-/apps/web        React PWA (member, trainer, admin routes)
-/apps/api        Node API
-/packages/shared Shared types, Zod schemas, constants
-/prisma          Schema and migrations
+/apps/web           React PWA (member, trainer, admin routes)
+/apps/api           Node API (Fastify)
+/apps/api/prisma    Prisma schema, migrations, seed runner
+/packages/shared    Shared types, Zod schemas, constants (ships TS source; bundled into the API by tsup)
 ```
 
 ## Non-negotiable rules
@@ -94,7 +94,7 @@ The member and trainer experience ships as a **PWA** (installable web app). The 
 Work one phase at a time, adding features one by one. At the end of each phase: tests pass, lint passes, commit.
 
 0. **Installable PWA shell** — pnpm monorepo with `apps/web` only; "Welcome to Onthec Gym" screen; manifest, icons, service worker, iOS meta tags; install button (Android) + "Add to Home Screen" guide (iPhone); lint, test, CI; deployed over HTTPS so it can be added to the Home Screen on iOS and Android. **No backend, no payments.**
-1. **Backend setup** — `apps/api`, `packages/shared`, Prisma, Postgres (Docker for local), env handling
+1. **Backend setup** — `apps/api` (Fastify), `packages/shared`, Prisma + `gyms` table, Postgres on Neon (dev + test databases; CI uses a Postgres service container), env handling, health endpoint
 2. **Auth and tenancy** — gyms, users, phone OTP login, roles, tenant middleware + isolation tests
 3. **Members and plans** — admin creates plans and members; member sees plan, expiry, days left
 4. **Payments and invoices** — Razorpay renew/buy flow, webhook, GST invoice PDF, payment history
@@ -121,17 +121,23 @@ Workout logging, diet plans, challenges/leaderboards, loyalty points, in-app sto
 ## Commands
 
 ```
-pnpm install
-pnpm dev          # run the web app (Vite dev server, PWA disabled)
-pnpm build        # typecheck + production build (generates the service worker)
-pnpm preview      # serve the production build, to test install/offline
-pnpm test
+pnpm install      # also runs `prisma generate`
+pnpm dev          # web (http://localhost:5173) + API (http://localhost:3000)
+pnpm build        # production builds (web service worker, API bundle in apps/api/dist)
+pnpm preview      # serve the web production build, to test install/offline
+pnpm test         # API DB tests use TEST_DATABASE_URL (skipped locally if unset, required in CI)
 pnpm lint
 pnpm typecheck
 pnpm icons        # regenerate PWA icons from apps/web/public/logo.svg
+
+pnpm db:migrate   # create + apply a migration after editing schema.prisma (dev DB)
+pnpm db:deploy    # apply pending migrations (no new migration)
+pnpm db:seed      # idempotent seed (creates Onthec Gym)
+pnpm db:reset     # DROP all dev data, re-apply migrations, re-seed
+pnpm db:studio    # browse the dev DB
 ```
 
-Planned (from Phase 1): `pnpm db:migrate`, `pnpm db:seed`.
+API config lives in `apps/api/.env` (copy from `apps/api/.env.example`).
 
 (Update this section as scripts are added.)
 

@@ -7,16 +7,37 @@ Multi-tenant gym management platform (members, trainers, owner/admin) delivered 
 
 ## Status
 
-**Phase 0 — Installable PWA shell.** A single "Welcome to Onthec Gym" screen that can be added to the Home Screen on iPhone and Android. Features get added one phase at a time.
+- **Phase 0 — Installable PWA shell:** done. Live at https://gym-app.snitin322.workers.dev
+- **Phase 1 — Backend setup:** done. Fastify API, Prisma, Neon Postgres, health check (runs locally; API hosting comes with Phase 2).
+
+If `pnpm db:deploy` fails with "Can't reach database server" on Jio Fiber, the router's DNS is refusing Neon hostnames: set Windows DNS to `1.1.1.1` / `8.8.8.8`.
+
+Features get added one phase at a time.
 
 ## Run it
 
-Needs Node 20.19+ and pnpm 10.
+Needs Node 20.19+ and pnpm 10, plus a Postgres database (we use free [Neon](https://neon.tech)).
+
+1. Copy `apps/api/.env.example` to `apps/api/.env` and fill in the Neon connection strings.
+2. Install, set up the database and start everything:
 
 ```bash
 pnpm install
-pnpm dev        # http://localhost:5173 (service worker disabled in dev)
 ```
+
+```bash
+pnpm db:deploy
+```
+
+```bash
+pnpm db:seed
+```
+
+```bash
+pnpm dev
+```
+
+The web app runs on http://localhost:5173 (service worker disabled in dev) and the API on http://localhost:3000. Check the API with http://localhost:3000/api/v1/health.
 
 To test the installable version locally:
 
