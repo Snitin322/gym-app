@@ -26,7 +26,7 @@ describe('loadEnv', () => {
       NODE_ENV: 'development',
       PORT: 3000,
       TRUST_PROXY: false,
-      SMS_PROVIDER: 'console',
+      OTP_PROVIDER: 'console',
       WEB_ORIGINS: ['http://localhost:5173'],
       OTP_TEST_PHONES: [],
     })
@@ -51,8 +51,34 @@ describe('loadEnv', () => {
   })
 
   it('treats blank optional values (as in .env.example) as unset', () => {
-    const env = loadEnv({ ...base, OTP_TEST_PHONES: '', OTP_TEST_CODE: '' })
+    const env = loadEnv({
+      ...base,
+      OTP_TEST_PHONES: '',
+      OTP_TEST_CODE: '',
+      WHATSAPP_PHONE_NUMBER_ID: '',
+      WHATSAPP_ACCESS_TOKEN: '',
+    })
+    expect(env.OTP_PROVIDER).toBe('console')
     expect(env.OTP_TEST_PHONES).toEqual([])
     expect(env.OTP_TEST_CODE).toBeUndefined()
+    expect(env.WHATSAPP_ACCESS_TOKEN).toBeUndefined()
+  })
+
+  it('requires the WhatsApp phone number id and token when OTP_PROVIDER=whatsapp', () => {
+    expect(() => loadEnv({ ...base, OTP_PROVIDER: 'whatsapp', WHATSAPP_ACCESS_TOKEN: '' })).toThrow(
+      /WHATSAPP_PHONE_NUMBER_ID[\s\S]*WHATSAPP_ACCESS_TOKEN/,
+    )
+
+    const env = loadEnv({
+      ...base,
+      OTP_PROVIDER: 'whatsapp',
+      WHATSAPP_PHONE_NUMBER_ID: '1234567890',
+      WHATSAPP_ACCESS_TOKEN: 'token',
+    })
+    expect(env).toMatchObject({
+      WHATSAPP_OTP_TEMPLATE: 'login_code',
+      WHATSAPP_TEMPLATE_LANGUAGE: 'en_US',
+      WHATSAPP_API_VERSION: 'v23.0',
+    })
   })
 })

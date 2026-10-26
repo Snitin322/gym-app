@@ -12,7 +12,7 @@ Recommended defaults are in bold. Phase 0 only needs #9 (where to host the web a
 |---|----------|---------|----------------|-----------|
 | 1 | API framework | Express / Fastify | **Fastify** — built-in schema hooks, faster, good TS types; Zod via `fastify-type-provider-zod` | Phase 1 |
 | 2 | How a user picks their gym at login | Subdomain per gym / gym code / phone-first then pick gym | **Phone-first**: verify OTP, then list the gyms that phone has an account in (auto-select if one). Keeps `gym_id` out of URLs and works for one PWA install | Phase 2 |
-| 3 | SMS OTP provider | MSG91 / Twilio / WhatsApp OTP / Firebase Auth | **MSG91** (India DLT-compliant templates). Requires DLT registration of sender ID + template — start this early, it takes days–weeks | Phase 2 |
+| 3 | OTP delivery | MSG91 SMS / Twilio / WhatsApp OTP / Firebase Auth | **Decided: WhatsApp Cloud API** authentication template (copy-code button). No DLT registration needed; free Meta test number during development; same Meta setup is reused for reminders in Phase 8. SMS (MSG91 + DLT) can be added later as a fallback channel | Phase 2 |
 | 4 | Are plan prices GST-inclusive? | Inclusive / exclusive | **Inclusive** (what Indian gyms quote). Server back-calculates base and tax | Phase 3 |
 | 5 | Is the gym GST-registered? | Yes (tax invoice) / No (bill of supply) | Support both: `gyms.gstin` nullable; if null, issue a bill of supply with zero tax | Phase 4 |
 | 6 | Offline payments (cash / UPI at desk) | Support / Razorpay only | **Support** — admin records a manual payment; most Indian gyms still take cash | Phase 4 |
@@ -125,7 +125,7 @@ Each phase ends with: tests pass, lint passes, typecheck passes, commit (and a s
 
 ### Phase 2 — Auth and tenancy
 
-Approved decisions: phone-first login then pick a gym; no self sign-up (only people the gym added can log in); console OTP + `.env` test numbers until MSG91/DLT is live; API on Render (Singapore) behind the Cloudflare Worker at `/api/*` so the refresh cookie is first-party (Safari).
+Approved decisions: phone-first login then pick a gym; no self sign-up (only people the gym added can log in); login codes by WhatsApp (`OTP_PROVIDER=whatsapp`; `console` + `.env` test numbers for local work); API on Render (Singapore) behind the Cloudflare Worker at `/api/*` so the refresh cookie is first-party (Safari).
 
 **2a — API auth and tenancy (done)**
 - Tables: `users` (unique gym+phone), `otp_challenges` (HMAC'd codes, not tenant-owned), `refresh_tokens` (rotating, per-login family), `consents`.
@@ -134,6 +134,8 @@ Approved decisions: phone-first login then pick a gym; no self sign-up (only peo
 - Tokens: HS256 access JWT, 15 min; refresh token in `httpOnly; SameSite=Lax; Path=/api/v1/auth` cookie (Secure in production), 30 days, rotated on every use; reusing a rotated token revokes the whole family.
 - Tenancy: `forTenant(db, gymId)` Prisma extension (`src/db/tenant.ts`) adds the gym filter to every read/update/delete on tenant models, stamps `gymId` on creates and throws `TenantViolationError` for another gym's id. Protected routes only get `request.auth.db`. ESLint blocks importing `db/unscoped` outside bootstrap, health and auth code. A test fails if a model with `gymId` is missing from `TENANT_MODELS`.
 - Seed: Onthec Gym + owner from `SEED_OWNER_PHONE` / `SEED_OWNER_NAME`.
+- WhatsApp sender (`src/services/auth/whatsapp.ts`): Cloud API `messages` call with the `login_code` authentication template (code in body + copy-code button). Meta errors become `OTP_DELIVERY_FAILED` (502) and are logged with the masked number; a failed send is deleted so it doesn't count towards the 3-per-15-min limit.
+- For production: Meta business verification, a dedicated WhatsApp business number, and a System User access token (temporary tokens last 24 h).
 - Tests: OTP flow and limits, multi-gym selection, refresh rotation + reuse, logout, roles, and the isolation template every later endpoint copies (gym A gets 404 — identical to "missing" — on gym B ids; lists never include gym B rows).
 
 **2b — Login screens (next)**
@@ -247,7 +249,7 @@ Approved decisions: phone-first login then pick a gym; no self sign-up (only peo
 ## 10. Things to start outside the code now
 
 These have lead times and don't depend on the code:
-1. **DLT registration** (entity + sender ID + OTP template) with an SMS provider.
+1. **Meta Business verification + WhatsApp business number** (login codes and reminders). DLT/SMS registration is only needed if SMS is added later as a fallback.
 2. **Razorpay account + KYC** for the gym's business.
 3. **Meta Business verification** for WhatsApp Cloud API.
 4. Confirm with the gym's CA: GST registration status, SAC code, invoice format.

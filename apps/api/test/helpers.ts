@@ -5,7 +5,7 @@ import { buildApp } from '../src/app'
 import { createDb, type Db } from '../src/db/unscoped'
 import { loadEnv } from '../src/env'
 import { REFRESH_COOKIE } from '../src/routes/auth'
-import type { OtpSender } from '../src/services/auth/sms'
+import type { OtpSender } from '../src/services/auth/senders'
 
 export const testDatabaseUrl = process.env.TEST_DATABASE_URL
 
@@ -79,9 +79,10 @@ export async function createUser(
   return db.user.create({ data: { gymId, phone, name, role } })
 }
 
-export async function startApp(db: Db, envOverrides: Record<string, string> = {}) {
+/** Builds the app with a recording OTP sender, or `otpSender` to simulate delivery problems. */
+export async function startApp(db: Db, envOverrides: Record<string, string> = {}, otpSender?: OtpSender) {
   const otps = captureOtps()
-  const app = await buildApp({ env: testEnv(envOverrides), db, otpSender: otps.sender })
+  const app = await buildApp({ env: testEnv(envOverrides), db, otpSender: otpSender ?? otps.sender })
   return { app, otps }
 }
 

@@ -4,7 +4,7 @@ import type { Db } from '../../db/unscoped'
 import type { Env } from '../../env'
 import { AppError } from '../../errors'
 import { hmacSha256, randomOtp, safeEqual } from '../../lib/crypto'
-import type { OtpSender } from './sms'
+import type { OtpSender } from './senders'
 
 export const OTP_TTL_SECONDS = 5 * 60
 export const OTP_MAX_SENDS = 3
@@ -22,9 +22,9 @@ function hashOtp(env: Env, phone: string, code: string) {
   return hmacSha256(env.OTP_SECRET, `${phone}:${code}`)
 }
 
-/** Test numbers work only while no real SMS provider is configured. */
+/** Test numbers work only while codes are not really delivered (OTP_PROVIDER=console). */
 function testCodeFor(env: Env, phone: string): string | undefined {
-  if (env.SMS_PROVIDER !== 'console') return undefined
+  if (env.OTP_PROVIDER !== 'console') return undefined
   return env.OTP_TEST_PHONES.includes(phone) ? env.OTP_TEST_CODE : undefined
 }
 
@@ -48,10 +48,18 @@ export async function requestOtp({ db, env, sender, log }: OtpDeps, phone: strin
 
   const testCode = testCodeFor(env, phone)
   const code = testCode ?? randomOtp()
-  await db.otpChallenge.create({
+  const challenge = await db.otpChallenge.create({
     data: { phone, codeHash: hashOtp(env, phone, code), expiresAt: new Date(Date.now() + OTP_TTL_SECONDS * 1000) },
   })
-  if (!testCode) await sender.send(phone, code, log)
+  if (!testCode) {
+    try {
+      await sender.send(phone, code, log)
+    } catch (error) {
+      // A code that never arrived must not count towards the per-phone limit.
+      await db.otpChallenge.delete({ where: { id: challenge.id } })
+      throw error
+    }
+  }
 
   return { expiresInSeconds: OTP_TTL_SECONDS }
 }

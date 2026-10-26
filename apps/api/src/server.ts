@@ -1,7 +1,7 @@
 import { buildApp } from './app'
 import { createDb } from './db/unscoped'
 import { loadEnv } from './env'
-import { consoleOtpSender } from './services/auth/sms'
+import { createOtpSender } from './services/auth/senders'
 
 if (process.env.NODE_ENV !== 'production') {
   try {
@@ -13,10 +13,12 @@ if (process.env.NODE_ENV !== 'production') {
 
 const env = loadEnv()
 const db = createDb()
-const app = await buildApp({ env, db, otpSender: consoleOtpSender })
+const app = await buildApp({ env, db, otpSender: createOtpSender(env) })
 
-if (env.SMS_PROVIDER === 'console') {
-  app.log.warn('SMS_PROVIDER=console: login codes are written to this log, not sent by SMS.')
+if (env.OTP_PROVIDER === 'console') {
+  app.log.warn('OTP_PROVIDER=console: login codes are written to this log, not sent to phones.')
+} else {
+  app.log.info(`Login codes are sent by ${env.OTP_PROVIDER} (template "${env.WHATSAPP_OTP_TEMPLATE}").`)
 }
 
 async function shutdown(signal: NodeJS.Signals) {

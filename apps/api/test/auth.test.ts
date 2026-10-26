@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
+import { AppError } from '../src/errors'
 import { OTP_MAX_ATTEMPTS, OTP_MAX_SENDS } from '../src/services/auth/otp'
 import { REFRESH_COOKIE, REFRESH_COOKIE_PATH } from '../src/routes/auth'
 import {
@@ -84,6 +85,24 @@ describe.skipIf(!testDatabaseUrl)('phone OTP login', () => {
       expect(responses.slice(0, 20).every((res) => res.statusCode === 404)).toBe(true)
       expect(responses[20]?.statusCode).toBe(429)
       expect(responses[20]?.json().error.code).toBe('RATE_LIMITED')
+    })
+
+    it('reports a failed delivery and does not count it towards the limit', async () => {
+      await createUser(ctx.db, gymId, { phone: PHONE })
+      await app.close()
+      const failingSender = {
+        async send(): Promise<void> {
+          throw new AppError(502, 'OTP_DELIVERY_FAILED', 'We could not send your code on WhatsApp.')
+        },
+      }
+      ;({ app } = await startApp(ctx.db, {}, failingSender))
+
+      for (let i = 0; i < OTP_MAX_SENDS + 1; i++) {
+        const res = await requestOtp(PHONE)
+        expect(res.statusCode).toBe(502)
+        expect(res.json().error.code).toBe('OTP_DELIVERY_FAILED')
+      }
+      expect(await ctx.db.otpChallenge.count()).toBe(0)
     })
 
     it('refuses deleted accounts', async () => {

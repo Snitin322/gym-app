@@ -10,6 +10,13 @@ function splitList(value: string) {
 
 const secret = z.string().min(32, 'must be at least 32 characters (generate with: openssl rand -base64 48)')
 
+/** Optional text setting; a blank value (as in .env.example) means "not set". */
+const optionalText = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) => value || undefined)
+
 const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -23,18 +30,34 @@ const envSchema = z
 
     JWT_SECRET: secret,
     OTP_SECRET: secret,
-    /** Only "console" until DLT registration is approved; then "msg91" is added. */
-    SMS_PROVIDER: z.enum(['console']).default('console'),
-    /** Numbers that log in with OTP_TEST_CODE instead of a real SMS. Ignored once a real SMS provider is used. */
+    /** How login codes are delivered: "console" writes them to the API log; "whatsapp" sends them. */
+    OTP_PROVIDER: z.enum(['console', 'whatsapp']).default('console'),
+    /** Numbers that log in with OTP_TEST_CODE instead of a real message. Only honoured with OTP_PROVIDER=console. */
     OTP_TEST_PHONES: z.string().default('').transform(splitList).pipe(z.array(phoneSchema)),
     /** A blank value (as in .env.example) means "not set". */
     OTP_TEST_CODE: z
       .union([z.literal('').transform(() => undefined), z.string().regex(/^\d{6}$/, 'must be 6 digits')])
       .optional(),
+
+    // WhatsApp Cloud API (Meta). Required when OTP_PROVIDER=whatsapp.
+    WHATSAPP_PHONE_NUMBER_ID: optionalText,
+    WHATSAPP_ACCESS_TOKEN: optionalText,
+    /** Approved "Authentication" template with a copy-code button. */
+    WHATSAPP_OTP_TEMPLATE: z.string().default('login_code'),
+    WHATSAPP_TEMPLATE_LANGUAGE: z.string().default('en_US'),
+    WHATSAPP_API_VERSION: z.string().regex(/^v\d+\.\d+$/, 'must look like v23.0').default('v23.0'),
   })
   .refine((env) => env.OTP_TEST_PHONES.length === 0 || env.OTP_TEST_CODE, {
     message: 'is required when OTP_TEST_PHONES is set',
     path: ['OTP_TEST_CODE'],
+  })
+  .refine((env) => env.OTP_PROVIDER !== 'whatsapp' || env.WHATSAPP_PHONE_NUMBER_ID, {
+    message: 'is required when OTP_PROVIDER=whatsapp',
+    path: ['WHATSAPP_PHONE_NUMBER_ID'],
+  })
+  .refine((env) => env.OTP_PROVIDER !== 'whatsapp' || env.WHATSAPP_ACCESS_TOKEN, {
+    message: 'is required when OTP_PROVIDER=whatsapp',
+    path: ['WHATSAPP_ACCESS_TOKEN'],
   })
 
 export type Env = z.infer<typeof envSchema>

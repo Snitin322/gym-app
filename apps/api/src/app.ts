@@ -11,7 +11,7 @@ import { authRoutes } from './routes/auth'
 import { healthRoutes } from './routes/health'
 import { meRoutes } from './routes/me'
 import { usersRoutes } from './routes/users'
-import type { OtpSender } from './services/auth/sms'
+import type { OtpSender } from './services/auth/senders'
 
 export interface AppDeps {
   env: Env
