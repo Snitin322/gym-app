@@ -9,7 +9,10 @@ import type {
   MembershipPlan,
   MembershipView,
   MyMembership,
+  OnlineOrder,
+  OnlinePaymentStatus,
   PlanInput,
+  RenewalOptions,
   UserSummary,
 } from '@onthec/shared'
 import { api } from './client'
@@ -179,6 +182,33 @@ export function useAddStaff() {
       api<UserSummary>('/users', { method: 'POST', body: input }),
     onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.staff }),
   })
+}
+
+// --- Online renewal (member) ---------------------------------------------------
+
+export function useRenewalOptions(enabled: boolean) {
+  return useQuery({
+    queryKey: ['me', 'renewal-options'],
+    queryFn: () => api<RenewalOptions>('/me/renewal-options'),
+    enabled,
+  })
+}
+
+export function createOnlineOrder(planId: string) {
+  return api<OnlineOrder>('/me/orders', { method: 'POST', body: { planId } })
+}
+
+export function verifyOnlinePayment(input: {
+  paymentId: string
+  razorpayOrderId: string
+  razorpayPaymentId: string
+  razorpaySignature: string
+}) {
+  return api<OnlinePaymentStatus>('/me/orders/verify', { method: 'POST', body: input })
+}
+
+export function getOnlinePaymentStatus(paymentId: string) {
+  return api<OnlinePaymentStatus>(`/me/payments/${paymentId}`)
 }
 
 // --- Member's own view -------------------------------------------------------

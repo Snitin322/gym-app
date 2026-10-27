@@ -4,6 +4,7 @@ import { errorMessage, formatDate, plural } from '../lib/format'
 import { membershipRange, membershipSummary, monthsLabel } from '../lib/membership'
 import { Card } from '../ui/Form'
 import { PaymentRow } from '../ui/PaymentRow'
+import { RenewOnlineEntry } from './RenewOnline'
 import { ErrorText } from '../ui/Screen'
 import { StatusBadge } from '../ui/StatusBadge'
 
@@ -30,10 +31,13 @@ export function MyMembershipCard() {
   const { current, history, duePaise, payments } = query.data
   if (!current) {
     return (
-      <Card>
-        <h2 className="font-semibold">No membership yet</h2>
-        <p className="mt-1 text-sm text-muted">Please contact the front desk to start a plan.</p>
-      </Card>
+      <>
+        <Card>
+          <h2 className="font-semibold">No membership yet</h2>
+          <p className="mt-1 text-sm text-muted">Start a plan at the front desk, or online if available below.</p>
+        </Card>
+        <RenewOnlineEntry />
+      </>
     )
   }
 
@@ -82,6 +86,8 @@ export function MyMembershipCard() {
           </p>
         )}
       </Card>
+
+      <RenewOnlineEntry />
 
       {duePaise > 0 && (
         <p role="alert" className="rounded-2xl bg-warn/10 px-5 py-4 text-warn">

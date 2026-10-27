@@ -59,7 +59,8 @@ export function useTestDatabase() {
     await state.db?.$disconnect()
   })
   beforeEach(async () => {
-    await state.db.$executeRaw`TRUNCATE TABLE consents, refresh_tokens, otp_challenges, users, gyms CASCADE`
+    // gyms CASCADE clears every gym-owned table; the others aren't linked to a gym.
+    await state.db.$executeRaw`TRUNCATE TABLE webhook_events, otp_challenges, gyms CASCADE`
   })
 
   return state

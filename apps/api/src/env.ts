@@ -46,6 +46,25 @@ const envSchema = z
     WHATSAPP_OTP_TEMPLATE: z.string().default('login_code'),
     WHATSAPP_TEMPLATE_LANGUAGE: z.string().default('en_US'),
     WHATSAPP_API_VERSION: z.string().regex(/^v\d+\.\d+$/, 'must look like v26.0').default('v26.0'),
+
+    // Razorpay (online payments). All three or none; without them the app offers desk payments only.
+    RAZORPAY_KEY_ID: optionalText,
+    RAZORPAY_KEY_SECRET: optionalText,
+    RAZORPAY_WEBHOOK_SECRET: optionalText,
+  })
+  .refine(
+    (env) => {
+      const set = [env.RAZORPAY_KEY_ID, env.RAZORPAY_KEY_SECRET, env.RAZORPAY_WEBHOOK_SECRET].filter(Boolean).length
+      return set === 0 || set === 3
+    },
+    {
+      message: 'set all three of RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET, or none',
+      path: ['RAZORPAY_KEY_ID'],
+    },
+  )
+  .refine((env) => !env.RAZORPAY_KEY_ID || env.RAZORPAY_KEY_ID !== env.RAZORPAY_KEY_SECRET, {
+    message: 'must be the Key Secret, not the Key Id (they are different values)',
+    path: ['RAZORPAY_KEY_SECRET'],
   })
   .refine((env) => env.OTP_TEST_PHONES.length === 0 || env.OTP_TEST_CODE, {
     message: 'is required when OTP_TEST_PHONES is set',

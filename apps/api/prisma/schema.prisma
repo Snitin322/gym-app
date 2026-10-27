@@ -168,6 +168,7 @@ model MembershipPlan {
 
   gym         Gym          @relation(fields: [gymId], references: [id], onDelete: Restrict)
   memberships Membership[]
+  payments    Payment[]
 
   @@unique([gymId, name])
   @@index([gymId])
@@ -290,14 +291,17 @@ model Payment {
   recordedById      String?       @map("recorded_by_id") @db.Uuid
   razorpayOrderId   String?       @unique @map("razorpay_order_id")
   razorpayPaymentId String?       @unique @map("razorpay_payment_id")
+  /// For online orders: the plan being bought; the membership is created when the webhook confirms payment.
+  planId            String?       @map("plan_id") @db.Uuid
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  gym        Gym         @relation(fields: [gymId], references: [id], onDelete: Restrict)
-  member     Member      @relation(fields: [memberId], references: [id], onDelete: Restrict)
-  membership Membership? @relation(fields: [membershipId], references: [id], onDelete: Restrict)
-  recordedBy User?       @relation("PaymentRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+  gym        Gym             @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  member     Member          @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  membership Membership?     @relation(fields: [membershipId], references: [id], onDelete: Restrict)
+  recordedBy User?           @relation("PaymentRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
   invoice    Invoice?
+  plan       MembershipPlan? @relation(fields: [planId], references: [id], onDelete: Restrict)
 
   @@index([gymId])
   @@index([memberId])
@@ -365,4 +369,19 @@ model InvoiceSequence {
 
   @@id([gymId, financialYear])
   @@map("invoice_sequences")
+}
+
+/// Every verified Razorpay webhook we processed (idempotency and audit). Not tenant-owned:
+/// webhooks arrive without a session; the payment they refer to decides the gym.
+model WebhookEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  provider   String
+  /// The X-Razorpay-Event-Id header.
+  eventId    String   @map("event_id")
+  type       String
+  payload    Json
+  receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz(3)
+
+  @@unique([provider, eventId])
+  @@map("webhook_events")
 }

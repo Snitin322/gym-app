@@ -205,7 +205,14 @@ Approved decisions: GST status not decided yet — build both (GSTIN set → tax
 - Older payments without an invoice: "Create invoice" (`POST /payments/:id/invoice`, idempotent).
 - Tests: GST split across many amounts, FY switch at 1 April IST, numbering (per gym, part payments, concurrent sales stay 1..n), snapshot immutability, PDF access rules, legacy invoicing.
 
-**4c — Razorpay online renewal (next)**
+**4c — Razorpay online renewal (done)**
+- Member home: **Renew online** (only when Razorpay keys are configured) → choose an active plan (shows start/end and GST-inclusive price) → `POST /me/orders` creates a `created` payment (amount = plan price, decided by the server) and the Razorpay order (receipt = payment id) → Checkout → `POST /me/orders/verify` checks the Checkout signature (HMAC of `order|payment` with the key secret) but does **not** mark paid → app polls `GET /me/payments/:id` until confirmed (≈60 s, then "payment received, it will update shortly").
+- **Webhook is the source of truth** (`POST /api/v1/webhooks/razorpay`, raw body, `X-Razorpay-Signature` HMAC with the webhook secret): `payment.captured`/`order.paid` → in one serializable transaction create the membership (renewal start rule; honoured even if the plan was deactivated after payment), mark the payment paid and issue the invoice; amount/currency mismatch → not fulfilled (logged); `payment.failed` → failed (a later successful attempt on the same order still fulfils). Idempotent: `webhook_events` (provider + event id) and "already paid" checks; concurrent duplicate deliveries fulfil once.
+- Webhook code may use the unscoped client only to find the payment's gym, then switches to the tenant client (ESLint allow-list updated).
+- Settings: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` (all or none; startup refuses Key Id pasted as the secret). Setup: `docs/RAZORPAY_SETUP.md`.
+- Tests: server-side amount, signatures (Checkout + webhook), forged/other-member access, webhook fulfilment + invoice, repeats/both event types/concurrent deliveries, bad signature/wrong amount/unknown order, fail-then-succeed, renewal start, deactivated plan; app flow with a fake Checkout.
+
+Phase 4 is complete (refunds/credit notes deferred).
 
 ### Phase 5 — PT packages and booking
 - Admin: PT packages CRUD; sell a package (online or manual payment → `pt_purchase` + ledger `+N`); assign trainer.

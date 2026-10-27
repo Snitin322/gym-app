@@ -124,10 +124,12 @@ export async function addMembershipInTx(
   memberId: string,
   input: z.infer<typeof newMembershipSchema>,
   today: IsoDate,
+  /** For an online order that was already paid: honour it even if the plan was deactivated since. */
+  { paidOrder = false }: { paidOrder?: boolean } = {},
 ): Promise<MembershipView> {
   const plan = await tx.membershipPlan.findUnique({ where: { id: input.planId } })
   if (!plan) throw notFound('Plan')
-  if (!plan.active) throw new AppError(409, ErrorCode.PLAN_INACTIVE, 'This plan is no longer offered.')
+  if (!plan.active && !paidOrder) throw new AppError(409, ErrorCode.PLAN_INACTIVE, 'This plan is no longer offered.')
 
   const existing = (
     await tx.membership.findMany({ where: { memberId, cancelledAt: null }, select: { startDate: true, endDate: true } })

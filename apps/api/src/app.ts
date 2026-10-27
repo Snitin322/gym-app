@@ -11,6 +11,9 @@ import { authRoutes } from './routes/auth'
 import { gymRoutes } from './routes/gym'
 import { healthRoutes } from './routes/health'
 import { invoicesRoutes } from './routes/invoices'
+import { onlineRoutes } from './routes/online'
+import { webhooksRoutes } from './routes/webhooks'
+import { createRazorpayGateway, type RazorpayGateway } from './services/razorpay'
 import { meRoutes } from './routes/me'
 import { membersRoutes } from './routes/members'
 import { plansRoutes } from './routes/plans'
@@ -23,6 +26,8 @@ export interface AppDeps {
   otpSender: OtpSender
   /** Current time; tests pass a fixed clock to check date rules. */
   now?: () => Date
+  /** Razorpay; defaults to the one configured in env (null = desk payments only). */
+  razorpay?: RazorpayGateway | null
 }
 
 const API_PREFIX = '/api/v1'
@@ -64,6 +69,10 @@ export async function buildApp(deps: AppDeps) {
   await app.register(membersRoutes({ authenticate, today }), { prefix: API_PREFIX })
   await app.register(gymRoutes({ authenticate }), { prefix: API_PREFIX })
   await app.register(invoicesRoutes({ authenticate, today }), { prefix: API_PREFIX })
+
+  const gateway = deps.razorpay === undefined ? createRazorpayGateway(env) : deps.razorpay
+  await app.register(onlineRoutes({ authenticate, gateway, today }), { prefix: API_PREFIX })
+  await app.register(webhooksRoutes({ db, gateway, today }), { prefix: API_PREFIX })
 
   return app
 }

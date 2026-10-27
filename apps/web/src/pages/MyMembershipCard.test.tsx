@@ -100,7 +100,7 @@ describe('member home card', () => {
 
   it('tells members without a plan to contact the front desk', async () => {
     renderHome({ current: null, history: [] })
-    expect(await screen.findByText(/contact the front desk to start a plan/)).toBeTruthy()
+    expect(await screen.findByText(/Start a plan at the front desk/)).toBeTruthy()
   })
 
   it('shows an expired membership with a renew prompt and past memberships', async () => {

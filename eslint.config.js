@@ -27,6 +27,9 @@ export default tseslint.config([
       'apps/api/src/plugins/auth.ts',
       'apps/api/src/routes/auth.ts',
       'apps/api/src/routes/health.ts',
+      // Webhooks have no session: the payment they refer to decides the gym.
+      'apps/api/src/routes/webhooks.ts',
+      'apps/api/src/services/razorpay-webhook.ts',
       'apps/api/src/services/auth/**',
       'apps/api/src/services/health.ts',
     ],
