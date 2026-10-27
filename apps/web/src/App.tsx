@@ -1,14 +1,20 @@
-import { InstallHint } from './InstallHint'
+import { Navigate, Route, Routes } from 'react-router'
+import { RequireAuth } from './auth/RequireAuth'
+import { ConsentPage } from './pages/ConsentPage'
+import { HomePage } from './pages/HomePage'
+import { LoginPage } from './pages/LoginPage'
+import { WelcomePage } from './pages/WelcomePage'
 
 export default function App() {
   return (
-    <main className="screen">
-      <img className="logo" src="/logo.svg" alt="" width={112} height={112} />
-      <h1>
-        Welcome to <span className="brand">Onthec Gym</span>
-      </h1>
-      <p className="tagline">Your membership, PT sessions and check-ins — coming soon.</p>
-      <InstallHint />
-    </main>
+    <Routes>
+      <Route path="/" element={<WelcomePage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<RequireAuth />}>
+        <Route path="/consent" element={<ConsentPage />} />
+        <Route path="/home" element={<HomePage />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   )
 }

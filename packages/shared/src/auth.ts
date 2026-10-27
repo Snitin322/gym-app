@@ -38,8 +38,12 @@ export interface SessionUser {
   consentRequired: boolean
 }
 
+export type OtpChannel = 'whatsapp' | 'console'
+
 export interface OtpRequestResponse {
   expiresInSeconds: number
+  /** How the code was delivered, so the app can say "sent on WhatsApp". "console" = development only. */
+  channel: OtpChannel
 }
 
 export interface SessionResponse {

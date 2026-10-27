@@ -61,7 +61,7 @@ export async function requestOtp({ db, env, sender, log }: OtpDeps, phone: strin
     }
   }
 
-  return { expiresInSeconds: OTP_TTL_SECONDS }
+  return { expiresInSeconds: OTP_TTL_SECONDS, channel: env.OTP_PROVIDER }
 }
 
 /** Checks the code and returns every active account for this phone (one per gym). */

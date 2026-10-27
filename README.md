@@ -9,7 +9,7 @@ Multi-tenant gym management platform (members, trainers, owner/admin) delivered 
 
 - **Phase 0 — Installable PWA shell:** done. Live at https://gym-app.snitin322.workers.dev
 - **Phase 1 — Backend setup:** done. Fastify API, Prisma, Neon Postgres, health check (runs locally; API hosting comes with Phase 2).
-- **Phase 2 — Login and tenancy:** 2a (API: phone OTP login, sessions, roles, per-gym data isolation) done; 2b (login screens) and 2c (API hosting) next.
+- **Phase 2 — Login and tenancy:** 2a (API: phone OTP login, sessions, roles, per-gym data isolation) and 2b (login screens) done; 2c (API hosting) next. Until 2c, login only works locally with `pnpm dev` — the live site shows "server not available".
 
 Login codes are sent on WhatsApp when `OTP_PROVIDER=whatsapp` — set it up with [docs/WHATSAPP_SETUP.md](docs/WHATSAPP_SETUP.md). With `OTP_PROVIDER=console` they appear in the API log (`pnpm dev` terminal) instead.
 

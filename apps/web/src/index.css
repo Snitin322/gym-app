@@ -1,121 +1,37 @@
-:root {
-  --bg: #0b0f19;
-  --surface: #151b2b;
-  --text: #f8fafc;
-  --muted: #94a3b8;
-  --accent: #a3e635;
-  --accent-text: #0b0f19;
+@import 'tailwindcss';
 
-  color-scheme: dark;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.5;
-  -webkit-text-size-adjust: 100%;
+/* Brand tokens: use as bg-bg, bg-surface, text-ink, text-muted, bg-accent, text-accent-ink, text-danger, ... */
+@theme {
+  --color-bg: #0b0f19;
+  --color-surface: #151b2b;
+  --color-surface-2: #1e2638;
+  --color-line: #2a3348;
+  --color-ink: #f8fafc;
+  --color-muted: #94a3b8;
+  --color-accent: #a3e635;
+  --color-accent-ink: #0b0f19;
+  --color-danger: #f87171;
+  --color-info: #60a5fa;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
-* {
-  box-sizing: border-box;
-}
+@layer base {
+  :root {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
 
-html,
-body {
-  margin: 0;
-  min-height: 100%;
-  background: var(--bg);
-  color: var(--text);
-}
+  html,
+  body {
+    min-height: 100%;
+    background: var(--color-bg);
+    color: var(--color-ink);
+  }
 
-body {
-  /* Keep content clear of the notch and home indicator when opened from the Home Screen */
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  -webkit-tap-highlight-color: transparent;
-}
-
-.screen {
-  min-height: 100dvh;
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 48px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 16px;
-}
-
-.logo {
-  border-radius: 28px;
-  box-shadow: 0 12px 40px rgb(163 230 53 / 0.15);
-}
-
-h1 {
-  margin: 8px 0 0;
-  font-size: clamp(1.75rem, 8vw, 2.25rem);
-  line-height: 1.2;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.brand {
-  display: block;
-  color: var(--accent);
-}
-
-.tagline {
-  margin: 0;
-  color: var(--muted);
-}
-
-.install {
-  width: 100%;
-  margin-top: 24px;
-  padding: 20px;
-  border-radius: 16px;
-  background: var(--surface);
-  text-align: left;
-}
-
-.install h2 {
-  margin: 0 0 8px;
-  font-size: 1rem;
-}
-
-.install ol {
-  margin: 0;
-  padding-left: 20px;
-  color: var(--muted);
-}
-
-.install li + li {
-  margin-top: 6px;
-}
-
-.install strong {
-  color: var(--text);
-}
-
-.install-button {
-  width: 100%;
-  min-height: 48px;
-  border: 0;
-  border-radius: 12px;
-  background: var(--accent);
-  color: var(--accent-text);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.install-note {
-  margin: 10px 0 0;
-  color: var(--muted);
-  font-size: 0.875rem;
-  text-align: center;
-}
-
-.inline-icon {
-  width: 1.1em;
-  height: 1.1em;
-  vertical-align: -0.2em;
-  color: #60a5fa;
+  body {
+    /* Keep content clear of the notch and home indicator when opened from the Home Screen */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    -webkit-tap-highlight-color: transparent;
+  }
 }

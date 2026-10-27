@@ -138,8 +138,13 @@ Approved decisions: phone-first login then pick a gym; no self sign-up (only peo
 - For production: Meta business verification, a dedicated WhatsApp business number, and a System User access token (temporary tokens last 24 h).
 - Tests: OTP flow and limits, multi-gym selection, refresh rotation + reuse, logout, roles, and the isolation template every later endpoint copies (gym A gets 404 — identical to "missing" — on gym B ids; lists never include gym B rows).
 
-**2b — Login screens (next)**
-- React Router, TanStack Query, Tailwind. Phone → OTP (SMS autofill) → gym picker if needed → consent → role home placeholder + logout. 360px.
+**2b — Login screens (done)**
+- React Router, TanStack Query, Tailwind v4 (brand tokens in `apps/web/src/index.css`).
+- Screens: welcome (Log in + install help) → phone → 6-digit code (auto-submits; `autocomplete="one-time-code"`; resend after 30 s; says "WhatsApp" or "development mode" from the API's `channel`) → gym picker if needed → consent (DRAFT notice text — review before launch) → home placeholder with role, gym and logout.
+- API client (`apps/web/src/api/client.ts`): access token in memory only; on 401 it refreshes once via the cookie and retries; concurrent requests share one refresh (a second use of the same refresh token would end the login). Non-JSON/unreachable API → readable "server not available" message.
+- Session restored on reload via `/auth/refresh`. `RequireAuth` guards signed-in pages and forces consent first.
+- Dev: Vite proxies `/api` to the local API (same origin, first-party cookie); the service worker never serves `/api`.
+- Tests: client refresh logic; full login, wrong code, unregistered number, gym choice, consent, reload and logout with a fake API.
 
 **2c — Deploy the API**
 - Render free web service (Singapore), `TRUST_PROXY=true`, Neon in Singapore. Cloudflare Worker routes `/api/*` to Render; everything else stays static assets.

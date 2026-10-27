@@ -59,7 +59,7 @@ describe.skipIf(!testDatabaseUrl)('phone OTP login', () => {
       const res = await requestOtp('98765 43210')
 
       expect(res.statusCode).toBe(200)
-      expect(res.json()).toEqual({ expiresInSeconds: 300 })
+      expect(res.json()).toEqual({ expiresInSeconds: 300, channel: 'console' })
       expect(otps.sent).toEqual([{ phone: PHONE, code: expect.stringMatching(/^\d{6}$/) }])
 
       const [challenge] = await ctx.db.otpChallenge.findMany()
