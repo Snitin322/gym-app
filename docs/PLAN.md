@@ -146,7 +146,7 @@ Approved decisions: phone-first login then pick a gym; no self sign-up (only peo
 - Dev: Vite proxies `/api` to the local API (same origin, first-party cookie); the service worker never serves `/api`.
 - Tests: client refresh logic; full login, wrong code, unregistered number, gym choice, consent, reload and logout with a fake API.
 
-**2c — Deploy the API (in progress)**
+**2c — Deploy the API (done — live at https://onthec-api.onrender.com, used via https://gym-app.snitin322.workers.dev/api)**
 - `render.yaml` Blueprint: free web service `onthec-api` in Singapore, migrations on start, health check, Render-generated `JWT_SECRET`/`OTP_SECRET`, DB and WhatsApp values entered in the dashboard.
 - Cloudflare Worker (`apps/web/worker/index.ts`, `run_worker_first: ["/api/*"]`) forwards `/api/*` to `API_ORIGIN` with the real client IP; everything else is static assets. Unreachable API → standard error JSON (502).
 - Steps and day-to-day notes: `docs/DEPLOY.md`.
