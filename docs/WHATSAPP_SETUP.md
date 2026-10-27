@@ -80,7 +80,9 @@ Login codes must use an approved **Authentication** template. Meta fixes the wor
 3. Click **Create template**.
 4. **Category**: **Authentication** → **Next/Continue**.
 5. **Template name**: `login_code` (lower-case, underscore — exactly this).
-   **Language**: **English (US)**.
+   **Language**: **English (US)**. ⚠️ Meta lists both "English" (`en`) and "English (US)" (`en_US`) and treats them
+   as different languages. Whichever you pick, `WHATSAPP_TEMPLATE_LANGUAGE` in `.env` must match it
+   (`en_US` for English (US), `en` for English).
 6. **Code delivery setup**: choose **Copy code**.
 7. **Content**:
    - ✅ **Add security recommendation**
@@ -104,7 +106,7 @@ the template can be created through Meta's API with the same settings instead.
    WHATSAPP_PHONE_NUMBER_ID=<Phone number ID from Part 3, step 4>
    WHATSAPP_ACCESS_TOKEN=<token from Part 3, step 3 — or the permanent one from Part 6>
    WHATSAPP_OTP_TEMPLATE=login_code
-   WHATSAPP_TEMPLATE_LANGUAGE=en_US
+   WHATSAPP_TEMPLATE_LANGUAGE=en_US   # or en, if the template was created in "English"
    ```
 
 3. Save. Make sure `SEED_OWNER_PHONE` is the **same number** you added in the **To** list.
@@ -147,7 +149,7 @@ When sending fails, the app shows *"We could not send your code on WhatsApp"*, a
 |---|---|---|
 | `131030` / "Recipient phone number not in allowed list" | Test number can only message numbers you added | Part 3 step 5: add and verify the number |
 | `190` / "Session has expired" / OAuthException | Access token expired (24 h) or copied wrongly | Generate a new token (Part 3) or use a permanent one (Part 6) |
-| `132001` / "Template name does not exist in the translation" | Template not approved yet, or name/language mismatch | Check status is **Active**, name is `login_code`, language **English (US)** = `en_US` |
+| `132001` / "Template name does not exist in the translation" / "does not exist in en_US" | Template still pending, or name/language mismatch | Wait for **Active**; name must be `login_code`; `WHATSAPP_TEMPLATE_LANGUAGE` must match the template's language (`en` for "English", `en_US` for "English (US)") |
 | `100` / "Invalid parameter" / "Unsupported post request" | Wrong Phone number ID (often the phone number was pasted instead) | Copy the **Phone number ID** from API Setup |
 | `131056` / pair rate limit | Too many messages to the same number in a short time | Wait a few minutes |
 | `131026` / "Message undeliverable" | That number has no WhatsApp, or hasn't accepted the latest WhatsApp terms | Open WhatsApp on that phone and update it |
