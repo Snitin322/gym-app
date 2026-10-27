@@ -174,7 +174,12 @@ Approved decisions: plans in **months only** (no trials); prices **GST-inclusive
 - Member page: current membership with big "days left", price, freeze usage and freeze history; actions Renew (default start = day after current ends), Freeze (shows days and new end date, enforces remaining), Unfreeze, Cancel (confirm step), Edit details (empty field clears it); all memberships listed.
 - Tests: role guard, plan form (paise + suggested freeze), list filter, add member, freeze, cancel confirmation; label helpers.
 
-**3c — Member home card (next)**
+**3c — Member home card (done)**
+- Members' home shows their membership: plan, status badge, big "N days left" / "Last day today" / "Frozen until …" / "Starts …" / "Expired N days ago", date range, progress bar ("day X of Y").
+- Freeze note (current or planned pause), renew reminder in the last 7 days unless a renewal is queued, "Next: … from …" for a queued renewal, renew prompt when expired, "contact the front desk" when there is no plan, collapsible past memberships.
+- Data from `GET /me/membership`; refreshes when the app is reopened.
+
+Phase 3 is complete.
 
 ### Phase 4 — Payments and invoices
 - Member: "Renew / Buy plan" → `POST /payments/orders` (server creates Razorpay order from the plan price, never from client amount) → Razorpay Checkout → `POST /payments/verify` (signature check, shows "processing") → webhook `payment.captured` / `order.paid` marks paid and fulfils.

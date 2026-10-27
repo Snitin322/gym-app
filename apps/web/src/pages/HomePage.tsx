@@ -5,6 +5,7 @@ import { InstallHint } from '../InstallHint'
 import { ROLE_LABELS, formatPhone } from '../lib/format'
 import { Button } from '../ui/Button'
 import { Logo, Screen } from '../ui/Screen'
+import { MyMembershipCard } from './MyMembershipCard'
 
 export function HomePage() {
   const user = useSignedInUser()
@@ -31,12 +32,15 @@ export function HomePage() {
           <HomeLink to="/admin/members" title="Members" text="Add members, renew, freeze" />
           <HomeLink to="/admin/plans" title="Plans" text="Prices, lengths, freeze limits" />
         </nav>
+      ) : user.role === 'member' ? (
+        <>
+          <MyMembershipCard />
+          <p className="text-center text-sm text-muted">Coming soon: PT session booking and your QR check-in pass.</p>
+        </>
       ) : (
         <section className="rounded-2xl bg-surface p-5">
           <h2 className="font-semibold">Coming next</h2>
-          <p className="mt-1 text-sm text-muted">
-            Your membership and days left, PT session booking and the QR check-in pass will appear here.
-          </p>
+          <p className="mt-1 text-sm text-muted">Your PT sessions and member list will appear here.</p>
         </section>
       )}
 
