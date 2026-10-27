@@ -40,6 +40,11 @@ export const ErrorCode = {
   NOT_A_MEMBER: 'NOT_A_MEMBER',
   PAYMENT_GATEWAY_ERROR: 'PAYMENT_GATEWAY_ERROR',
   INVALID_SIGNATURE: 'INVALID_SIGNATURE',
+
+  // Personal training
+  NOT_A_TRAINER: 'NOT_A_TRAINER',
+  PT_BALANCE_NEGATIVE: 'PT_BALANCE_NEGATIVE',
+  PT_EXPIRY_EARLIER: 'PT_EXPIRY_EARLIER',
 } as const
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode]

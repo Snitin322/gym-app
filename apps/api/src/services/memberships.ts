@@ -21,7 +21,7 @@ import {
 import type { TenantDb, TenantTx } from '../db/tenant'
 import { AppError } from '../errors'
 import { fromDbDate, toDbDate } from '../lib/dates'
-import { issueInvoiceInTx } from './invoices'
+import { takeDeskPaymentInTx } from './desk-payments'
 
 /** Who is acting, and in which gym (always from the session). */
 export interface Actor {
@@ -177,20 +177,18 @@ export async function addMembershipInTx(
 
   // Paid at the desk now (always the full sale price); otherwise it stays due ("pay later").
   if (input.payment && price > 0) {
-    const payment = await tx.payment.create({
-      data: {
-        gymId: actor.gymId,
+    await takeDeskPaymentInTx(
+      tx,
+      actor,
+      {
         memberId,
         membershipId: row.id,
         amountPaise: price,
         method: input.payment.method,
-        status: 'paid',
         reference: input.payment.reference,
-        paidAt: new Date(),
-        recordedById: actor.userId,
       },
-    })
-    await issueInvoiceInTx(tx, actor.gymId, payment.id, today)
+      today,
+    )
   }
 
   return toMembershipView(await loadMembership(tx, row.id), today)
@@ -211,21 +209,19 @@ export async function recordPayment(
     if (input.amountPaise > duePaise) {
       throw new AppError(400, ErrorCode.OVERPAYMENT, `Only ${formatPaise(duePaise)} is due.`)
     }
-    const payment = await tx.payment.create({
-      data: {
-        gymId: actor.gymId,
+    await takeDeskPaymentInTx(
+      tx,
+      actor,
+      {
         memberId: row.memberId,
         membershipId: row.id,
         amountPaise: input.amountPaise,
         method: input.method,
-        status: 'paid',
         reference: input.reference,
         note: input.note,
-        paidAt: new Date(),
-        recordedById: actor.userId,
       },
-    })
-    await issueInvoiceInTx(tx, actor.gymId, payment.id, today)
+      today,
+    )
     return toMembershipView(await loadMembership(tx, row.id), today)
   }, SERIALIZABLE)
 }

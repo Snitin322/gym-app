@@ -6,6 +6,8 @@ import { ROLE_LABELS, formatPhone } from '../lib/format'
 import { Button } from '../ui/Button'
 import { Logo, Screen } from '../ui/Screen'
 import { MyMembershipCard } from './MyMembershipCard'
+import { MyPtCard } from './MyPtCard'
+import { TrainerClients } from './TrainerClients'
 
 export function HomePage() {
   const user = useSignedInUser()
@@ -31,19 +33,21 @@ export function HomePage() {
         <nav aria-label="Manage the gym" className="grid grid-cols-2 gap-3">
           <HomeLink to="/admin/members" title="Members" text="Add members, renew, freeze" />
           <HomeLink to="/admin/plans" title="Plans" text="Prices, lengths, freeze limits" />
+          <HomeLink to="/admin/pt-packages" title="PT packages" text="Personal training sessions" />
           <HomeLink to="/admin/staff" title="Staff" text="Add trainers and admins" />
           {user.role === 'owner' && <HomeLink to="/admin/gym" title="Gym details" text="Address, GSTIN, invoices" />}
         </nav>
       ) : user.role === 'member' ? (
         <>
           <MyMembershipCard />
+          <MyPtCard />
           <p className="text-center text-sm text-muted">Coming soon: PT session booking and your QR check-in pass.</p>
         </>
       ) : (
-        <section className="rounded-2xl bg-surface p-5">
-          <h2 className="font-semibold">Coming next</h2>
-          <p className="mt-1 text-sm text-muted">Your PT sessions and member list will appear here.</p>
-        </section>
+        <>
+          <TrainerClients />
+          <p className="text-center text-sm text-muted">Coming soon: your availability and session bookings.</p>
+        </>
       )}
 
       <section className="rounded-2xl bg-surface p-5 text-sm">

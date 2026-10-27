@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useParams } from 'react-router'
 import {
   addDays,
@@ -6,7 +6,6 @@ import {
   inclusiveDays,
   membershipEndDate,
   normalizePhone,
-  rupeesToPaise,
   todayInIndia,
   type MemberDetail,
   type MembershipView,
@@ -22,16 +21,18 @@ import {
   useUnfreeze,
   useUpdateMember,
 } from '../../api/admin'
-import { errorMessage, formatDate, formatPhone, paiseToRupeesInput, plural } from '../../lib/format'
+import { errorMessage, formatDate, formatPhone, plural } from '../../lib/format'
 import { membershipRange, membershipSummary, monthsLabel, planOptionLabel } from '../../lib/membership'
-import { initialSale, saleToInput, type PayChoice, type SaleState } from '../../lib/sale'
+import { initialSale, saleToInput, type SaleState } from '../../lib/sale'
 import { AdminLayout, LoadingText } from '../../ui/AdminLayout'
 import { Button } from '../../ui/Button'
-import { Card, Field, PhoneInput, RupeeInput, SelectInput, TextArea, TextInput } from '../../ui/Form'
+import { Card, Field, PhoneInput, SelectInput, TextArea, TextInput } from '../../ui/Form'
 import { PaymentRow } from '../../ui/PaymentRow'
 import { ErrorText } from '../../ui/Screen'
 import { StatusBadge } from '../../ui/StatusBadge'
-import { PaymentMethodPicker, ReferenceField, SaleFields } from './SaleFields'
+import { PanelButtons, PanelCard, RecordPaymentPanel } from './panels'
+import { PtSection } from './PtSection'
+import { SaleFields } from './SaleFields'
 
 type Panel = 'renew' | 'freeze' | 'cancel' | 'edit' | { pay: MembershipView } | null
 
@@ -110,6 +111,8 @@ export function MemberPage() {
       {panel === 'edit' && <EditPanel member={m} onDone={close} />}
       {typeof panel === 'object' && panel !== null && <PayPanel member={m} membership={panel.pay} onDone={close} />}
 
+      <PtSection member={m} today={today} />
+
       {(m.emergencyContactName || m.emergencyContactPhone || m.notes) && (
         <Card className="text-sm">
           {(m.emergencyContactName || m.emergencyContactPhone) && (
@@ -155,49 +158,15 @@ export function MemberPage() {
 
 function PayPanel({ member, membership, onDone }: { member: MemberDetail; membership: MembershipView; onDone: () => void }) {
   const record = useRecordPayment(member.id)
-  const [amount, setAmount] = useState(paiseToRupeesInput(membership.duePaise))
-  const [method, setMethod] = useState<PayChoice>('cash')
-  const [reference, setReference] = useState('')
-  const [note, setNote] = useState('')
-  const [problem, setProblem] = useState<string | null>(null)
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    const amountPaise = rupeesToPaise(amount)
-    if (!amountPaise) return setProblem('Enter a valid amount')
-    if (amountPaise > membership.duePaise) return setProblem(`Only ${formatPaise(membership.duePaise)} is due`)
-    if (method === 'later') return
-    setProblem(null)
-    record.mutate(
-      {
-        membershipId: membership.id,
-        amountPaise,
-        method,
-        reference: reference.trim() || undefined,
-        note: note.trim() || undefined,
-      },
-      { onSuccess: onDone },
-    )
-  }
-
   return (
-    <PanelCard title="Record payment">
-      <form onSubmit={submit} noValidate className="flex flex-col gap-4">
-        <p className="text-muted">
-          {membership.planName} · {formatPaise(membership.duePaise)} due
-        </p>
-        <Field label="Amount received" hint="You can record part of the amount now and the rest later.">
-          {(id) => <RupeeInput id={id} value={amount} onChange={(e) => setAmount(e.target.value)} />}
-        </Field>
-        <PaymentMethodPicker value={method} onChange={setMethod} />
-        <ReferenceField method={method} value={reference} onChange={setReference} />
-        <Field label="Note (optional)">
-          {(id) => <TextInput id={id} value={note} onChange={(e) => setNote(e.target.value)} />}
-        </Field>
-        <ErrorText>{problem ?? errorMessage(record.error)}</ErrorText>
-        <PanelButtons onCancel={onDone} submitLabel="Record payment" loading={record.isPending} />
-      </form>
-    </PanelCard>
+    <RecordPaymentPanel
+      label={membership.planName}
+      duePaise={membership.duePaise}
+      pending={record.isPending}
+      error={record.error}
+      onSubmit={(values) => record.mutate({ membershipId: membership.id, ...values }, { onSuccess: onDone })}
+      onCancel={onDone}
+    />
   )
 }
 
@@ -255,33 +224,6 @@ function MembershipCard({
       )}
       {ms.cancelReason && <p className="mt-2 text-sm text-muted">Cancelled: {ms.cancelReason}</p>}
     </Card>
-  )
-}
-
-function PanelCard({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <Card className="flex flex-col gap-4 border border-accent/40">
-      <h2 className="text-lg font-bold">{title}</h2>
-      {children}
-    </Card>
-  )
-}
-
-function PanelButtons({ onCancel, submitLabel, loading, danger = false }: {
-  onCancel: () => void
-  submitLabel: string
-  loading: boolean
-  danger?: boolean
-}) {
-  return (
-    <div className="flex gap-3">
-      <Button variant="secondary" onClick={onCancel}>
-        Back
-      </Button>
-      <Button type="submit" loading={loading} className={danger ? '!bg-danger !text-bg' : ''}>
-        {submitLabel}
-      </Button>
-    </div>
   )
 }
 

@@ -77,7 +77,7 @@ Additions and refinements to the list in CLAUDE.md. All tables get `id` (UUID v7
 - `pt_packages` — as in CLAUDE.md.
 - `pt_purchases` — balance is **never stored**: `balance = SUM(pt_session_ledger.change)` for that purchase. Purchase writes a `+session_count` ledger row (reason `purchase`).
 - `pt_sessions` — add `ends_at`, `completed_at`, `confirmation_status` (`pending | confirmed | auto_confirmed | disputed`), `dispute_reason`, `resolved_by`, `resolution`.
-- `pt_session_ledger` — reasons: `purchase`, `session_completed`, `late_cancel`, `no_show`, `dispute_refund`, `admin_adjustment`, `expired`. Unique `(session_id, reason)` so a session can't be deducted twice.
+- `pt_session_ledger` — reasons: `purchase`, `session_completed`, `late_cancel`, `no_show`, `dispute_refund`, `adjustment` (no `expired` rows: expiry is worked out from `expires_on`). Unique `(session_id, reason)` so a session can't be deducted twice.
 - **Booking rule**: allowed only if `balance − (future booked sessions) ≥ 1` and the purchase hasn't expired by the session date. Run in a transaction with `SELECT … FOR UPDATE` on the purchase row.
 - **No double-booking**: Postgres exclusion constraint on `(trainer_id, tstzrange(scheduled_at, ends_at))` where status = `booked` (needs `btree_gist`; added via raw SQL in the migration).
 - `trainer_availability` — weekday, start_time, end_time (local IST times), slot_minutes. `trainer_time_off` — trainer_id, from, to, reason.
@@ -215,12 +215,24 @@ Approved decisions: GST status not decided yet — build both (GSTIN set → tax
 Phase 4 is complete (refunds/credit notes deferred).
 
 ### Phase 5 — PT packages and booking
-- Admin: PT packages CRUD; sell a package (online or manual payment → `pt_purchase` + ledger `+N`); assign trainer.
-- Trainer: weekly availability editor, time off, day/week schedule, mark complete / no-show with notes.
-- Member: balance + expiry per purchase, book from free slots (availability − time off − booked), reschedule/cancel (late-cancel policy), confirm/dispute completed sessions.
-- Admin: dispute queue, ledger adjustments with reason.
-- Jobs: auto-confirm after 24h, expire unused sessions at `expires_on` (ledger `expired` rows).
-- **Tests**: ledger balance invariants, concurrent booking of the last session, trainer double-booking blocked, late cancel deducts, dispute refund, auto-confirm idempotency, slot generation across time off, isolation.
+
+Approved decisions: one-to-one sessions; 60-minute sessions (adjustable per trainer); free cancellation until 12 h before, later cancellation or no-show uses the session (gym setting); booking up to 14 days ahead with at least 2 h notice; unused sessions expire, admins can extend validity; PT sold at the desk only for now (online later); trainer commission out of scope.
+
+**5a — PT packages, selling and the session ledger (done)**
+- `pt_packages` (name unique per gym, 1–200 sessions, valid 1–730 days, GST-inclusive price). Screen: **PT packages** (owner/admin) to add, edit, deactivate.
+- Selling from the member page (**Sell PT package**): package, trainer (only this gym's trainers), price/discount with reason, desk payment or pay later — same rules as memberships. `pt_purchases` keeps snapshots (name, sessions, price); valid from the sale day for `validity_days` days including that day.
+- **Balance is never stored**: it is the sum of `pt_session_ledger` rows. A sale writes `+N` (purchase). Admin **Adjust sessions** writes ± with a reason and can never take the balance below zero. **Extend** only moves the use-by date later. Expired = today is after `expires_on` (no job needed).
+- Payments: `payments.pt_purchase_id` (a payment is for a membership or a PT package, never both — DB check); part payments and dues work as for memberships and count in the Dues filter; every payment gets a GST invoice ("12 Sessions: 12 personal training sessions with Ravi, valid till …").
+- Member home: PT card ("9 of 12 sessions left · with Ravi · use by 18 May", session history). Trainer home: **My clients** with sessions left and use-by dates (`GET /trainer/clients`).
+- Tests: ledger sum = balance, negative guard, extend rules, expiry, discounts, pay later/part payments, trainer must be this gym's trainer, member/trainer views, gym isolation; screens for packages, selling, adjusting, payments, extend, member and trainer cards.
+
+**5b — Availability and booking (next)**
+- Trainer: weekly availability, time off, session length. Member: book from free slots (availability − time off − booked), reschedule/cancel with the 12 h rule.
+- Booking rule: balance − future booked ≥ 1 and the package is valid on the session date (transaction with a row lock); no trainer double-booking (exclusion constraint).
+
+**5c — Completing sessions and disputes**
+- Trainer marks complete / no-show (ledger −1); member confirms or disputes within 24 h, otherwise auto-confirmed; admin dispute queue (upheld → `+1 dispute_refund`).
+- **Tests**: concurrent booking of the last session, double-booking blocked, late cancel deducts, dispute refund, auto-confirm idempotency, slot generation across time off, isolation.
 
 ### Phase 6 — QR check-in
 - Member: full-screen QR pass that rotates every 30s with a countdown; brightness hint.

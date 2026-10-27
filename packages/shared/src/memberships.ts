@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { daysBetween, inclusiveDays, isValidIsoDate, type IsoDate } from './dates'
 import { salePaymentSchema, type PaymentView } from './payments'
+import type { PtPurchaseView } from './pt'
 import { phoneSchema } from './phone'
 
 // ---------------------------------------------------------------------------
@@ -117,6 +118,7 @@ export interface MemberDetail extends MemberSummary {
   emergencyContactPhone: string | null
   notes: string | null
   memberships: MembershipView[]
+  ptPurchases: PtPurchaseView[]
   payments: PaymentView[]
 }
 

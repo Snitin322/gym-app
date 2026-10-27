@@ -45,6 +45,7 @@ export async function issueInvoiceInTx(tx: TenantTx, gymId: string, paymentId: s
     where: { id: paymentId },
     include: {
       membership: true,
+      ptPurchase: { include: { trainer: { select: { name: true } } } },
       member: { include: { user: { select: { name: true, phone: true } } } },
       invoice: { select: { id: true } },
     },
@@ -65,10 +66,15 @@ export async function issueInvoiceInTx(tx: TenantTx, gymId: string, paymentId: s
   const split = kind === 'tax_invoice' ? splitGst(amount) : { taxablePaise: amount, cgstPaise: 0, sgstPaise: 0 }
 
   const ms = payment.membership
+  const pt = payment.ptPurchase
   const description = ms
     ? `${ms.planName} membership, ${formatDate(fromDbDate(ms.startDate))} – ${formatDate(fromDbDate(ms.endDate))}` +
       (amount < ms.pricePaise ? ' (part payment)' : '')
-    : 'Payment'
+    : pt
+      ? `${pt.packageName}: ${pt.sessionCount} personal training sessions with ${pt.trainer.name}, ` +
+        `valid till ${formatDate(fromDbDate(pt.expiresOn))}` +
+        (amount < pt.pricePaise ? ' (part payment)' : '')
+      : 'Payment'
 
   const seller: InvoiceSeller = {
     name: gym.legalName ?? gym.name,

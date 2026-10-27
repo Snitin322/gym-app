@@ -67,6 +67,7 @@ function memberDetail(overrides: Partial<MemberDetail> = {}): MemberDetail {
     emergencyContactPhone: null,
     notes: null,
     memberships: [current],
+    ptPurchases: [],
     payments: [],
     duePaise: 0,
     ...overrides,
@@ -431,6 +432,7 @@ describe('invoices', () => {
     note: null,
     paidAt: '2026-10-27T05:00:00.000Z',
     membershipId: 'ms-1',
+    ptPurchaseId: null,
     description: '3 months',
     recordedByName: 'Nitin Sharma',
   }

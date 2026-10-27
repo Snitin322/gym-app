@@ -66,6 +66,9 @@ model Gym {
   payments          Payment[]
   invoices          Invoice[]
   invoiceSequences  InvoiceSequence[]
+  ptPackages        PtPackage[]
+  ptPurchases       PtPurchase[]
+  ptLedger          PtSessionLedger[]
 
   @@map("gyms")
 }
@@ -90,6 +93,9 @@ model User {
   membershipsCreated Membership[]       @relation("MembershipCreatedBy")
   freezesCreated     MembershipFreeze[] @relation("FreezeCreatedBy")
   paymentsRecorded   Payment[]          @relation("PaymentRecordedBy")
+  ptClients          PtPurchase[]       @relation("PtTrainer")
+  ptSold             PtPurchase[]       @relation("PtSoldBy")
+  ptLedgerEntries    PtSessionLedger[]  @relation("PtLedgerBy")
 
   @@unique([gymId, phone])
   @@index([phone])
@@ -192,6 +198,7 @@ model Member {
   memberships Membership[]
   payments    Payment[]
   invoices    Invoice[]
+  ptPurchases PtPurchase[]
 
   @@index([gymId])
   @@map("members")
@@ -293,6 +300,8 @@ model Payment {
   razorpayPaymentId String?       @unique @map("razorpay_payment_id")
   /// For online orders: the plan being bought; the membership is created when the webhook confirms payment.
   planId            String?       @map("plan_id") @db.Uuid
+  /// Set when the payment is for a PT package instead of a membership.
+  ptPurchaseId      String?       @map("pt_purchase_id") @db.Uuid
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -302,6 +311,7 @@ model Payment {
   recordedBy User?           @relation("PaymentRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
   invoice    Invoice?
   plan       MembershipPlan? @relation(fields: [planId], references: [id], onDelete: Restrict)
+  ptPurchase PtPurchase?     @relation(fields: [ptPurchaseId], references: [id], onDelete: Restrict)
 
   @@index([gymId])
   @@index([memberId])
@@ -384,4 +394,95 @@ model WebhookEvent {
 
   @@unique([provider, eventId])
   @@map("webhook_events")
+}
+
+enum PtLedgerReason {
+  purchase
+  session_completed
+  late_cancel
+  no_show
+  dispute_refund
+  adjustment
+
+  @@map("pt_ledger_reason")
+}
+
+/// A personal training package the gym sells, e.g. 12 sessions valid for 60 days.
+model PtPackage {
+  id           String   @id @default(uuid()) @db.Uuid
+  gymId        String   @map("gym_id") @db.Uuid
+  name         String
+  sessionCount Int      @map("session_count")
+  validityDays Int      @map("validity_days")
+  /// GST-inclusive price in paise.
+  pricePaise   Int      @map("price_paise")
+  description  String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym       Gym          @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  purchases PtPurchase[]
+
+  @@unique([gymId, name])
+  @@index([gymId])
+  @@map("pt_packages")
+}
+
+/// A PT package sold to a member, with their trainer. Package details are copied at sale time.
+/// The session balance is never stored: it is the sum of the ledger.
+model PtPurchase {
+  id             String   @id @default(uuid()) @db.Uuid
+  gymId          String   @map("gym_id") @db.Uuid
+  memberId       String   @map("member_id") @db.Uuid
+  trainerId      String   @map("trainer_id") @db.Uuid
+  packageId      String   @map("package_id") @db.Uuid
+  packageName    String   @map("package_name")
+  sessionCount   Int      @map("session_count")
+  validityDays   Int      @map("validity_days")
+  pricePaise     Int      @map("price_paise")
+  listPricePaise Int      @map("list_price_paise")
+  discountReason String?  @map("discount_reason")
+  startDate      DateTime @map("start_date") @db.Date
+  /// Last day sessions can be used (inclusive). Admins can extend it.
+  expiresOn      DateTime @map("expires_on") @db.Date
+  createdById    String   @map("created_by_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym       Gym               @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  member    Member            @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  trainer   User              @relation("PtTrainer", fields: [trainerId], references: [id], onDelete: Restrict)
+  package   PtPackage         @relation(fields: [packageId], references: [id], onDelete: Restrict)
+  createdBy User              @relation("PtSoldBy", fields: [createdById], references: [id], onDelete: Restrict)
+  ledger    PtSessionLedger[]
+  payments  Payment[]
+
+  @@index([gymId])
+  @@index([memberId])
+  @@index([trainerId])
+  @@map("pt_purchases")
+}
+
+/// Every change to a PT balance: +N bought, -1 used, +1 dispute upheld, ±N adjustment.
+/// Rows are only ever added, never edited or deleted.
+model PtSessionLedger {
+  id          String         @id @default(uuid()) @db.Uuid
+  gymId       String         @map("gym_id") @db.Uuid
+  purchaseId  String         @map("purchase_id") @db.Uuid
+  /// The PT session this change is about (Phase 5c).
+  sessionId   String?        @map("session_id") @db.Uuid
+  change      Int
+  reason      PtLedgerReason
+  note        String?
+  createdById String?        @map("created_by_id") @db.Uuid
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  gym       Gym        @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  purchase  PtPurchase @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  createdBy User?      @relation("PtLedgerBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([gymId])
+  @@index([purchaseId])
+  @@map("pt_session_ledger")
 }

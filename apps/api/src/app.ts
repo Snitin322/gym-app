@@ -12,6 +12,7 @@ import { gymRoutes } from './routes/gym'
 import { healthRoutes } from './routes/health'
 import { invoicesRoutes } from './routes/invoices'
 import { onlineRoutes } from './routes/online'
+import { ptAdminRoutes, ptSelfRoutes } from './routes/pt'
 import { webhooksRoutes } from './routes/webhooks'
 import { createRazorpayGateway, type RazorpayGateway } from './services/razorpay'
 import { meRoutes } from './routes/me'
@@ -69,6 +70,8 @@ export async function buildApp(deps: AppDeps) {
   await app.register(membersRoutes({ authenticate, today }), { prefix: API_PREFIX })
   await app.register(gymRoutes({ authenticate }), { prefix: API_PREFIX })
   await app.register(invoicesRoutes({ authenticate, today }), { prefix: API_PREFIX })
+  await app.register(ptAdminRoutes({ authenticate, today }), { prefix: API_PREFIX })
+  await app.register(ptSelfRoutes({ authenticate, today }), { prefix: API_PREFIX })
 
   const gateway = deps.razorpay === undefined ? createRazorpayGateway(env) : deps.razorpay
   await app.register(onlineRoutes({ authenticate, gateway, today }), { prefix: API_PREFIX })

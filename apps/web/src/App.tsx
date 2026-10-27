@@ -11,6 +11,7 @@ import { MemberPage } from './pages/admin/MemberPage'
 import { MembersPage } from './pages/admin/MembersPage'
 import { NewMemberPage } from './pages/admin/NewMemberPage'
 import { PlansPage } from './pages/admin/PlansPage'
+import { PtPackagesPage } from './pages/admin/PtPackagesPage'
 import { StaffPage } from './pages/admin/StaffPage'
 
 export default function App() {
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="members/new" element={<NewMemberPage />} />
           <Route path="members/:id" element={<MemberPage />} />
           <Route path="plans" element={<PlansPage />} />
+          <Route path="pt-packages" element={<PtPackagesPage />} />
           <Route path="staff" element={<StaffPage />} />
         </Route>
         <Route path="/admin" element={<RequireRole roles={['owner']} />}>

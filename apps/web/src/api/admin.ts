@@ -12,6 +12,10 @@ import type {
   OnlineOrder,
   OnlinePaymentStatus,
   PlanInput,
+  PtPackage,
+  PtPackageInput,
+  PtPurchaseView,
+  TrainerClient,
   RenewalOptions,
   UserSummary,
 } from '@onthec/shared'
@@ -24,6 +28,9 @@ export const queryKeys = {
   myMembership: ['me', 'membership'] as const,
   staff: ['staff'] as const,
   gym: ['gym'] as const,
+  ptPackages: ['pt-packages'] as const,
+  myPt: ['me', 'pt'] as const,
+  trainerClients: ['trainer', 'clients'] as const,
 }
 
 // --- Plans -----------------------------------------------------------------
@@ -184,6 +191,63 @@ export function useAddStaff() {
   })
 }
 
+// --- PT packages ---------------------------------------------------------------
+
+export function usePtPackages() {
+  return useQuery({ queryKey: queryKeys.ptPackages, queryFn: () => api<PtPackage[]>('/pt-packages') })
+}
+
+export function useSavePtPackage() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...input }: Partial<PtPackageInput> & { id?: string; active?: boolean }) =>
+      id
+        ? api<PtPackage>(`/pt-packages/${id}`, { method: 'PATCH', body: input })
+        : api<PtPackage>('/pt-packages', { method: 'POST', body: input }),
+    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.ptPackages }),
+  })
+}
+
+/** A PT sale: package, trainer, optional discount, and the desk payment (omit for "pay later"). */
+export interface PtSaleInput extends Omit<SaleInput, 'planId' | 'startDate'> {
+  packageId: string
+  trainerId: string
+}
+
+export function useSellPt(memberId: string) {
+  return useMemberMutation(memberId, (input: PtSaleInput) =>
+    api<PtPurchaseView>(`/members/${memberId}/pt-purchases`, { method: 'POST', body: input }),
+  )
+}
+
+export function useRecordPtPayment(memberId: string) {
+  return useMemberMutation(
+    memberId,
+    ({
+      purchaseId,
+      ...input
+    }: {
+      purchaseId: string
+      amountPaise: number
+      method: DeskPaymentMethod
+      reference?: string
+      note?: string
+    }) => api<PtPurchaseView>(`/pt-purchases/${purchaseId}/payments`, { method: 'POST', body: input }),
+  )
+}
+
+export function useAdjustPt(memberId: string) {
+  return useMemberMutation(memberId, ({ purchaseId, ...input }: { purchaseId: string; change: number; note: string }) =>
+    api<PtPurchaseView>(`/pt-purchases/${purchaseId}/adjust`, { method: 'POST', body: input }),
+  )
+}
+
+export function useExtendPt(memberId: string) {
+  return useMemberMutation(memberId, ({ purchaseId, expiresOn }: { purchaseId: string; expiresOn: IsoDate }) =>
+    api<PtPurchaseView>(`/pt-purchases/${purchaseId}/extend`, { method: 'POST', body: { expiresOn } }),
+  )
+}
+
 // --- Online renewal (member) ---------------------------------------------------
 
 export function useRenewalOptions(enabled: boolean) {
@@ -215,4 +279,14 @@ export function getOnlinePaymentStatus(paymentId: string) {
 
 export function useMyMembership() {
   return useQuery({ queryKey: queryKeys.myMembership, queryFn: () => api<MyMembership>('/me/membership') })
+}
+
+export function useMyPt() {
+  return useQuery({ queryKey: queryKeys.myPt, queryFn: () => api<PtPurchaseView[]>('/me/pt') })
+}
+
+// --- Trainer -------------------------------------------------------------------
+
+export function useTrainerClients() {
+  return useQuery({ queryKey: queryKeys.trainerClients, queryFn: () => api<TrainerClient[]>('/trainer/clients') })
 }

@@ -12,6 +12,7 @@ Multi-tenant gym management platform (members, trainers, owner/admin) delivered 
 - **Phase 2 — Login and tenancy:** done. Phone OTP login, sessions, roles, per-gym data isolation, login screens, and the API hosted on Render (Singapore) behind the Cloudflare Worker — see [docs/DEPLOY.md](docs/DEPLOY.md).
 - **Phase 3 — Members and plans:** done. Owners/admins manage plans, members and staff (renew, freeze, cancel); members see their plan and days left.
 - **Phase 4 — Payments and invoices:** done. Desk payments and dues, GST invoices with PDF download, and online renewal with Razorpay (webhook-confirmed).
+- **Phase 5 — PT packages and booking:** in progress. 5a done: PT packages, selling at the desk with a trainer, session ledger (balance = sum of ledger lines), adjust/extend, member PT card and trainer "My clients". Next: 5b availability and booking.
 
 Login codes are sent on WhatsApp when `OTP_PROVIDER=whatsapp` — set it up with [docs/WHATSAPP_SETUP.md](docs/WHATSAPP_SETUP.md). With `OTP_PROVIDER=console` they appear in the API log (`pnpm dev` terminal) instead.
 

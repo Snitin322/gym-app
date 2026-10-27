@@ -76,6 +76,7 @@ describe('renew online', () => {
     const { callsTo } = mockApi({
       'POST /auth/refresh': member,
       'GET /me/membership': ok(noMembership),
+      'GET /me/pt': ok([]),
       'GET /me/renewal-options': ok({ onlinePayments: true, startDate: today, plans: [plan] }),
       'POST /me/orders': { status: 201, body: order },
       'POST /me/orders/verify': ok({ paymentId: 'pay-1', status: 'created', invoice: null }),
@@ -109,6 +110,7 @@ describe('renew online', () => {
     const { callsTo } = mockApi({
       'POST /auth/refresh': member,
       'GET /me/membership': ok(noMembership),
+      'GET /me/pt': ok([]),
       'GET /me/renewal-options': ok({ onlinePayments: true, startDate: today, plans: [plan] }),
       'POST /me/orders': { status: 201, body: order },
     })
@@ -129,6 +131,7 @@ describe('renew online', () => {
     mockApi({
       'POST /auth/refresh': member,
       'GET /me/membership': ok(noMembership),
+      'GET /me/pt': ok([]),
       'GET /me/renewal-options': ok({ onlinePayments: true, startDate: today, plans: [plan] }),
       'POST /me/orders': { status: 201, body: order },
       'POST /me/orders/verify': ok({ paymentId: 'pay-1', status: 'created', invoice: null }),
@@ -149,6 +152,7 @@ describe('renew online', () => {
     mockApi({
       'POST /auth/refresh': member,
       'GET /me/membership': ok(noMembership),
+      'GET /me/pt': ok([]),
       'GET /me/renewal-options': ok({ onlinePayments: false, startDate: today, plans: [plan] }),
     })
     renderHome()

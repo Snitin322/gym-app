@@ -29,7 +29,8 @@ export interface PaymentView {
   note: string | null
   paidAt: string | null
   membershipId: string | null
-  /** e.g. "3 months" — what the payment was for. */
+  ptPurchaseId: string | null
+  /** e.g. "3 months" or "12 PT sessions" — what the payment was for. */
   description: string
   recordedByName: string | null
   /** The invoice issued for this payment (null only for payments from before invoices existed). */

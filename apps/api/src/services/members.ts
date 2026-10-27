@@ -23,11 +23,13 @@ import {
   toMembershipView,
   type Actor,
 } from './memberships'
+import { purchaseInclude, sortPurchases, toPurchaseView } from './pt'
 import { phoneTaken } from './users'
 
 const memberInclude = {
   user: { select: { id: true, name: true, phone: true } },
   memberships: { include: membershipInclude, orderBy: { startDate: 'desc' } },
+  ptPurchases: { include: purchaseInclude },
 } as const satisfies Prisma.MemberInclude
 
 /** Detail adds the payment history (paid payments, newest first). */
@@ -37,6 +39,7 @@ const memberDetailInclude = {
     where: { status: 'paid' },
     include: {
       membership: { select: { planName: true } },
+      ptPurchase: { select: { packageName: true } },
       recordedBy: { select: { name: true } },
       invoice: { select: { id: true, number: true } },
     },
@@ -56,7 +59,10 @@ function toSummary(row: MemberRow, today: IsoDate): MemberSummary {
     phone: row.user.phone,
     status: memberListStatus(views),
     current: pickCurrent(views),
-    duePaise: views.reduce((sum, v) => sum + v.duePaise, 0),
+    // Dues across memberships and PT packages.
+    duePaise:
+      views.reduce((sum, v) => sum + v.duePaise, 0) +
+      row.ptPurchases.reduce((sum, p) => sum + toPurchaseView(p, today).duePaise, 0),
   }
 }
 
@@ -70,7 +76,8 @@ function toPaymentView(p: MemberDetailRow['payments'][number]): PaymentView {
     note: p.note,
     paidAt: p.paidAt?.toISOString() ?? null,
     membershipId: p.membershipId,
-    description: p.membership?.planName ?? 'Payment',
+    ptPurchaseId: p.ptPurchaseId,
+    description: p.membership?.planName ?? (p.ptPurchase ? `${p.ptPurchase.packageName} (PT)` : 'Payment'),
     recordedByName: p.recordedBy?.name ?? null,
     invoice: p.invoice,
   }
@@ -84,6 +91,7 @@ function toDetail(row: MemberDetailRow, today: IsoDate): MemberDetail {
     emergencyContactPhone: row.emergencyContactPhone,
     notes: row.notes,
     memberships: row.memberships.map((m) => toMembershipView(m, today)),
+    ptPurchases: sortPurchases(row.ptPurchases.map((p) => toPurchaseView(p, today))),
     payments: row.payments.map(toPaymentView),
   }
 }

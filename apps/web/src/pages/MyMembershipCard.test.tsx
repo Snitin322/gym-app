@@ -39,6 +39,7 @@ function renderHome(partial: Pick<MyMembership, 'current' | 'history'> & Partial
   mockApi({
     'POST /auth/refresh': ok(session(sessionUser({ role: 'member', name: 'Asha Patel' }))),
     'GET /me/membership': ok(mine),
+    'GET /me/pt': ok([]),
   })
   render(
     <MemoryRouter initialEntries={['/home']}>
@@ -130,6 +131,7 @@ describe('member dues and payments', () => {
           note: null,
           paidAt: '2026-10-20T05:00:00.000Z',
           membershipId: 'ms-1',
+          ptPurchaseId: null,
           description: '3 months',
           recordedByName: 'Front Desk',
           invoice: { id: 'inv-1', number: 'OG/26-27/0001' },
