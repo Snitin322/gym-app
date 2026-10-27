@@ -179,6 +179,10 @@ Approved decisions: plans in **months only** (no trials); prices **GST-inclusive
 - Freeze note (current or planned pause), renew reminder in the last 7 days unless a renewal is queued, "Next: … from …" for a queued renewal, renew prompt when expired, "contact the front desk" when there is no plan, collapsible past memberships.
 - Data from `GET /me/membership`; refreshes when the app is reopened.
 
+**3d — Wrap-up (done)**
+- Staff screen (`/admin/staff`, home link): lists owner, admins, trainers (`GET /users?kind=staff`); owner adds admins or trainers, admins add trainers.
+- Plan edit: emptying the description now removes it.
+
 Phase 3 is complete.
 
 ### Phase 4 — Payments and invoices

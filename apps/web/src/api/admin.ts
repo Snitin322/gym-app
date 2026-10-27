@@ -8,6 +8,7 @@ import type {
   MembershipView,
   MyMembership,
   PlanInput,
+  UserSummary,
 } from '@onthec/shared'
 import { api } from './client'
 
@@ -16,6 +17,7 @@ export const queryKeys = {
   members: (filter: MemberFilter, q: string) => ['members', filter, q] as const,
   member: (id: string) => ['member', id] as const,
   myMembership: ['me', 'membership'] as const,
+  staff: ['staff'] as const,
 }
 
 // --- Plans -----------------------------------------------------------------
@@ -112,6 +114,21 @@ export function useCancelMembership(memberId: string) {
   return useMemberMutation(memberId, ({ membershipId, reason }: { membershipId: string; reason?: string }) =>
     api<MembershipView>(`/memberships/${membershipId}/cancel`, { method: 'POST', body: { reason } }),
   )
+}
+
+// --- Staff ---------------------------------------------------------------------
+
+export function useStaff() {
+  return useQuery({ queryKey: queryKeys.staff, queryFn: () => api<UserSummary[]>('/users?kind=staff') })
+}
+
+export function useAddStaff() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { name: string; phone: string; role: 'trainer' | 'admin' }) =>
+      api<UserSummary>('/users', { method: 'POST', body: input }),
+    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.staff }),
+  })
 }
 
 // --- Member's own view -------------------------------------------------------

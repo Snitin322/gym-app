@@ -92,6 +92,18 @@ describe.skipIf(!testDatabaseUrl)('plans, members and memberships', () => {
       expect(detail.memberships[0]?.pricePaise).toBe(150000)
     })
 
+    it('an emptied description is removed', async () => {
+      const created = await call('POST', '/plans', owner, {
+        name: 'Gold',
+        durationMonths: 12,
+        pricePaise: 1500000,
+        maxFreezeDays: 45,
+        description: 'Includes locker',
+      })
+      const res = await call('PATCH', `/plans/${created.json().id}`, owner, { description: '' })
+      expect(res.json().description).toBeNull()
+    })
+
     it('deactivated plans cannot be sold', async () => {
       const p = await plan(owner, '1 month', 1)
       await call('PATCH', `/plans/${p.id}`, owner, { active: false })
@@ -373,6 +385,20 @@ describe.skipIf(!testDatabaseUrl)('plans, members and memberships', () => {
 
       const users = await ctx.db.user.findMany({ where: { gymId: gymA, phone: { startsWith: '+9198765000' } } })
       expect(users.map((u) => u.role).sort()).toEqual(['admin', 'trainer', 'trainer'])
+    })
+
+    it('lists staff only (owner first, then admins, then trainers) without members or other gyms', async () => {
+      await member(owner, 'Asha Member', '9876500001')
+      await call('POST', '/users', owner, { name: 'Zed Admin', phone: '9876500011', role: 'admin' })
+
+      const staff = (await call('GET', '/users?kind=staff', admin)).json() as { name: string; role: string }[]
+
+      expect(staff.map((u) => [u.role, u.name])).toEqual([
+        ['owner', 'Owner A'],
+        ['admin', 'Admin A'],
+        ['admin', 'Zed Admin'],
+        ['trainer', 'Trainer A'],
+      ])
     })
   })
 })

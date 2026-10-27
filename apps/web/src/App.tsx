@@ -10,6 +10,7 @@ import { MemberPage } from './pages/admin/MemberPage'
 import { MembersPage } from './pages/admin/MembersPage'
 import { NewMemberPage } from './pages/admin/NewMemberPage'
 import { PlansPage } from './pages/admin/PlansPage'
+import { StaffPage } from './pages/admin/StaffPage'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="members/new" element={<NewMemberPage />} />
           <Route path="members/:id" element={<MemberPage />} />
           <Route path="plans" element={<PlansPage />} />
+          <Route path="staff" element={<StaffPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

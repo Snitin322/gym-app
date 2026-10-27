@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync, preHandlerAsyncHookHandler } from 'fastify'
 import { z } from 'zod'
-import { ErrorCode, createStaffSchema, type UserSummary } from '@onthec/shared'
+import { ErrorCode, createStaffSchema, listUsersQuerySchema, type UserSummary } from '@onthec/shared'
 import { AppError } from '../errors'
 import { getAuth, requireRole } from '../plugins/auth'
 import { createStaff, getUser, listUsers } from '../services/users'
@@ -12,7 +12,10 @@ export function usersRoutes({ authenticate }: { authenticate: preHandlerAsyncHoo
     app.addHook('preHandler', authenticate)
     app.addHook('preHandler', requireRole('admin', 'owner'))
 
-    app.get('/users', async (request): Promise<UserSummary[]> => listUsers(getAuth(request).db))
+    app.get('/users', async (request): Promise<UserSummary[]> => {
+      const { kind } = listUsersQuerySchema.parse(request.query)
+      return listUsers(getAuth(request).db, kind)
+    })
 
     app.get('/users/:id', async (request): Promise<UserSummary> => {
       const { id } = userParamsSchema.parse(request.params)

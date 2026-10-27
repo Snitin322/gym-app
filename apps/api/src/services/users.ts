@@ -6,8 +6,16 @@ import { isUniqueViolation } from '../lib/prisma-errors'
 
 const summary = { id: true, name: true, phone: true, role: true } as const
 
-export async function listUsers(db: TenantDb): Promise<UserSummary[]> {
-  return db.user.findMany({ where: { deletedAt: null }, select: summary, orderBy: { name: 'asc' } })
+const ROLE_ORDER: Record<Role, number> = { owner: 0, admin: 1, trainer: 2, member: 3 }
+
+/** All users of the gym, or only staff (owner, admins, trainers) ordered by role then name. */
+export async function listUsers(db: TenantDb, kind: 'all' | 'staff' = 'all'): Promise<UserSummary[]> {
+  const users = await db.user.findMany({
+    where: { deletedAt: null, ...(kind === 'staff' ? { role: { in: ['owner', 'admin', 'trainer'] } } : {}) },
+    select: summary,
+    orderBy: { name: 'asc' },
+  })
+  return kind === 'staff' ? users.sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]) : users
 }
 
 export async function getUser(db: TenantDb, id: string): Promise<UserSummary | null> {

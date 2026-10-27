@@ -31,6 +31,7 @@ export function HomePage() {
         <nav aria-label="Manage the gym" className="grid grid-cols-2 gap-3">
           <HomeLink to="/admin/members" title="Members" text="Add members, renew, freeze" />
           <HomeLink to="/admin/plans" title="Plans" text="Prices, lengths, freeze limits" />
+          <HomeLink to="/admin/staff" title="Staff" text="Add trainers and admins" />
         </nav>
       ) : user.role === 'member' ? (
         <>

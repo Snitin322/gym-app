@@ -128,6 +128,15 @@ const optionalText = (max: number) =>
     .optional()
     .transform((value) => value || undefined)
 
+/** On edit, an emptied field means "remove it" (null), while a missing field means "unchanged". */
+const clearableText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .transform((value) => (value === undefined ? undefined : value || null))
+
 export const planInputSchema = z.object({
   name: z.string().trim().min(2, 'Plan name is too short').max(60),
   durationMonths: z.number().int().min(1, 'At least 1 month').max(36, 'At most 36 months'),
@@ -137,7 +146,9 @@ export const planInputSchema = z.object({
 })
 export type PlanInput = z.infer<typeof planInputSchema>
 
-export const planUpdateSchema = planInputSchema.partial().extend({ active: z.boolean().optional() })
+export const planUpdateSchema = planInputSchema
+  .partial()
+  .extend({ description: clearableText(300), active: z.boolean().optional() })
 
 export const newMembershipSchema = z.object({
   planId: z.uuid(),
@@ -159,15 +170,6 @@ export const memberInputSchema = z.object({
 export const createMemberSchema = memberInputSchema.extend({
   firstMembership: newMembershipSchema.optional(),
 })
-
-/** On edit, an emptied field means "remove it" (null), while a missing field means "unchanged". */
-const clearableText = (max: number) =>
-  z
-    .string()
-    .trim()
-    .max(max)
-    .optional()
-    .transform((value) => (value === undefined ? undefined : value || null))
 
 export const updateMemberSchema = z.object({
   name: z.string().trim().min(2, 'Name is too short').max(80).optional(),
@@ -191,7 +193,12 @@ export const freezeInputSchema = z
 
 export const cancelMembershipSchema = z.object({ reason: optionalText(200) })
 
+/** Roles the app can add as staff (owners come from setup). */
 export const STAFF_ROLES = ['trainer', 'admin'] as const
+export const listUsersQuerySchema = z.object({
+  /** "staff" = owners, admins and trainers only. */
+  kind: z.enum(['all', 'staff']).default('all'),
+})
 export const createStaffSchema = z.object({
   name: z.string().trim().min(2, 'Name is too short').max(80),
   phone: phoneSchema,

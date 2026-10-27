@@ -240,3 +240,43 @@ describe('member page', () => {
     await vi.waitFor(() => expect(callsTo('POST /memberships/ms-1/cancel')).toHaveLength(1))
   })
 })
+
+describe('staff', () => {
+  const staff = [
+    { id: 'u-owner', name: 'Nitin Sharma', phone: '+919876500100', role: 'owner' },
+    { id: 'u-trainer', name: 'Ravi Trainer', phone: '+919876500101', role: 'trainer' },
+  ]
+
+  it('lets the owner add an admin', async () => {
+    const { callsTo } = mockApi({
+      'POST /auth/refresh': ok(owner),
+      'GET /users?kind=staff': ok(staff),
+      'POST /users': { status: 201, body: { id: 'u-new', name: 'Meena', phone: '+919876500102', role: 'admin' } },
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/staff')
+
+    expect(await screen.findByText('Ravi Trainer')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Add staff' }))
+    await user.type(screen.getByLabelText('Full name'), 'Meena')
+    await user.type(screen.getByLabelText('Mobile number'), '98765 00102')
+    await user.selectOptions(screen.getByLabelText('Role'), 'admin')
+    await user.click(screen.getByRole('button', { name: 'Add admin' }))
+
+    await vi.waitFor(() => expect(callsTo('POST /users')).toHaveLength(1))
+    expect(callsTo('POST /users')[0]?.body).toEqual({ name: 'Meena', phone: '+919876500102', role: 'admin' })
+  })
+
+  it('admins can only add trainers', async () => {
+    mockApi({
+      'POST /auth/refresh': ok(session(sessionUser({ role: 'admin', name: 'Admin A' }))),
+      'GET /users?kind=staff': ok(staff),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/staff')
+
+    await user.click(await screen.findByRole('button', { name: 'Add staff' }))
+    const options = within(screen.getByLabelText('Role')).getAllByRole('option').map((o) => o.textContent)
+    expect(options).toEqual(['Trainer'])
+  })
+})
