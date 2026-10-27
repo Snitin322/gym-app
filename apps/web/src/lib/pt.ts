@@ -1,4 +1,10 @@
-import { daysBetween, type IsoDate, type PtPurchaseStatus, type PtPurchaseView } from '@onthec/shared'
+import {
+  daysBetween,
+  type IsoDate,
+  type PtPurchaseStatus,
+  type PtPurchaseView,
+  type PtSessionView,
+} from '@onthec/shared'
 import { formatDate, plural } from './format'
 import type { BadgeTone } from './membership'
 
@@ -24,3 +30,32 @@ export function ptExpiringSoon(p: PtPurchaseView, today: IsoDate) {
   return p.status === 'active' && daysBetween(today, p.expiresOn) <= 7
 }
 
+/** The member-facing reminder of the cancellation rule. */
+export function freeCancelNote({ freeCancelHours }: { freeCancelHours: number }) {
+  return freeCancelHours > 0
+    ? `You can cancel or move it for free until ${plural(freeCancelHours, 'hour')} before it starts.`
+    : 'You can cancel or move it for free until it starts.'
+}
+
+/** "9 sessions left · 2 booked" */
+export function ptBookingLabel(p: Pick<PtPurchaseView, 'sessionsLeft' | 'sessionsBooked'>) {
+  return `${plural(p.sessionsLeft, 'session')} left · ${p.sessionsBooked} booked`
+}
+
+/** Why a new session can't be booked on this package (the server checks the same), or null. */
+export function bookingBlockedReason(p: Pick<PtPurchaseView, 'status' | 'sessionsLeft' | 'sessionsBooked'>) {
+  if (p.status === 'expired') return 'This package has expired. Ask the front desk to extend it.'
+  if (p.sessionsLeft - p.sessionsBooked < 1) {
+    return p.sessionsBooked > 0
+      ? 'All your sessions are already booked. Cancel one or buy more at the front desk.'
+      : 'No sessions left. Buy more at the front desk.'
+  }
+  return null
+}
+
+/** Booked sessions that haven't finished yet, soonest first. */
+export function upcomingSessions(sessions: PtSessionView[], now = Date.now()) {
+  return sessions
+    .filter((s) => s.status === 'booked' && Date.parse(s.endsAt) > now)
+    .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))
+}

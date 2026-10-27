@@ -239,6 +239,7 @@ describe('what members and trainers see', () => {
       'GET /me/membership': ok(mine),
       'GET /me/pt': ok([purchase()]),
       'GET /me/renewal-options': ok({ onlinePayments: false, startDate: today, plans: [] }),
+      'GET /me/pt-sessions': ok([]),
     })
     renderAt('/home')
 
@@ -255,6 +256,7 @@ describe('what members and trainers see', () => {
     mockApi({
       'POST /auth/refresh': ok(session(sessionUser({ role: 'trainer', name: 'Ravi Kumar' }))),
       'GET /trainer/clients': ok(clients),
+      'GET /trainers/user-1/sessions': ok([]),
     })
     renderAt('/home')
 

@@ -12,7 +12,7 @@ Multi-tenant gym management platform (members, trainers, owner/admin) delivered 
 - **Phase 2 — Login and tenancy:** done. Phone OTP login, sessions, roles, per-gym data isolation, login screens, and the API hosted on Render (Singapore) behind the Cloudflare Worker — see [docs/DEPLOY.md](docs/DEPLOY.md).
 - **Phase 3 — Members and plans:** done. Owners/admins manage plans, members and staff (renew, freeze, cancel); members see their plan and days left.
 - **Phase 4 — Payments and invoices:** done. Desk payments and dues, GST invoices with PDF download, and online renewal with Razorpay (webhook-confirmed).
-- **Phase 5 — PT packages and booking:** in progress. 5a done: PT packages, selling at the desk with a trainer, session ledger (balance = sum of ledger lines), adjust/extend, member PT card and trainer "My clients". 5b-1 done: booking backend (trainer hours, time off, open slots, book/cancel/reschedule with the 12-hour rule). Next: 5b-2 booking screens.
+- **Phase 5 — PT packages and booking:** in progress. 5a done: PT packages, selling at the desk with a trainer, session ledger (balance = sum of ledger lines), adjust/extend, member PT card and trainer "My clients". 5b done: booking backend (trainer hours, time off, open slots, book/cancel/reschedule with the 12-hour rule) and screens (trainer My availability and My schedule, member Book a session and Upcoming sessions, desk booking on the member page and trainer hours from Staff, owner PT rules in Gym details). Next: 5c completing sessions and disputes (needs a go-ahead).
 
 Login codes are sent on WhatsApp when `OTP_PROVIDER=whatsapp` — set it up with [docs/WHATSAPP_SETUP.md](docs/WHATSAPP_SETUP.md). With `OTP_PROVIDER=console` they appear in the API log (`pnpm dev` terminal) instead.
 

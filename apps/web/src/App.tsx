@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router'
 import { MANAGER_ROLES } from './auth/AuthContext'
 import { RequireAuth } from './auth/RequireAuth'
 import { RequireRole } from './auth/RequireRole'
+import { MyAvailabilityPage, TrainerAvailabilityPage } from './pages/AvailabilityPage'
 import { ConsentPage } from './pages/ConsentPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
@@ -22,6 +23,9 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route path="/consent" element={<ConsentPage />} />
         <Route path="/home" element={<HomePage />} />
+        <Route path="/trainer" element={<RequireRole roles={['trainer']} />}>
+          <Route path="availability" element={<MyAvailabilityPage />} />
+        </Route>
         <Route path="/admin" element={<RequireRole roles={MANAGER_ROLES} />}>
           <Route path="members" element={<MembersPage />} />
           <Route path="members/new" element={<NewMemberPage />} />
@@ -29,6 +33,7 @@ export default function App() {
           <Route path="plans" element={<PlansPage />} />
           <Route path="pt-packages" element={<PtPackagesPage />} />
           <Route path="staff" element={<StaffPage />} />
+          <Route path="trainers/:id/availability" element={<TrainerAvailabilityPage />} />
         </Route>
         <Route path="/admin" element={<RequireRole roles={['owner']} />}>
           <Route path="gym" element={<GymDetailsPage />} />

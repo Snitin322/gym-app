@@ -2,19 +2,23 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { addDays, formatPaise, ptExpiresOn, type IsoDate, type MemberDetail, type PtPurchaseView } from '@onthec/shared'
 import { useAdjustPt, useExtendPt, usePtPackages, useRecordPtPayment, useSellPt, useStaff } from '../../api/admin'
+import { useBookSession, useMemberSessions } from '../../api/pt-booking'
 import { errorMessage, formatDate, plural } from '../../lib/format'
+import { bookingBlockedReason, ptBookingLabel, upcomingSessions } from '../../lib/pt'
 import { initialSale, saleToInput, type SaleState } from '../../lib/sale'
 import { Button } from '../../ui/Button'
 import { Field, SelectInput, TextInput } from '../../ui/Form'
 import { PtPurchaseCard } from '../../ui/PtPurchaseCard'
+import { PtSessionCard } from '../../ui/PtSessionCard'
 import { ErrorText } from '../../ui/Screen'
+import { SlotPicker } from '../../ui/SlotPicker'
 import { PanelButtons, PanelCard, RecordPaymentPanel } from './panels'
 import { SaleFields } from './SaleFields'
 
-type PtAction = 'pay' | 'adjust' | 'extend'
+type PtAction = 'pay' | 'adjust' | 'extend' | 'book'
 type PtPanel = 'sell' | { action: PtAction; purchase: PtPurchaseView } | null
 
-/** Personal training on the member page: their packages, and selling a new one. */
+/** Personal training on the member page: their packages, selling a new one, and booking sessions. */
 export function PtSection({ member, today }: { member: MemberDetail; today: IsoDate }) {
   const [panel, setPanel] = useState<PtPanel>(null)
   const close = () => setPanel(null)
@@ -39,45 +43,60 @@ export function PtSection({ member, today }: { member: MemberDetail; today: IsoD
       {panel === 'sell' && <SellPtPanel member={member} today={today} onDone={close} />}
       {member.ptPurchases.length === 0 && panel !== 'sell' && <p className="text-sm text-muted">No PT packages yet.</p>}
 
-      {member.ptPurchases.map((p) => (
-        <div key={p.id} className="flex flex-col gap-3">
-          <PtPurchaseCard purchase={p} today={today} showLedger>
-            <p className="mt-2 text-sm text-muted">
-              {formatPaise(p.pricePaise)}
-              {p.listPricePaise > p.pricePaise &&
-                ` (${formatPaise(p.listPricePaise - p.pricePaise)} off${p.discountReason ? ` · ${p.discountReason}` : ''})`}{' '}
-              · bought {formatDate(p.startDate)}
-            </p>
-            {p.duePaise > 0 ? (
-              <div className="mt-3 flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-warn">
-                  {formatPaise(p.duePaise)} due{p.paidPaise > 0 && ` · ${formatPaise(p.paidPaise)} paid`}
-                </p>
-                {idle && (
-                  <Button className="w-auto" onClick={() => open('pay', p)}>
-                    Record payment
+      {member.ptPurchases.map((p) => {
+        const blocked = bookingBlockedReason(p)
+        return (
+          <div key={p.id} className="flex flex-col gap-3">
+            <PtPurchaseCard purchase={p} today={today} showLedger>
+              <p className="mt-2 text-sm text-muted">
+                {formatPaise(p.pricePaise)}
+                {p.listPricePaise > p.pricePaise &&
+                  ` (${formatPaise(p.listPricePaise - p.pricePaise)} off${p.discountReason ? ` · ${p.discountReason}` : ''})`}{' '}
+                · bought {formatDate(p.startDate)}
+              </p>
+              {p.status === 'active' && <p className="mt-1 text-sm text-muted">{ptBookingLabel(p)}</p>}
+              {p.duePaise > 0 ? (
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-warn">
+                    {formatPaise(p.duePaise)} due{p.paidPaise > 0 && ` · ${formatPaise(p.paidPaise)} paid`}
+                  </p>
+                  {idle && (
+                    <Button className="w-auto" onClick={() => open('pay', p)}>
+                      Record payment
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                p.paidPaise > 0 && <p className="mt-1 text-sm text-accent">Paid {formatPaise(p.paidPaise)}</p>
+              )}
+              {idle && p.status !== 'used_up' && (
+                <div className="mt-4 flex flex-col gap-2">
+                  <Button disabled={blocked !== null} onClick={() => open('book', p)}>
+                    Book session
                   </Button>
-                )}
-              </div>
-            ) : (
-              p.paidPaise > 0 && <p className="mt-1 text-sm text-accent">Paid {formatPaise(p.paidPaise)}</p>
-            )}
-            {idle && (
-              <div className="mt-4 flex gap-3">
-                <Button variant="secondary" onClick={() => open('adjust', p)}>
-                  Adjust sessions
-                </Button>
-                <Button variant="secondary" onClick={() => open('extend', p)}>
-                  Extend
-                </Button>
-              </div>
-            )}
-          </PtPurchaseCard>
-          {openFor(p) === 'pay' && <PtPayPanel member={member} purchase={p} onDone={close} />}
-          {openFor(p) === 'adjust' && <AdjustPanel member={member} purchase={p} onDone={close} />}
-          {openFor(p) === 'extend' && <ExtendPanel member={member} purchase={p} today={today} onDone={close} />}
-        </div>
-      ))}
+                  {blocked && <p className="text-sm text-muted">{blocked}</p>}
+                </div>
+              )}
+              {idle && (
+                <div className="mt-3 flex gap-3">
+                  <Button variant="secondary" onClick={() => open('adjust', p)}>
+                    Adjust sessions
+                  </Button>
+                  <Button variant="secondary" onClick={() => open('extend', p)}>
+                    Extend
+                  </Button>
+                </div>
+              )}
+            </PtPurchaseCard>
+            {openFor(p) === 'pay' && <PtPayPanel member={member} purchase={p} onDone={close} />}
+            {openFor(p) === 'adjust' && <AdjustPanel member={member} purchase={p} onDone={close} />}
+            {openFor(p) === 'extend' && <ExtendPanel member={member} purchase={p} today={today} onDone={close} />}
+            {openFor(p) === 'book' && <BookPanel purchase={p} onDone={close} />}
+          </div>
+        )
+      })}
+
+      {member.ptPurchases.length > 0 && <MemberSessions memberId={member.id} />}
     </section>
   )
 }
@@ -127,7 +146,10 @@ function SellPtPanel({ member, today, onDone }: { member: MemberDetail; today: I
             screen.
           </p>
         )}
-        <Field label="Package" hint={pkg ? `Valid till ${formatDate(ptExpiresOn(today, pkg.validityDays))}.` : undefined}>
+        <Field
+          label="Package"
+          hint={pkg ? `Valid till ${formatDate(ptExpiresOn(today, pkg.validityDays))}.` : undefined}
+        >
           {(id) => (
             <SelectInput
               id={id}
@@ -164,7 +186,51 @@ function SellPtPanel({ member, today, onDone }: { member: MemberDetail; today: I
   )
 }
 
-function PtPayPanel({ member, purchase, onDone }: { member: MemberDetail; purchase: PtPurchaseView; onDone: () => void }) {
+function BookPanel({ purchase, onDone }: { purchase: PtPurchaseView; onDone: () => void }) {
+  const book = useBookSession()
+  return (
+    <PanelCard title={`Book a session · ${purchase.packageName}`}>
+      <SlotPicker
+        purchaseId={purchase.id}
+        confirmLabel="Book session"
+        pending={book.isPending}
+        error={book.error}
+        onConfirm={(startsAt) => book.mutate({ purchaseId: purchase.id, startsAt }, { onSuccess: onDone })}
+        onCancel={onDone}
+      />
+    </PanelCard>
+  )
+}
+
+/** The member's upcoming PT sessions; the desk can move or cancel them (never uses up a session). */
+function MemberSessions({ memberId }: { memberId: string }) {
+  const sessions = useMemberSessions(memberId)
+  const upcoming = upcomingSessions(sessions.data ?? [])
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="font-semibold">Upcoming PT sessions</h3>
+      <ErrorText>{errorMessage(sessions.error)}</ErrorText>
+      {sessions.data && upcoming.length === 0 && <p className="text-sm text-muted">No sessions booked.</p>}
+      <ul className="flex flex-col gap-2">
+        {upcoming.map((s) => (
+          <li key={s.id}>
+            <PtSessionCard session={s} viewer="staff" showTrainer />
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function PtPayPanel({
+  member,
+  purchase,
+  onDone,
+}: {
+  member: MemberDetail
+  purchase: PtPurchaseView
+  onDone: () => void
+}) {
   const record = useRecordPtPayment(member.id)
   return (
     <RecordPaymentPanel
@@ -178,7 +244,15 @@ function PtPayPanel({ member, purchase, onDone }: { member: MemberDetail; purcha
   )
 }
 
-function AdjustPanel({ member, purchase, onDone }: { member: MemberDetail; purchase: PtPurchaseView; onDone: () => void }) {
+function AdjustPanel({
+  member,
+  purchase,
+  onDone,
+}: {
+  member: MemberDetail
+  purchase: PtPurchaseView
+  onDone: () => void
+}) {
   const adjust = useAdjustPt(member.id)
   const [direction, setDirection] = useState<'remove' | 'add'>('remove')
   const [count, setCount] = useState('1')
@@ -204,8 +278,8 @@ function AdjustPanel({ member, purchase, onDone }: { member: MemberDetail; purch
     <PanelCard title="Adjust sessions">
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         <p className="text-muted">
-          {purchase.packageName} · {plural(purchase.sessionsLeft, 'session')} left. Use this to correct the balance, e.g.
-          sessions taken before the app. Every change is kept in the history.
+          {purchase.packageName} · {plural(purchase.sessionsLeft, 'session')} left. Use this to correct the balance,
+          e.g. sessions taken before the app. Every change is kept in the history.
         </p>
         <div role="radiogroup" aria-label="Change" className="flex flex-wrap gap-2">
           {(['remove', 'add'] as const).map((d) => (

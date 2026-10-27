@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router'
 import { normalizePhone, type Role, type UserSummary } from '@onthec/shared'
 import { useAddStaff, useStaff } from '../../api/admin'
 import { useSignedInUser } from '../../auth/AuthContext'
@@ -11,7 +12,7 @@ import { ErrorText } from '../../ui/Screen'
 const ROLE_HELP: Record<Role, string> = {
   owner: 'Everything, including adding admins.',
   admin: 'Members, plans and staff (can add trainers).',
-  trainer: 'Their own work only (PT features come later).',
+  trainer: 'Their own clients, hours and PT sessions.',
   member: '',
 }
 
@@ -55,9 +56,20 @@ function StaffRow({ person }: { person: UserSummary }) {
         <p className="truncate font-semibold">{person.name}</p>
         <p className="truncate text-sm text-muted">{formatPhone(person.phone)}</p>
       </div>
-      <span className="shrink-0 rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-semibold text-accent">
-        {ROLE_LABELS[person.role]}
-      </span>
+      <div className="flex shrink-0 items-center gap-3">
+        {person.role === 'trainer' && (
+          <Link
+            to={`/admin/trainers/${person.id}/availability`}
+            aria-label={`${person.name}'s hours`}
+            className="text-sm font-semibold text-accent hover:underline"
+          >
+            Hours →
+          </Link>
+        )}
+        <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-semibold text-accent">
+          {ROLE_LABELS[person.role]}
+        </span>
+      </div>
     </div>
   )
 }

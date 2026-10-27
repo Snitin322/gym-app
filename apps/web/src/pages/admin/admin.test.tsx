@@ -392,6 +392,7 @@ describe('gym details', () => {
     const { callsTo } = mockApi({
       'POST /auth/refresh': ok(owner),
       'GET /gym': ok(gym),
+      'GET /pt-rules': ok({ freeCancelHours: 12, bookingHorizonDays: 14, minNoticeHours: 2 }),
       'PATCH /gym': ok({ ...gym, gstin: '27AAPFU0939F1ZV', stateCode: '27', invoicePrefix: 'OG' }),
     })
     const user = userEvent.setup()

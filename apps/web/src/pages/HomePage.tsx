@@ -7,7 +7,9 @@ import { Button } from '../ui/Button'
 import { Logo, Screen } from '../ui/Screen'
 import { MyMembershipCard } from './MyMembershipCard'
 import { MyPtCard } from './MyPtCard'
+import { MyPtSessions } from './MyPtSessions'
 import { TrainerClients } from './TrainerClients'
+import { TrainerSchedule } from './TrainerSchedule'
 
 export function HomePage() {
   const user = useSignedInUser()
@@ -41,12 +43,20 @@ export function HomePage() {
         <>
           <MyMembershipCard />
           <MyPtCard />
-          <p className="text-center text-sm text-muted">Coming soon: PT session booking and your QR check-in pass.</p>
+          <MyPtSessions />
+          <p className="text-center text-sm text-muted">Coming soon: your QR check-in pass.</p>
         </>
       ) : (
         <>
+          <nav aria-label="Your work" className="grid grid-cols-1">
+            <HomeLink
+              to="/trainer/availability"
+              title="My availability"
+              text="Weekly hours, session length, time off"
+            />
+          </nav>
+          <TrainerSchedule trainerId={user.id} />
           <TrainerClients />
-          <p className="text-center text-sm text-muted">Coming soon: your availability and session bookings.</p>
         </>
       )}
 

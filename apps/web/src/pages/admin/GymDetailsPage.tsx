@@ -1,13 +1,14 @@
 import { useState, type FormEvent } from 'react'
-import { INDIAN_STATES, isValidGstin, type GymDetails } from '@onthec/shared'
+import { INDIAN_STATES, isValidGstin, ptRulesSchema, type GymDetails, type PtRules } from '@onthec/shared'
 import { useGymDetails, useSaveGymDetails } from '../../api/admin'
+import { usePtRules, useSavePtRules } from '../../api/pt-booking'
 import { errorMessage, formatPhone } from '../../lib/format'
 import { AdminLayout, LoadingText } from '../../ui/AdminLayout'
 import { Button } from '../../ui/Button'
 import { Card, Field, PhoneInput, SelectInput, TextArea, TextInput } from '../../ui/Form'
 import { ErrorText } from '../../ui/Screen'
 
-/** Owner-only: the business details printed on invoices. */
+/** Owner-only: the business details printed on invoices, and the PT booking rules. */
 export function GymDetailsPage() {
   const gym = useGymDetails()
   return (
@@ -15,6 +16,7 @@ export function GymDetailsPage() {
       {gym.isPending && <LoadingText />}
       <ErrorText>{errorMessage(gym.error)}</ErrorText>
       {gym.data && <GymForm gym={gym.data} />}
+      <PtRulesSection />
     </AdminLayout>
   )
 }
@@ -90,7 +92,9 @@ function GymForm({ gym }: { gym: GymDetails }) {
           )}
         </Field>
         <Field label="Contact number">
-          {(id) => <PhoneInput id={id} value={form.contactPhone} onChange={(e) => set('contactPhone')(e.target.value)} />}
+          {(id) => (
+            <PhoneInput id={id} value={form.contactPhone} onChange={(e) => set('contactPhone')(e.target.value)} />
+          )}
         </Field>
         <Field label="Email">
           {(id) => <TextInput id={id} type="email" value={form.email} onChange={(e) => set('email')(e.target.value)} />}
@@ -152,6 +156,98 @@ function GymForm({ gym }: { gym: GymDetails }) {
       )}
       <Button type="submit" loading={save.isPending}>
         Save
+      </Button>
+    </form>
+  )
+}
+
+const PT_RULE_FIELDS: { key: keyof PtRules; label: string; hint: string; max: number }[] = [
+  {
+    key: 'freeCancelHours',
+    label: 'Free cancellation (hours before)',
+    hint: 'Members can cancel or move a session for free until this many hours before it starts. Later, cancelling uses up the session.',
+    max: 72,
+  },
+  { key: 'bookingHorizonDays', label: 'Book up to (days ahead)', hint: 'How far ahead members can book.', max: 60 },
+  {
+    key: 'minNoticeHours',
+    label: 'Minimum notice (hours)',
+    hint: 'Bookings close this many hours before a session.',
+    max: 48,
+  },
+]
+
+/** The gym's PT booking rules (apply to every trainer). */
+function PtRulesSection() {
+  const rules = usePtRules()
+  return (
+    <>
+      <ErrorText>{errorMessage(rules.error)}</ErrorText>
+      {rules.data && <PtRulesForm rules={rules.data} />}
+    </>
+  )
+}
+
+function PtRulesForm({ rules }: { rules: PtRules }) {
+  const save = useSavePtRules()
+  const [form, setForm] = useState<Record<keyof PtRules, string>>({
+    freeCancelHours: String(rules.freeCancelHours),
+    bookingHorizonDays: String(rules.bookingHorizonDays),
+    minNoticeHours: String(rules.minNoticeHours),
+  })
+  const [problem, setProblem] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    // An empty box is not zero.
+    const toNumber = (value: string) => (value.trim() === '' ? Number.NaN : Number(value))
+    const parsed = ptRulesSchema.safeParse({
+      freeCancelHours: toNumber(form.freeCancelHours),
+      bookingHorizonDays: toNumber(form.bookingHorizonDays),
+      minNoticeHours: toNumber(form.minNoticeHours),
+    })
+    if (!parsed.success) {
+      const field = PT_RULE_FIELDS.find((f) => f.key === parsed.error.issues[0]?.path[0])
+      return setProblem(field ? `${field.label}: enter a whole number up to ${field.max}` : 'Check the numbers')
+    }
+    setProblem(null)
+    save.mutate(parsed.data, { onSuccess: () => setSaved(true) })
+  }
+
+  return (
+    <form onSubmit={submit} noValidate className="flex flex-col gap-4" aria-labelledby="pt-rules-heading">
+      <Card className="flex flex-col gap-4">
+        <h2 id="pt-rules-heading" className="font-semibold">
+          PT booking rules
+        </h2>
+        {PT_RULE_FIELDS.map((f) => (
+          <Field key={f.key} label={f.label} hint={f.hint}>
+            {(id) => (
+              <TextInput
+                id={id}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={f.max}
+                value={form[f.key]}
+                onChange={(e) => {
+                  setSaved(false)
+                  setForm((current) => ({ ...current, [f.key]: e.target.value }))
+                }}
+              />
+            )}
+          </Field>
+        ))}
+      </Card>
+      <ErrorText>{problem ?? errorMessage(save.error)}</ErrorText>
+      {saved && (
+        <p role="status" className="text-sm text-accent">
+          PT rules saved.
+        </p>
+      )}
+      <Button type="submit" variant="secondary" loading={save.isPending}>
+        Save PT rules
       </Button>
     </form>
   )
