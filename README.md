@@ -9,11 +9,13 @@ Multi-tenant gym management platform (members, trainers, owner/admin) delivered 
 
 - **Phase 0 — Installable PWA shell:** done. Live at https://gym-app.snitin322.workers.dev
 - **Phase 1 — Backend setup:** done. Fastify API, Prisma, Neon Postgres, health check (runs locally; API hosting comes with Phase 2).
-- **Phase 3 — Members and plans:** done. Owners/admins manage plans and members (renew, freeze, cancel); members see their plan and days left.
 - **Phase 2 — Login and tenancy:** done. Phone OTP login, sessions, roles, per-gym data isolation, login screens, and the API hosted on Render (Singapore) behind the Cloudflare Worker — see [docs/DEPLOY.md](docs/DEPLOY.md).
+- **Phase 3 — Members and plans:** done. Owners/admins manage plans, members and staff (renew, freeze, cancel); members see their plan and days left.
+- **Phase 4 — Payments and invoices:** 4a desk payments and dues, 4b GST invoices with PDF download — done. 4c Razorpay online renewal next.
 
-Login codes are sent on WhatsApp when `OTP_PROVIDER=whatsapp` — set it up with [docs/WHATSAPP_SETUP.md](docs/WHATSAPP_SETUP.md).
-Online payments use Razorpay — set up test mode with [docs/RAZORPAY_SETUP.md](docs/RAZORPAY_SETUP.md). With `OTP_PROVIDER=console` they appear in the API log (`pnpm dev` terminal) instead.
+Login codes are sent on WhatsApp when `OTP_PROVIDER=whatsapp` — set it up with [docs/WHATSAPP_SETUP.md](docs/WHATSAPP_SETUP.md). With `OTP_PROVIDER=console` they appear in the API log (`pnpm dev` terminal) instead.
+
+Online payments use Razorpay — set up test mode with [docs/RAZORPAY_SETUP.md](docs/RAZORPAY_SETUP.md).
 
 If `pnpm db:deploy` fails with "Can't reach database server" on Jio Fiber, the router's DNS is refusing Neon hostnames: set Windows DNS to `1.1.1.1` / `8.8.8.8`.
 
