@@ -1,10 +1,19 @@
-// Cloudflare Workers deploy config: serves the built PWA as static assets.
+// Cloudflare Workers deploy config.
+// Static PWA from apps/web/dist; /api/* goes through the Worker to the API on Render.
 // Build first with `pnpm --filter web build`, then `npx wrangler deploy`.
 {
   "name": "gym-app",
+  "main": "apps/web/worker/index.ts",
   "compatibility_date": "2025-09-01",
   "assets": {
     "directory": "./apps/web/dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Only API requests run the Worker; everything else is served straight from the assets.
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    // The Render service URL (Render dashboard → onthec-api → top of the page).
+    "API_ORIGIN": "https://onthec-api.onrender.com"
   }
 }

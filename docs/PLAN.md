@@ -146,8 +146,11 @@ Approved decisions: phone-first login then pick a gym; no self sign-up (only peo
 - Dev: Vite proxies `/api` to the local API (same origin, first-party cookie); the service worker never serves `/api`.
 - Tests: client refresh logic; full login, wrong code, unregistered number, gym choice, consent, reload and logout with a fake API.
 
-**2c — Deploy the API**
-- Render free web service (Singapore), `TRUST_PROXY=true`, Neon in Singapore. Cloudflare Worker routes `/api/*` to Render; everything else stays static assets.
+**2c — Deploy the API (in progress)**
+- `render.yaml` Blueprint: free web service `onthec-api` in Singapore, migrations on start, health check, Render-generated `JWT_SECRET`/`OTP_SECRET`, DB and WhatsApp values entered in the dashboard.
+- Cloudflare Worker (`apps/web/worker/index.ts`, `run_worker_first: ["/api/*"]`) forwards `/api/*` to `API_ORIGIN` with the real client IP; everything else is static assets. Unreachable API → standard error JSON (502).
+- Steps and day-to-day notes: `docs/DEPLOY.md`.
+- Known gap: the Render URL is publicly reachable, so a caller could bypass the Worker and spoof `X-Forwarded-For` to dodge per-IP limits (per-phone OTP limits still apply). Add a shared proxy secret header before launch.
 
 ### Phase 3 — Members and plans
 - Admin: plans CRUD (deactivate, don't delete), members list with search/filter (active / expiring in 7 days / expired), create member (creates user + member), member detail page, assign membership manually, freeze/unfreeze.
