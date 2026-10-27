@@ -2,7 +2,7 @@ import Fastify, { type FastifyServerOptions } from 'fastify'
 import cookie from '@fastify/cookie'
 import cors from '@fastify/cors'
 import rateLimit from '@fastify/rate-limit'
-import { ErrorCode } from '@onthec/shared'
+import { ErrorCode, todayInIndia } from '@onthec/shared'
 import type { Db } from './db/unscoped'
 import type { Env } from './env'
 import { AppError, registerErrorHandling } from './errors'
@@ -10,6 +10,8 @@ import { createAuthenticate } from './plugins/auth'
 import { authRoutes } from './routes/auth'
 import { healthRoutes } from './routes/health'
 import { meRoutes } from './routes/me'
+import { membersRoutes } from './routes/members'
+import { plansRoutes } from './routes/plans'
 import { usersRoutes } from './routes/users'
 import type { OtpSender } from './services/auth/senders'
 
@@ -17,6 +19,8 @@ export interface AppDeps {
   env: Env
   db: Db
   otpSender: OtpSender
+  /** Current time; tests pass a fixed clock to check date rules. */
+  now?: () => Date
 }
 
 const API_PREFIX = '/api/v1'
@@ -45,12 +49,17 @@ export async function buildApp(deps: AppDeps) {
   app.decorateRequest('auth', null)
 
   const authenticate = createAuthenticate(env, db)
+  const now = deps.now ?? (() => new Date())
+  /** Today's date at the gym, for all membership date rules. */
+  const today = () => todayInIndia(now())
 
   await app.register(healthRoutes(db), { prefix: API_PREFIX })
   await app.register(authRoutes(deps), { prefix: `${API_PREFIX}/auth` })
   // Routes below only ever see the tenant-scoped client, via request.auth.db.
-  await app.register(meRoutes({ authenticate }), { prefix: API_PREFIX })
+  await app.register(meRoutes({ authenticate, today }), { prefix: API_PREFIX })
   await app.register(usersRoutes({ authenticate }), { prefix: API_PREFIX })
+  await app.register(plansRoutes({ authenticate }), { prefix: API_PREFIX })
+  await app.register(membersRoutes({ authenticate, today }), { prefix: API_PREFIX })
 
   return app
 }

@@ -6,6 +6,7 @@ import { createDb, type Db } from '../src/db/unscoped'
 import { loadEnv } from '../src/env'
 import { REFRESH_COOKIE } from '../src/routes/auth'
 import type { OtpSender } from '../src/services/auth/senders'
+import { signAccessToken } from '../src/services/auth/tokens'
 
 export const testDatabaseUrl = process.env.TEST_DATABASE_URL
 
@@ -79,11 +80,24 @@ export async function createUser(
   return db.user.create({ data: { gymId, phone, name, role } })
 }
 
-/** Builds the app with a recording OTP sender, or `otpSender` to simulate delivery problems. */
-export async function startApp(db: Db, envOverrides: Record<string, string> = {}, otpSender?: OtpSender) {
+/**
+ * Builds the app with a recording OTP sender (or `otpSender` to simulate delivery problems) and,
+ * optionally, a fixed clock for date rules.
+ */
+export async function startApp(
+  db: Db,
+  envOverrides: Record<string, string> = {},
+  otpSender?: OtpSender,
+  now?: () => Date,
+) {
   const otps = captureOtps()
-  const app = await buildApp({ env: testEnv(envOverrides), db, otpSender: otpSender ?? otps.sender })
+  const app = await buildApp({ env: testEnv(envOverrides), db, otpSender: otpSender ?? otps.sender, now })
   return { app, otps }
+}
+
+/** An access token for a user, without going through OTP (for tests of other endpoints). */
+export function tokenFor(user: { id: string; gymId: string; role: Role }) {
+  return signAccessToken(testEnv(), { userId: user.id, gymId: user.gymId, role: user.role })
 }
 
 export function refreshCookieOf(res: { cookies: { name: string; value: string }[] }) {

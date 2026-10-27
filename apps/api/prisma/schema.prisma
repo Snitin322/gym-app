@@ -45,9 +45,13 @@ model Gym {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  users         User[]
-  refreshTokens RefreshToken[]
-  consents      Consent[]
+  users             User[]
+  refreshTokens     RefreshToken[]
+  consents          Consent[]
+  membershipPlans   MembershipPlan[]
+  members           Member[]
+  memberships       Membership[]
+  membershipFreezes MembershipFreeze[]
 
   @@map("gyms")
 }
@@ -65,9 +69,12 @@ model User {
   /// Set by the account deletion / anonymisation flow; such users cannot log in.
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
 
-  gym           Gym            @relation(fields: [gymId], references: [id], onDelete: Restrict)
-  refreshTokens RefreshToken[]
-  consents      Consent[]
+  gym                Gym                @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  refreshTokens      RefreshToken[]
+  consents           Consent[]
+  member             Member?
+  membershipsCreated Membership[]       @relation("MembershipCreatedBy")
+  freezesCreated     MembershipFreeze[] @relation("FreezeCreatedBy")
 
   @@unique([gymId, phone])
   @@index([phone])
@@ -127,4 +134,99 @@ model Consent {
   @@index([gymId])
   @@index([userId])
   @@map("consents")
+}
+
+/// A membership plan the gym sells, e.g. "3 months" for ₹4,500 (GST-inclusive).
+/// Plans are deactivated, never deleted, so old memberships keep their history.
+model MembershipPlan {
+  id             String   @id @default(uuid()) @db.Uuid
+  gymId          String   @map("gym_id") @db.Uuid
+  name           String
+  durationMonths Int      @map("duration_months")
+  /// GST-inclusive price in paise.
+  pricePaise     Int      @map("price_paise")
+  maxFreezeDays  Int      @default(0) @map("max_freeze_days")
+  description    String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym         Gym          @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  memberships Membership[]
+
+  @@unique([gymId, name])
+  @@index([gymId])
+  @@map("membership_plans")
+}
+
+/// Member profile: one per member user account.
+model Member {
+  id                    String   @id @default(uuid()) @db.Uuid
+  gymId                 String   @map("gym_id") @db.Uuid
+  userId                String   @unique @map("user_id") @db.Uuid
+  joinedOn              DateTime @map("joined_on") @db.Date
+  emergencyContactName  String?  @map("emergency_contact_name")
+  emergencyContactPhone String?  @map("emergency_contact_phone")
+  notes                 String?
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym         Gym          @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  memberships Membership[]
+
+  @@index([gymId])
+  @@map("members")
+}
+
+/// One purchased membership period. Plan details are copied at sale time so later plan edits
+/// don't rewrite history. Status (upcoming/active/frozen/expired/cancelled) is derived from dates.
+model Membership {
+  id             String    @id @default(uuid()) @db.Uuid
+  gymId          String    @map("gym_id") @db.Uuid
+  memberId       String    @map("member_id") @db.Uuid
+  planId         String    @map("plan_id") @db.Uuid
+  planName       String    @map("plan_name")
+  durationMonths Int       @map("duration_months")
+  pricePaise     Int       @map("price_paise")
+  maxFreezeDays  Int       @map("max_freeze_days")
+  startDate      DateTime  @map("start_date") @db.Date
+  /// Last valid day (inclusive), including freeze extensions.
+  endDate        DateTime  @map("end_date") @db.Date
+  cancelledAt    DateTime? @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason   String?   @map("cancel_reason")
+  createdById    String    @map("created_by_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym       Gym                @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  member    Member             @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  plan      MembershipPlan     @relation(fields: [planId], references: [id], onDelete: Restrict)
+  createdBy User               @relation("MembershipCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  freezes   MembershipFreeze[]
+
+  @@index([gymId])
+  @@index([memberId])
+  @@index([gymId, endDate])
+  @@map("memberships")
+}
+
+/// A pause in a membership (inclusive dates). Its length is added to the membership's end date.
+model MembershipFreeze {
+  id           String   @id @default(uuid()) @db.Uuid
+  gymId        String   @map("gym_id") @db.Uuid
+  membershipId String   @map("membership_id") @db.Uuid
+  fromDate     DateTime @map("from_date") @db.Date
+  toDate       DateTime @map("to_date") @db.Date
+  reason       String?
+  createdById  String   @map("created_by_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  gym        Gym        @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  createdBy  User       @relation("FreezeCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([gymId])
+  @@index([membershipId])
+  @@map("membership_freezes")
 }

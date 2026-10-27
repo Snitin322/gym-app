@@ -38,6 +38,12 @@ export function registerErrorHandling(app: FastifyInstance) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       return reply.status(404).send(errorBody(ErrorCode.NOT_FOUND, 'Not found'))
     }
+    // Serializable transaction lost a race with another request.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') {
+      return reply
+        .status(409)
+        .send(errorBody(ErrorCode.CONFLICT, 'Someone else changed this at the same time. Please try again.'))
+    }
 
     // Fastify's own client errors (bad JSON, payload too large, ...) carry a 4xx statusCode.
     const statusCode = (error as Partial<FastifyError>).statusCode ?? 500

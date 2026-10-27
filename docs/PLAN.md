@@ -153,11 +153,20 @@ Approved decisions: phone-first login then pick a gym; no self sign-up (only peo
 - Known gap: the Render URL is publicly reachable, so a caller could bypass the Worker and spoof `X-Forwarded-For` to dodge per-IP limits (per-phone OTP limits still apply). Add a shared proxy secret header before launch.
 
 ### Phase 3 — Members and plans
-- Admin: plans CRUD (deactivate, don't delete), members list with search/filter (active / expiring in 7 days / expired), create member (creates user + member), member detail page, assign membership manually, freeze/unfreeze.
-- Member: home screen — current plan, start/end, **days left**, status badge; membership history.
-- Trainer: list of assigned members (read-only basics).
-- Nightly job: expire memberships, activate `upcoming` ones.
-- **Tests**: renewal start-date rule, freeze extension and limits, days-left across IST midnight, status job idempotency, isolation.
+
+Approved decisions: plans in **months only** (no trials); prices **GST-inclusive**; memberships recorded **without payment** until Phase 4; **freezing per plan** with suggested limits 1 month → 0, 3 → 15, 6 → 30, 12 → 45 days (editable); no member deletion yet (DPDP flow later).
+
+**3a — API (done)**
+- Tables: `membership_plans` (unique name per gym, deactivate not delete), `members` (profile 1:1 with a member user), `memberships` (plan name/months/price/freeze limit copied at sale; dates only), `membership_freezes`. DB check constraints: positive price/duration, end ≥ start.
+- Date rules (`packages/shared/src/dates.ts`, `memberships.ts`): "today" is India time; end = day before the same date N months later, or month-end if that date doesn't exist (31 Jan + 1 → 28 Feb); valid through the end date; days left counts today. Status (upcoming/active/frozen/expired/cancelled) is derived, never stored — no nightly job.
+- Renewal: starts the day after the latest running/queued membership, else today; overlaps refused.
+- Freeze: inclusive dates within the membership, total ≤ plan limit, no overlaps; extends the end date and shifts any queued renewal. Unfreeze ends the current freeze yesterday (or removes a future/same-day one) and gives the days back.
+- Member list status: active / frozen / expiring (≤ 7 days, no renewal queued) / upcoming / expired / none; filters all · active · expiring · expired · none; search by name or phone digits.
+- Endpoints (owner/admin): `GET/POST /plans`, `PATCH /plans/:id`; `GET/POST /members`, `GET/PATCH /members/:id`, `POST /members/:id/memberships`; `POST /memberships/:id/freeze|unfreeze|cancel`; `POST /users` (owner adds admin/trainer, admin adds trainer). Any user: `GET /me/membership`.
+- Mutations run in serializable transactions (concurrent desk edits → 409 CONFLICT, "try again").
+- Tests: date maths, status, freeze limits/shift/unfreeze, renewal start, filters, staff roles, and gym A/B isolation on every new endpoint.
+
+**3b — Admin screens (next)** · **3c — Member home card**
 
 ### Phase 4 — Payments and invoices
 - Member: "Renew / Buy plan" → `POST /payments/orders` (server creates Razorpay order from the plan price, never from client amount) → Razorpay Checkout → `POST /payments/verify` (signature check, shows "processing") → webhook `payment.captured` / `order.paid` marks paid and fulfils.

@@ -4,7 +4,15 @@ import type { Db } from './unscoped'
  * Models with a gym_id column. Every query on these through a tenant client is filtered to
  * the session's gym. Add each new tenant-owned model here; a test compares this list with the schema.
  */
-export const TENANT_MODELS = ['User', 'RefreshToken', 'Consent'] as const
+export const TENANT_MODELS = [
+  'User',
+  'RefreshToken',
+  'Consent',
+  'MembershipPlan',
+  'Member',
+  'Membership',
+  'MembershipFreeze',
+] as const
 
 const tenantModels = new Set<string>(TENANT_MODELS)
 
@@ -104,3 +112,6 @@ export function forTenant(db: Db, gymId: string) {
 }
 
 export type TenantDb = ReturnType<typeof forTenant>
+
+/** The client inside `TenantDb.$transaction(async (tx) => ...)` — still tenant-scoped. */
+export type TenantTx = Parameters<Parameters<TenantDb['$transaction']>[0]>[0]
