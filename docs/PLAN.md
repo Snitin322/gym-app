@@ -226,9 +226,29 @@ Approved decisions: one-to-one sessions; 60-minute sessions (adjustable per trai
 - Member home: PT card ("9 of 12 sessions left · with Ravi · use by 18 May", session history). Trainer home: **My clients** with sessions left and use-by dates (`GET /trainer/clients`).
 - Tests: ledger sum = balance, negative guard, extend rules, expiry, discounts, pay later/part payments, trainer must be this gym's trainer, member/trainer views, gym isolation; screens for packages, selling, adjusting, payments, extend, member and trainer cards.
 
-**5b — Availability and booking (next)**
-- Trainer: weekly availability, time off, session length. Member: book from free slots (availability − time off − booked), reschedule/cancel with the 12 h rule.
-- Booking rule: balance − future booked ≥ 1 and the package is valid on the session date (transaction with a row lock); no trainer double-booking (exclusion constraint).
+**5b — Availability and booking (plan approved 27 Oct 2026; not started)**
+
+Approved decisions: members, the desk and the trainer (for their own clients) can book; slots run back to back at the trainer's session length (6:00, 7:00…); adding time off over existing bookings lists them and cancels them free; changing weekly hours never touches existing bookings.
+
+- Data:
+  - `trainers` profile (CLAUDE.md table): session length (default 60 min), specialisation.
+  - `trainer_availability`: weekday + start/end time in India time (several ranges per day allowed).
+  - `trainer_time_off`: from/to + reason.
+  - `pt_sessions`: purchase, trainer, member, `starts_at`/`ends_at` (UTC), status (`booked`, `cancelled`; `completed`/`no_show` in 5c), booked by, cancelled by/at/reason, late flag.
+  - Gym settings (owner edits in Gym details): free-cancel window 12 h, booking horizon 14 days, minimum notice 2 h.
+  - DB exclusion constraint (needs `btree_gist`): no overlapping `booked` sessions per trainer.
+- Rules (server-side):
+  - Slots = trainer's hours on each of the next 14 days, cut into session-length blocks, minus time off, minus booked sessions, minus anything within the minimum notice; never after the package's use-by date.
+  - Booking: the package's own trainer only; session date ≤ `expires_on`; sessions left − future booked ≥ 1; member has nothing else at that time. Serializable transaction (no raw SQL on tenant tables); a lost race returns 409 "That slot was just taken".
+  - Cancel: by the member ≥ 12 h before → free; later → one `late_cancel` ledger line (−1, once only). By trainer/desk → never deducts.
+  - Reschedule = cancel + rebook in one transaction; free until 12 h before, after that only a late cancel is possible.
+- Screens:
+  - Trainer: **My availability** (weekly hours, session length, time off) and **My schedule** (upcoming sessions by day with client name/phone).
+  - Member: **Book a session** from the PT card (day → time → confirm); **Upcoming sessions** with Reschedule/Cancel and a warning before a late cancel.
+  - Desk: book/cancel for a member from the member page; view/edit a trainer's hours from Staff.
+  - Owner: the three PT rules in Gym details.
+- Tests: slot generation (time off, bookings, session length, notice, horizon, use-by date); booking refused when balance − booked < 1; concurrent booking of the last session/slot (one wins); trainer double-booking blocked by the DB; late cancel deducts exactly once, free/staff cancel never; reschedule; another member's package refused; gym isolation; screens.
+- Delivery: **5b-1** schema, rules, API and tests → **5b-2** screens. Session reminders wait for Phase 8.
 
 **5c — Completing sessions and disputes**
 - Trainer marks complete / no-show (ledger −1); member confirms or disputes within 24 h, otherwise auto-confirmed; admin dispute queue (upheld → `+1 dispute_refund`).
