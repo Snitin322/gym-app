@@ -13,6 +13,8 @@ export const TENANT_MODELS = [
   'Membership',
   'MembershipFreeze',
   'Payment',
+  'Invoice',
+  'InvoiceSequence',
 ] as const
 
 const tenantModels = new Set<string>(TENANT_MODELS)

@@ -420,3 +420,48 @@ describe('gym details', () => {
     expect(screen.queryByRole('link', { name: /Gym details/ })).toBeNull()
   })
 })
+
+describe('invoices', () => {
+  const paid = {
+    id: 'pay-1',
+    amountPaise: 450000,
+    method: 'cash' as const,
+    status: 'paid' as const,
+    reference: null,
+    note: null,
+    paidAt: '2026-10-27T05:00:00.000Z',
+    membershipId: 'ms-1',
+    description: '3 months',
+    recordedByName: 'Nitin Sharma',
+  }
+
+  it('downloads the invoice PDF with the login token', async () => {
+    const { callsTo } = mockApi({
+      'POST /auth/refresh': ok(owner),
+      'GET /members/mem-1': ok(memberDetail({ payments: [{ ...paid, invoice: { id: 'inv-1', number: 'OG/26-27/0001' } }] })),
+      'GET /invoices/inv-1/pdf': { status: 200, file: { content: '%PDF-1.3 test', type: 'application/pdf' } },
+    })
+    const createObjectURL = vi.fn(() => 'blob:invoice')
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }))
+    const user = userEvent.setup()
+    renderAt('/admin/members/mem-1')
+
+    await user.click(await screen.findByRole('button', { name: 'Invoice OG/26-27/0001 ↓' }))
+
+    await vi.waitFor(() => expect(createObjectURL).toHaveBeenCalledOnce())
+    expect(callsTo('GET /invoices/inv-1/pdf')[0]?.headers.get('authorization')).toBe('Bearer access-1')
+  })
+
+  it('creates an invoice for an older payment without one', async () => {
+    const { callsTo } = mockApi({
+      'POST /auth/refresh': ok(owner),
+      'GET /members/mem-1': ok(memberDetail({ payments: [{ ...paid, invoice: null }] })),
+      'POST /payments/pay-1/invoice': { status: 201, body: { id: 'inv-9', number: 'OG/26-27/0009' } },
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/members/mem-1')
+
+    await user.click(await screen.findByRole('button', { name: 'Create invoice' }))
+    await vi.waitFor(() => expect(callsTo('POST /payments/pay-1/invoice')).toHaveLength(1))
+  })
+})

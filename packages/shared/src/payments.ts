@@ -32,6 +32,8 @@ export interface PaymentView {
   /** e.g. "3 months" — what the payment was for. */
   description: string
   recordedByName: string | null
+  /** The invoice issued for this payment (null only for payments from before invoices existed). */
+  invoice: { id: string; number: string } | null
 }
 
 const optionalText = (max: number) =>

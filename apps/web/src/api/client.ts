@@ -84,6 +84,39 @@ export interface RequestOptions {
   body?: unknown
 }
 
+/** Fetches a file (e.g. an invoice PDF) with the access token, refreshing it once if needed. */
+export async function apiBlob(path: string): Promise<Blob> {
+  const get = () =>
+    fetch(`${API_BASE}${path}`, {
+      credentials: 'same-origin',
+      headers: accessToken ? { authorization: `Bearer ${accessToken}` } : {},
+    }).catch(() => {
+      throw new ApiError(0, 'NETWORK_ERROR', "Can't reach the server. Check your internet connection and try again.")
+    })
+
+  let res = await get()
+  if (res.status === 401 && (await refreshSession())) res = await get()
+  if (!res.ok) {
+    const error = res.headers.get('content-type')?.includes('application/json')
+      ? ((await res.json()) as Partial<ApiErrorBody>).error
+      : undefined
+    throw new ApiError(res.status, error?.code ?? 'INTERNAL_ERROR', error?.message ?? 'Could not download the file.')
+  }
+  return res.blob()
+}
+
+/** Downloads a file from the API and saves it with the given name. */
+export async function downloadFile(path: string, filename: string) {
+  const url = URL.createObjectURL(await apiBlob(path))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.append(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 30_000)
+}
+
 /** Calls the API with the access token, refreshing it once if it has expired. */
 export async function api<T>(path: string, { method = 'GET', body }: RequestOptions = {}): Promise<T> {
   const init = (): RequestInit => ({

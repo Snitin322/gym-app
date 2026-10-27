@@ -14,6 +14,7 @@ import {
 import {
   useAddMembership,
   useCancelMembership,
+  useCreateInvoice,
   useFreeze,
   useMember,
   usePlans,
@@ -38,6 +39,7 @@ export function MemberPage() {
   const { id = '' } = useParams()
   const member = useMember(id)
   const [panel, setPanel] = useState<Panel>(null)
+  const createInvoice = useCreateInvoice(id)
   const today = todayInIndia()
   const back = { to: '/admin/members', label: 'Members' }
 
@@ -137,7 +139,11 @@ export function MemberPage() {
           <ul className="flex flex-col gap-2">
             {m.payments.map((p) => (
               <li key={p.id}>
-                <PaymentRow payment={p} />
+                <PaymentRow
+                  payment={p}
+                  onCreateInvoice={(paymentId) => createInvoice.mutate(paymentId)}
+                  creating={createInvoice.isPending && createInvoice.variables === p.id}
+                />
               </li>
             ))}
           </ul>

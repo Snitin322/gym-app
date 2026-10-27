@@ -132,6 +132,7 @@ describe('member dues and payments', () => {
           membershipId: 'ms-1',
           description: '3 months',
           recordedByName: 'Front Desk',
+          invoice: { id: 'inv-1', number: 'OG/26-27/0001' },
         },
       ],
     })

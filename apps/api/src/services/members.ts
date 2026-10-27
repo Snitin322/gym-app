@@ -35,7 +35,11 @@ const memberDetailInclude = {
   ...memberInclude,
   payments: {
     where: { status: 'paid' },
-    include: { membership: { select: { planName: true } }, recordedBy: { select: { name: true } } },
+    include: {
+      membership: { select: { planName: true } },
+      recordedBy: { select: { name: true } },
+      invoice: { select: { id: true, number: true } },
+    },
     orderBy: { paidAt: 'desc' },
   },
 } as const satisfies Prisma.MemberInclude
@@ -68,6 +72,7 @@ function toPaymentView(p: MemberDetailRow['payments'][number]): PaymentView {
     membershipId: p.membershipId,
     description: p.membership?.planName ?? 'Payment',
     recordedByName: p.recordedBy?.name ?? null,
+    invoice: p.invoice,
   }
 }
 
@@ -151,7 +156,8 @@ export async function createMember(
       })
       if (input.firstMembership) await addMembershipInTx(tx, actor, member.id, input.firstMembership, today)
       return member.id
-    })
+      // Serializable: a first payment allocates an invoice number from the shared counter.
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
     return (await getMember(db, memberId, today)) as MemberDetail
   } catch (error) {
     if (isUniqueViolation(error)) throw phoneTaken()

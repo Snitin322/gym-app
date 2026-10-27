@@ -124,6 +124,13 @@ export function useRecordPayment(memberId: string) {
   )
 }
 
+/** Issues the invoice for an older payment that doesn't have one yet. */
+export function useCreateInvoice(memberId: string) {
+  return useMemberMutation(memberId, (paymentId: string) =>
+    api<{ id: string; number: string }>(`/payments/${paymentId}/invoice`, { method: 'POST' }),
+  )
+}
+
 // --- Gym details -------------------------------------------------------------
 
 export function useGymDetails() {

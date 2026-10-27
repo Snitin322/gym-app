@@ -197,7 +197,15 @@ Approved decisions: GST status not decided yet — build both (GSTIN set → tax
 - Screens: sale fields with payment chips, "₹X due" on member page/rows, Record payment panel, payments list, Dues filter, member home shows due + "My payments".
 - Tests: desk payment, pay later + dues filter, discounts (reason, cap), free membership, part payments/overpayment/nothing due, cancelled/legacy, member view, gym details validation and roles, gym isolation.
 
-**4b — GST invoices (next)** · **4c — Razorpay online renewal**
+**4b — GST invoices (done)**
+- Every paid payment gets an invoice in the same transaction (`issueInvoiceInTx`): gap-free number per gym and Indian financial year from `invoice_sequences` (`PREFIX/26-27/0001`, ≤ 16 chars); payment-creating transactions are serializable, so a race returns 409 "try again" instead of leaving a hole.
+- GSTIN set → **tax invoice**: GST-inclusive amount split into taxable value + CGST 9% + SGST 9% in whole paise (adds up exactly; DB check); SAC printed; place of supply = gym's state. No GSTIN → **receipt** with no tax lines.
+- Seller/buyer details and description are copied at issue time; invoices are never edited or deleted. One invoice per payment (part payments say "(part payment)").
+- PDF (`GET /invoices/:id/pdf`, pdfkit, A4): owners/admins any invoice of their gym; members (and trainers) only their own. Amounts print as "Rs." (built-in font has no ₹), with amount in words (Indian numbering).
+- Older payments without an invoice: "Create invoice" (`POST /payments/:id/invoice`, idempotent).
+- Tests: GST split across many amounts, FY switch at 1 April IST, numbering (per gym, part payments, concurrent sales stay 1..n), snapshot immutability, PDF access rules, legacy invoicing.
+
+**4c — Razorpay online renewal (next)**
 
 ### Phase 5 — PT packages and booking
 - Admin: PT packages CRUD; sell a package (online or manual payment → `pt_purchase` + ledger `+N`); assign trainer.

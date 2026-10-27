@@ -1,7 +1,8 @@
 import { vi } from 'vitest'
 import type { SessionResponse, SessionUser } from '@onthec/shared'
 
-type MockResponse = { status: number; body?: unknown }
+/** `file` returns a binary body (e.g. a PDF) instead of JSON. */
+type MockResponse = { status: number; body?: unknown; file?: { content: string; type: string } }
 type Route = MockResponse | ((body: unknown, callNumber: number) => MockResponse)
 
 export interface ApiCall {
@@ -36,6 +37,9 @@ export function mockApi(routes: Record<string, Route>) {
     const route = routes[key]
     if (!route) return json(404, { error: { code: 'NOT_FOUND', message: `No mock for ${key}` } })
     const response = typeof route === 'function' ? route(body, callNumber) : route
+    if (response.file) {
+      return new Response(response.file.content, { status: response.status, headers: { 'content-type': response.file.type } })
+    }
     return response.status === 204 ? new Response(null, { status: 204 }) : json(response.status, response.body)
   })
 
