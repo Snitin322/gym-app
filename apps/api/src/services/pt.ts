@@ -90,6 +90,7 @@ export const purchaseInclude = {
   trainer: { select: { id: true, name: true } },
   ledger: { orderBy: { createdAt: 'asc' }, include: { createdBy: { select: { name: true } } } },
   payments: { where: { status: 'paid' }, select: { amountPaise: true } },
+  sessions: { where: { status: 'booked' }, select: { id: true } },
 } as const satisfies Prisma.PtPurchaseInclude
 
 export type PurchaseRow = Prisma.PtPurchaseGetPayload<{ include: typeof purchaseInclude }>
@@ -104,6 +105,7 @@ export function toPurchaseView(row: PurchaseRow, today: IsoDate): PtPurchaseView
     packageName: row.packageName,
     sessionCount: row.sessionCount,
     sessionsLeft,
+    sessionsBooked: row.sessions.length,
     startDate: fromDbDate(row.startDate),
     expiresOn,
     status: ptPurchaseStatus({ sessionsLeft, expiresOn }, today),

@@ -42,6 +42,7 @@ function purchase(overrides: Partial<PtPurchaseView> = {}): PtPurchaseView {
     packageName: '12 Sessions',
     sessionCount: 12,
     sessionsLeft: 9,
+    sessionsBooked: 0,
     startDate: addDays(today, -10),
     expiresOn: addDays(today, 49),
     status: 'active',

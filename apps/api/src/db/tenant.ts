@@ -18,6 +18,10 @@ export const TENANT_MODELS = [
   'PtPackage',
   'PtPurchase',
   'PtSessionLedger',
+  'TrainerProfile',
+  'TrainerAvailability',
+  'TrainerTimeOff',
+  'PtSession',
 ] as const
 
 const tenantModels = new Set<string>(TENANT_MODELS)

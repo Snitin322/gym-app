@@ -70,6 +70,8 @@ export interface PtPurchaseView {
   sessionCount: number
   /** Sum of the ledger. */
   sessionsLeft: number
+  /** Sessions booked and not yet completed or cancelled (they will use up sessions). */
+  sessionsBooked: number
   startDate: IsoDate
   expiresOn: IsoDate
   status: PtPurchaseStatus

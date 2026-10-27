@@ -226,7 +226,7 @@ Approved decisions: one-to-one sessions; 60-minute sessions (adjustable per trai
 - Member home: PT card ("9 of 12 sessions left · with Ravi · use by 18 May", session history). Trainer home: **My clients** with sessions left and use-by dates (`GET /trainer/clients`).
 - Tests: ledger sum = balance, negative guard, extend rules, expiry, discounts, pay later/part payments, trainer must be this gym's trainer, member/trainer views, gym isolation; screens for packages, selling, adjusting, payments, extend, member and trainer cards.
 
-**5b — Availability and booking (plan approved 27 Oct 2026; not started)**
+**5b — Availability and booking (plan approved 27 Oct 2026; 5b-1 backend done, 5b-2 screens next)**
 
 Approved decisions: members, the desk and the trainer (for their own clients) can book; slots run back to back at the trainer's session length (6:00, 7:00…); adding time off over existing bookings lists them and cancels them free; changing weekly hours never touches existing bookings.
 
@@ -248,7 +248,8 @@ Approved decisions: members, the desk and the trainer (for their own clients) ca
   - Desk: book/cancel for a member from the member page; view/edit a trainer's hours from Staff.
   - Owner: the three PT rules in Gym details.
 - Tests: slot generation (time off, bookings, session length, notice, horizon, use-by date); booking refused when balance − booked < 1; concurrent booking of the last session/slot (one wins); trainer double-booking blocked by the DB; late cancel deducts exactly once, free/staff cancel never; reschedule; another member's package refused; gym isolation; screens.
-- Delivery: **5b-1** schema, rules, API and tests → **5b-2** screens. Session reminders wait for Phase 8.
+- Delivery: **5b-1** schema, rules, API and tests (done) → **5b-2** screens (next). Session reminders wait for Phase 8.
+- 5b-1 API: `GET/PUT /trainers/:id/availability`, `POST/DELETE /trainers/:id/time-off`, `GET /trainers/:id/sessions`, `GET /pt-purchases/:id/slots`, `POST /pt-purchases/:id/sessions`, `POST /pt-sessions/:id/cancel`, `POST /pt-sessions/:id/reschedule`, `GET /me/pt-sessions`, `GET /members/:id/pt-sessions`, `GET/PATCH /pt-rules` (owner edits). Slot rules live in `packages/shared/src/pt-booking.ts` so the app and API agree. DB exclusion constraints (btree_gist) stop overlapping booked sessions per trainer and per member.
 
 **5c — Completing sessions and disputes**
 - Trainer marks complete / no-show (ledger −1); member confirms or disputes within 24 h, otherwise auto-confirmed; admin dispute queue (upheld → `+1 dispute_refund`).

@@ -69,6 +69,10 @@ model Gym {
   ptPackages        PtPackage[]
   ptPurchases       PtPurchase[]
   ptLedger          PtSessionLedger[]
+  trainerProfiles   TrainerProfile[]
+  trainerHours      TrainerAvailability[]
+  trainerTimeOff    TrainerTimeOff[]
+  ptSessions        PtSession[]
 
   @@map("gyms")
 }
@@ -86,16 +90,23 @@ model User {
   /// Set by the account deletion / anonymisation flow; such users cannot log in.
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
 
-  gym                Gym                @relation(fields: [gymId], references: [id], onDelete: Restrict)
-  refreshTokens      RefreshToken[]
-  consents           Consent[]
-  member             Member?
-  membershipsCreated Membership[]       @relation("MembershipCreatedBy")
-  freezesCreated     MembershipFreeze[] @relation("FreezeCreatedBy")
-  paymentsRecorded   Payment[]          @relation("PaymentRecordedBy")
-  ptClients          PtPurchase[]       @relation("PtTrainer")
-  ptSold             PtPurchase[]       @relation("PtSoldBy")
-  ptLedgerEntries    PtSessionLedger[]  @relation("PtLedgerBy")
+  gym                 Gym                   @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  refreshTokens       RefreshToken[]
+  consents            Consent[]
+  member              Member?
+  membershipsCreated  Membership[]          @relation("MembershipCreatedBy")
+  freezesCreated      MembershipFreeze[]    @relation("FreezeCreatedBy")
+  paymentsRecorded    Payment[]             @relation("PaymentRecordedBy")
+  ptClients           PtPurchase[]          @relation("PtTrainer")
+  ptSold              PtPurchase[]          @relation("PtSoldBy")
+  ptLedgerEntries     PtSessionLedger[]     @relation("PtLedgerBy")
+  trainerProfile      TrainerProfile?
+  trainerHours        TrainerAvailability[]
+  timeOff             TrainerTimeOff[]      @relation("TimeOffTrainer")
+  timeOffCreated      TrainerTimeOff[]      @relation("TimeOffCreatedBy")
+  ptSessionsTrained   PtSession[]           @relation("PtSessionTrainer")
+  ptSessionsBooked    PtSession[]           @relation("PtSessionBookedBy")
+  ptSessionsCancelled PtSession[]           @relation("PtSessionCancelledBy")
 
   @@unique([gymId, phone])
   @@index([phone])
@@ -199,6 +210,7 @@ model Member {
   payments    Payment[]
   invoices    Invoice[]
   ptPurchases PtPurchase[]
+  ptSessions  PtSession[]
 
   @@index([gymId])
   @@map("members")
@@ -457,6 +469,7 @@ model PtPurchase {
   createdBy User              @relation("PtSoldBy", fields: [createdById], references: [id], onDelete: Restrict)
   ledger    PtSessionLedger[]
   payments  Payment[]
+  sessions  PtSession[]
 
   @@index([gymId])
   @@index([memberId])
@@ -470,7 +483,7 @@ model PtSessionLedger {
   id          String         @id @default(uuid()) @db.Uuid
   gymId       String         @map("gym_id") @db.Uuid
   purchaseId  String         @map("purchase_id") @db.Uuid
-  /// The PT session this change is about (Phase 5c).
+  /// The PT session this change is about (late cancellation, completion, dispute).
   sessionId   String?        @map("session_id") @db.Uuid
   change      Int
   reason      PtLedgerReason
@@ -481,8 +494,113 @@ model PtSessionLedger {
   gym       Gym        @relation(fields: [gymId], references: [id], onDelete: Restrict)
   purchase  PtPurchase @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
   createdBy User?      @relation("PtLedgerBy", fields: [createdById], references: [id], onDelete: Restrict)
+  session   PtSession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
 
+  /// A session can be charged (or refunded) only once for each reason.
+  @@unique([sessionId, reason])
   @@index([gymId])
   @@index([purchaseId])
   @@map("pt_session_ledger")
+}
+
+/// Trainer settings (one row per trainer, created when first saved).
+model TrainerProfile {
+  id             String   @id @default(uuid()) @db.Uuid
+  gymId          String   @map("gym_id") @db.Uuid
+  userId         String   @unique @map("user_id") @db.Uuid
+  /// Length of one PT session; slots are cut at this length.
+  sessionMinutes Int      @default(60) @map("session_minutes")
+  specialisation String?
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym  Gym  @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([gymId])
+  @@map("trainers")
+}
+
+/// A trainer's weekly working hours, in India time. Several ranges per day are allowed.
+model TrainerAvailability {
+  id          String   @id @default(uuid()) @db.Uuid
+  gymId       String   @map("gym_id") @db.Uuid
+  trainerId   String   @map("trainer_id") @db.Uuid
+  /// 1 = Monday … 7 = Sunday.
+  weekday     Int
+  /// Minutes after midnight (India time), e.g. 360 = 6:00 am.
+  startMinute Int      @map("start_minute")
+  endMinute   Int      @map("end_minute")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  gym     Gym  @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  trainer User @relation(fields: [trainerId], references: [id], onDelete: Restrict)
+
+  @@index([gymId])
+  @@index([trainerId])
+  @@map("trainer_availability")
+}
+
+/// Leave or blocked time for a trainer. No sessions can be booked inside it.
+model TrainerTimeOff {
+  id          String   @id @default(uuid()) @db.Uuid
+  gymId       String   @map("gym_id") @db.Uuid
+  trainerId   String   @map("trainer_id") @db.Uuid
+  startsAt    DateTime @map("starts_at") @db.Timestamptz(3)
+  endsAt      DateTime @map("ends_at") @db.Timestamptz(3)
+  reason      String?
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  gym       Gym  @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  trainer   User @relation("TimeOffTrainer", fields: [trainerId], references: [id], onDelete: Restrict)
+  createdBy User @relation("TimeOffCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([gymId])
+  @@index([trainerId, startsAt])
+  @@map("trainer_time_off")
+}
+
+enum PtSessionStatus {
+  booked
+  cancelled
+  completed
+  no_show
+
+  @@map("pt_session_status")
+}
+
+/// One booked PT session (one member, one trainer). Using up the session is a ledger line, never a counter.
+model PtSession {
+  id            String          @id @default(uuid()) @db.Uuid
+  gymId         String          @map("gym_id") @db.Uuid
+  purchaseId    String          @map("purchase_id") @db.Uuid
+  trainerId     String          @map("trainer_id") @db.Uuid
+  memberId      String          @map("member_id") @db.Uuid
+  startsAt      DateTime        @map("starts_at") @db.Timestamptz(3)
+  endsAt        DateTime        @map("ends_at") @db.Timestamptz(3)
+  status        PtSessionStatus @default(booked)
+  bookedById    String          @map("booked_by_id") @db.Uuid
+  cancelledAt   DateTime?       @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById String?         @map("cancelled_by_id") @db.Uuid
+  cancelReason  String?         @map("cancel_reason")
+  /// Cancelled by the member inside the free-cancel window: the session was used up.
+  lateCancel    Boolean         @default(false) @map("late_cancel")
+  trainerNotes  String?         @map("trainer_notes")
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym         Gym               @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  purchase    PtPurchase        @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  trainer     User              @relation("PtSessionTrainer", fields: [trainerId], references: [id], onDelete: Restrict)
+  member      Member            @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  bookedBy    User              @relation("PtSessionBookedBy", fields: [bookedById], references: [id], onDelete: Restrict)
+  cancelledBy User?             @relation("PtSessionCancelledBy", fields: [cancelledById], references: [id], onDelete: Restrict)
+  ledger      PtSessionLedger[]
+
+  @@index([gymId])
+  @@index([purchaseId])
+  @@index([memberId, startsAt])
+  @@index([trainerId, startsAt])
+  @@map("pt_sessions")
 }
