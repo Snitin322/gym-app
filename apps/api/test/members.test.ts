@@ -131,6 +131,26 @@ describe.skipIf(!testDatabaseUrl)('plans, members and memberships', () => {
       expect(res.json().error.code).toBe('PHONE_TAKEN')
     })
 
+    it('edits details; an emptied field is removed, a missing one is unchanged', async () => {
+      const created = await call('POST', '/members', owner, {
+        name: 'Asha',
+        phone: '9876500001',
+        emergencyContactName: 'Ravi',
+        emergencyContactPhone: '9876500009',
+        notes: 'Knee injury',
+      })
+      const id = created.json().id
+
+      const res = await call('PATCH', `/members/${id}`, owner, { name: 'Asha Patel', notes: '', emergencyContactPhone: '' })
+
+      expect(res.json()).toMatchObject({
+        name: 'Asha Patel',
+        notes: null,
+        emergencyContactPhone: null,
+        emergencyContactName: 'Ravi',
+      })
+    })
+
     it('staff without a member profile have no membership', async () => {
       expect((await call('GET', '/me/membership', trainer)).json()).toEqual({ current: null, history: [] })
     })

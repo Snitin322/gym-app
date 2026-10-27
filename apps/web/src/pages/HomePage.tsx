@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useAuth, useSignedInUser } from '../auth/AuthContext'
+import { Link } from 'react-router'
+import { MANAGER_ROLES, useAuth, useSignedInUser } from '../auth/AuthContext'
 import { InstallHint } from '../InstallHint'
 import { ROLE_LABELS, formatPhone } from '../lib/format'
 import { Button } from '../ui/Button'
@@ -25,12 +26,19 @@ export function HomePage() {
         You're logged in as the {ROLE_LABELS[user.role].toLowerCase()} at {user.gym.name}.
       </p>
 
-      <section className="rounded-2xl bg-surface p-5">
-        <h2 className="font-semibold">Coming next</h2>
-        <p className="mt-1 text-sm text-muted">
-          Your membership and days left, PT session booking and the QR check-in pass will appear here.
-        </p>
-      </section>
+      {MANAGER_ROLES.includes(user.role) ? (
+        <nav aria-label="Manage the gym" className="grid grid-cols-2 gap-3">
+          <HomeLink to="/admin/members" title="Members" text="Add members, renew, freeze" />
+          <HomeLink to="/admin/plans" title="Plans" text="Prices, lengths, freeze limits" />
+        </nav>
+      ) : (
+        <section className="rounded-2xl bg-surface p-5">
+          <h2 className="font-semibold">Coming next</h2>
+          <p className="mt-1 text-sm text-muted">
+            Your membership and days left, PT session booking and the QR check-in pass will appear here.
+          </p>
+        </section>
+      )}
 
       <section className="rounded-2xl bg-surface p-5 text-sm">
         <h2 className="font-semibold">Your account</h2>
@@ -52,5 +60,14 @@ export function HomePage() {
         Log out
       </Button>
     </Screen>
+  )
+}
+
+function HomeLink({ to, title, text }: { to: string; title: string; text: string }) {
+  return (
+    <Link to={to} className="flex min-h-28 flex-col justify-between rounded-2xl bg-surface p-4 hover:bg-surface-2">
+      <span className="text-lg font-bold">{title} →</span>
+      <span className="text-sm text-muted">{text}</span>
+    </Link>
   )
 }

@@ -160,7 +160,23 @@ export const createMemberSchema = memberInputSchema.extend({
   firstMembership: newMembershipSchema.optional(),
 })
 
-export const updateMemberSchema = memberInputSchema.partial()
+/** On edit, an emptied field means "remove it" (null), while a missing field means "unchanged". */
+const clearableText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .transform((value) => (value === undefined ? undefined : value || null))
+
+export const updateMemberSchema = z.object({
+  name: z.string().trim().min(2, 'Name is too short').max(80).optional(),
+  phone: phoneSchema.optional(),
+  joinedOn: isoDateSchema.optional(),
+  emergencyContactName: clearableText(80),
+  emergencyContactPhone: z.union([z.literal('').transform(() => null), phoneSchema]).optional(),
+  notes: clearableText(1000),
+})
 
 export const freezeInputSchema = z
   .object({

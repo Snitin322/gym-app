@@ -1,5 +1,8 @@
 import { createContext, useContext } from 'react'
-import type { SessionResponse, SessionUser } from '@onthec/shared'
+import type { Role, SessionResponse, SessionUser } from '@onthec/shared'
+
+/** Roles that manage members and plans. */
+export const MANAGER_ROLES: Role[] = ['owner', 'admin']
 
 export type AuthState =
   | { status: 'loading' }

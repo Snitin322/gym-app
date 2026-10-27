@@ -166,7 +166,15 @@ Approved decisions: plans in **months only** (no trials); prices **GST-inclusive
 - Mutations run in serializable transactions (concurrent desk edits → 409 CONFLICT, "try again").
 - Tests: date maths, status, freeze limits/shift/unfreeze, renewal start, filters, staff roles, and gym A/B isolation on every new endpoint.
 
-**3b — Admin screens (next)** · **3c — Member home card**
+**3b — Admin screens (done)**
+- Owner/admin home shows **Members** and **Plans**; `/admin/*` routes are guarded by role (`RequireRole`).
+- Plans: list (active first), add/edit with price in rupees (stored as paise), length 1–24 months, max freeze days pre-filled from the gym's table until edited, activate/deactivate.
+- Members: search (name or phone), filter chips (All · Active · Expiring · Expired · No plan) kept in the URL, rows show plan + "N days left" + status badge.
+- Add member: name, phone, optional plan + start date (shows the end date), joined date, emergency contact, notes; opens the member page.
+- Member page: current membership with big "days left", price, freeze usage and freeze history; actions Renew (default start = day after current ends), Freeze (shows days and new end date, enforces remaining), Unfreeze, Cancel (confirm step), Edit details (empty field clears it); all memberships listed.
+- Tests: role guard, plan form (paise + suggested freeze), list filter, add member, freeze, cancel confirmation; label helpers.
+
+**3c — Member home card (next)**
 
 ### Phase 4 — Payments and invoices
 - Member: "Renew / Buy plan" → `POST /payments/orders` (server creates Razorpay order from the plan price, never from client amount) → Razorpay Checkout → `POST /payments/verify` (signature check, shows "processing") → webhook `payment.captured` / `order.paid` marks paid and fulfils.

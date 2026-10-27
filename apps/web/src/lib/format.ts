@@ -1,4 +1,18 @@
-import type { Role } from '@onthec/shared'
+import type { IsoDate, Role } from '@onthec/shared'
+
+/** "2026-03-20" → "20 Mar 2026" (or "20 Mar" with short = true). Plain calendar dates, no time zone shift. */
+export function formatDate(date: IsoDate, { short = false }: { short?: boolean } = {}) {
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    ...(short ? {} : { year: 'numeric' }),
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T00:00:00Z`))
+}
+
+export function plural(count: number, word: string) {
+  return `${count} ${word}${count === 1 ? '' : 's'}`
+}
 
 /** "+919876543210" → "+91 98765 43210" */
 export function formatPhone(phone: string) {
