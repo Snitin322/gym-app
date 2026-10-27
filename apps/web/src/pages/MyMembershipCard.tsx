@@ -1,8 +1,9 @@
-import { EXPIRING_WITHIN_DAYS, inclusiveDays, todayInIndia, type MembershipView } from '@onthec/shared'
+import { EXPIRING_WITHIN_DAYS, formatPaise, inclusiveDays, todayInIndia, type MembershipView } from '@onthec/shared'
 import { useMyMembership } from '../api/admin'
 import { errorMessage, formatDate, plural } from '../lib/format'
 import { membershipRange, membershipSummary, monthsLabel } from '../lib/membership'
 import { Card } from '../ui/Form'
+import { PaymentRow } from '../ui/PaymentRow'
 import { ErrorText } from '../ui/Screen'
 import { StatusBadge } from '../ui/StatusBadge'
 
@@ -26,7 +27,7 @@ export function MyMembershipCard() {
     )
   }
 
-  const { current, history } = query.data
+  const { current, history, duePaise, payments } = query.data
   if (!current) {
     return (
       <Card>
@@ -81,6 +82,25 @@ export function MyMembershipCard() {
           </p>
         )}
       </Card>
+
+      {duePaise > 0 && (
+        <p role="alert" className="rounded-2xl bg-warn/10 px-5 py-4 text-warn">
+          <span className="font-bold">{formatPaise(duePaise)} due.</span> Please pay at the front desk.
+        </p>
+      )}
+
+      {payments.length > 0 && (
+        <details className="rounded-2xl bg-surface px-5 py-4 text-sm">
+          <summary className="cursor-pointer font-semibold">My payments ({payments.length})</summary>
+          <ul className="mt-3 flex flex-col gap-2">
+            {payments.map((p) => (
+              <li key={p.id}>
+                <PaymentRow payment={p} />
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       {past.length > 0 && (
         <details className="rounded-2xl bg-surface px-5 py-4 text-sm">

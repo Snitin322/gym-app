@@ -6,6 +6,7 @@ import {
   inclusiveDays,
   membershipEndDate,
   normalizePhone,
+  rupeesToPaise,
   todayInIndia,
   type MemberDetail,
   type MembershipView,
@@ -16,18 +17,22 @@ import {
   useFreeze,
   useMember,
   usePlans,
+  useRecordPayment,
   useUnfreeze,
   useUpdateMember,
 } from '../../api/admin'
-import { errorMessage, formatDate, formatPhone, plural } from '../../lib/format'
+import { errorMessage, formatDate, formatPhone, paiseToRupeesInput, plural } from '../../lib/format'
 import { membershipRange, membershipSummary, monthsLabel, planOptionLabel } from '../../lib/membership'
+import { initialSale, saleToInput, type PayChoice, type SaleState } from '../../lib/sale'
 import { AdminLayout, LoadingText } from '../../ui/AdminLayout'
 import { Button } from '../../ui/Button'
-import { Card, Field, PhoneInput, SelectInput, TextArea, TextInput } from '../../ui/Form'
+import { Card, Field, PhoneInput, RupeeInput, SelectInput, TextArea, TextInput } from '../../ui/Form'
+import { PaymentRow } from '../../ui/PaymentRow'
 import { ErrorText } from '../../ui/Screen'
 import { StatusBadge } from '../../ui/StatusBadge'
+import { PaymentMethodPicker, ReferenceField, SaleFields } from './SaleFields'
 
-type Panel = 'renew' | 'freeze' | 'cancel' | 'edit' | null
+type Panel = 'renew' | 'freeze' | 'cancel' | 'edit' | { pay: MembershipView } | null
 
 export function MemberPage() {
   const { id = '' } = useParams()
@@ -51,6 +56,8 @@ export function MemberPage() {
   const canFreeze = live && current.maxFreezeDays - current.freezeDaysUsed > 0
   const canUnfreeze = live && current.freezes.some((f) => f.toDate >= today)
   const close = () => setPanel(null)
+  // "Record payment" buttons only while no other panel is open.
+  const onPay = panel === null ? (ms: MembershipView) => setPanel({ pay: ms }) : undefined
 
   return (
     <AdminLayout title={m.name} back={back} action={<StatusBadge status={m.status} />}>
@@ -61,8 +68,14 @@ export function MemberPage() {
         · Joined {formatDate(m.joinedOn)}
       </p>
 
+      {m.duePaise > 0 && (
+        <p role="status" className="rounded-xl bg-warn/10 px-4 py-3 font-semibold text-warn">
+          {formatPaise(m.duePaise)} due
+        </p>
+      )}
+
       {current ? (
-        <MembershipCard membership={current} today={today} highlight />
+        <MembershipCard membership={current} today={today} highlight onPay={onPay} />
       ) : (
         <Card>
           <p className="text-muted">No membership yet.</p>
@@ -93,6 +106,7 @@ export function MemberPage() {
       {panel === 'freeze' && current && <FreezePanel member={m} membership={current} today={today} onDone={close} />}
       {panel === 'cancel' && current && <CancelPanel member={m} membership={current} onDone={close} />}
       {panel === 'edit' && <EditPanel member={m} onDone={close} />}
+      {typeof panel === 'object' && panel !== null && <PayPanel member={m} membership={panel.pay} onDone={close} />}
 
       {(m.emergencyContactName || m.emergencyContactPhone || m.notes) && (
         <Card className="text-sm">
@@ -112,11 +126,72 @@ export function MemberPage() {
         <section className="flex flex-col gap-2">
           <h2 className="mt-2 font-semibold">All memberships</h2>
           {m.memberships.map((ms) => (
-            <MembershipCard key={ms.id} membership={ms} today={today} />
+            <MembershipCard key={ms.id} membership={ms} today={today} onPay={onPay} />
           ))}
         </section>
       )}
+
+      {m.payments.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="mt-2 font-semibold">Payments</h2>
+          <ul className="flex flex-col gap-2">
+            {m.payments.map((p) => (
+              <li key={p.id}>
+                <PaymentRow payment={p} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </AdminLayout>
+  )
+}
+
+function PayPanel({ member, membership, onDone }: { member: MemberDetail; membership: MembershipView; onDone: () => void }) {
+  const record = useRecordPayment(member.id)
+  const [amount, setAmount] = useState(paiseToRupeesInput(membership.duePaise))
+  const [method, setMethod] = useState<PayChoice>('cash')
+  const [reference, setReference] = useState('')
+  const [note, setNote] = useState('')
+  const [problem, setProblem] = useState<string | null>(null)
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    const amountPaise = rupeesToPaise(amount)
+    if (!amountPaise) return setProblem('Enter a valid amount')
+    if (amountPaise > membership.duePaise) return setProblem(`Only ${formatPaise(membership.duePaise)} is due`)
+    if (method === 'later') return
+    setProblem(null)
+    record.mutate(
+      {
+        membershipId: membership.id,
+        amountPaise,
+        method,
+        reference: reference.trim() || undefined,
+        note: note.trim() || undefined,
+      },
+      { onSuccess: onDone },
+    )
+  }
+
+  return (
+    <PanelCard title="Record payment">
+      <form onSubmit={submit} noValidate className="flex flex-col gap-4">
+        <p className="text-muted">
+          {membership.planName} · {formatPaise(membership.duePaise)} due
+        </p>
+        <Field label="Amount received" hint="You can record part of the amount now and the rest later.">
+          {(id) => <RupeeInput id={id} value={amount} onChange={(e) => setAmount(e.target.value)} />}
+        </Field>
+        <PaymentMethodPicker value={method} onChange={setMethod} />
+        <ReferenceField method={method} value={reference} onChange={setReference} />
+        <Field label="Note (optional)">
+          {(id) => <TextInput id={id} value={note} onChange={(e) => setNote(e.target.value)} />}
+        </Field>
+        <ErrorText>{problem ?? errorMessage(record.error)}</ErrorText>
+        <PanelButtons onCancel={onDone} submitLabel="Record payment" loading={record.isPending} />
+      </form>
+    </PanelCard>
   )
 }
 
@@ -124,10 +199,12 @@ function MembershipCard({
   membership: ms,
   today,
   highlight = false,
+  onPay,
 }: {
   membership: MembershipView
   today: string
   highlight?: boolean
+  onPay?: (membership: MembershipView) => void
 }) {
   return (
     <Card className={highlight ? 'border border-line' : 'py-4'}>
@@ -140,9 +217,26 @@ function MembershipCard({
       </div>
       {highlight && <p className="mt-3 text-2xl font-extrabold">{membershipSummary(ms, today)}</p>}
       <p className="mt-2 text-sm text-muted">
-        {formatPaise(ms.pricePaise)} · {monthsLabel(ms.durationMonths)}
+        {formatPaise(ms.pricePaise)}
+        {ms.listPricePaise > ms.pricePaise &&
+          ` (${formatPaise(ms.listPricePaise - ms.pricePaise)} off${ms.discountReason ? ` · ${ms.discountReason}` : ''})`}{' '}
+        · {monthsLabel(ms.durationMonths)}
         {ms.maxFreezeDays > 0 && ` · Freeze ${ms.freezeDaysUsed} of ${plural(ms.maxFreezeDays, 'day')} used`}
       </p>
+      {ms.duePaise > 0 ? (
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-warn">
+            {formatPaise(ms.duePaise)} due{ms.paidPaise > 0 && ` · ${formatPaise(ms.paidPaise)} paid`}
+          </p>
+          {onPay && (
+            <Button className="w-auto" onClick={() => onPay(ms)}>
+              Record payment
+            </Button>
+          )}
+        </div>
+      ) : (
+        ms.paidPaise > 0 && <p className="mt-1 text-sm text-accent">Paid {formatPaise(ms.paidPaise)}</p>
+      )}
       {ms.freezes.length > 0 && (
         <ul className="mt-2 text-sm text-muted">
           {ms.freezes.map((f) => (
@@ -199,10 +293,23 @@ function RenewPanel({ member, today, onDone }: { member: MemberDetail; today: st
   const [planId, setPlanId] = useState('')
   const [startDate, setStartDate] = useState(defaultStart(member, today))
   const plan = activePlans.find((p) => p.id === (planId || activePlans[0]?.id))
+  // Price follows the chosen plan until the desk changes it.
+  const [sale, setSale] = useState<SaleState | null>(null)
+  const currentSale = sale ?? initialSale(plan)
+  const [problem, setProblem] = useState<string | null>(null)
+
+  const choosePlan = (id: string) => {
+    setPlanId(id)
+    setSale(null)
+  }
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (plan) add.mutate({ planId: plan.id, startDate }, { onSuccess: onDone })
+    if (!plan) return
+    const checked = saleToInput(plan, currentSale)
+    if ('error' in checked) return setProblem(checked.error)
+    setProblem(null)
+    add.mutate({ planId: plan.id, startDate, ...checked.input }, { onSuccess: onDone })
   }
 
   return (
@@ -211,7 +318,7 @@ function RenewPanel({ member, today, onDone }: { member: MemberDetail; today: st
         {plans.data && activePlans.length === 0 && <p className="text-muted">Add a plan first on the Plans screen.</p>}
         <Field label="Plan">
           {(id) => (
-            <SelectInput id={id} value={plan?.id ?? ''} onChange={(e) => setPlanId(e.target.value)}>
+            <SelectInput id={id} value={plan?.id ?? ''} onChange={(e) => choosePlan(e.target.value)}>
               {activePlans.map((p) => (
                 <option key={p.id} value={p.id}>
                   {planOptionLabel(p)}
@@ -226,8 +333,8 @@ function RenewPanel({ member, today, onDone }: { member: MemberDetail; today: st
         >
           {(id) => <TextInput id={id} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />}
         </Field>
-        <p className="text-sm text-muted">No payment is recorded yet (payments come in the next update).</p>
-        <ErrorText>{errorMessage(add.error)}</ErrorText>
+        {plan && <SaleFields plan={plan} value={currentSale} onChange={setSale} />}
+        <ErrorText>{problem ?? errorMessage(add.error)}</ErrorText>
         <PanelButtons onCancel={onDone} submitLabel="Add membership" loading={add.isPending} />
       </form>
     </PanelCard>

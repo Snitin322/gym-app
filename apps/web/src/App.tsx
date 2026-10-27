@@ -6,6 +6,7 @@ import { ConsentPage } from './pages/ConsentPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { WelcomePage } from './pages/WelcomePage'
+import { GymDetailsPage } from './pages/admin/GymDetailsPage'
 import { MemberPage } from './pages/admin/MemberPage'
 import { MembersPage } from './pages/admin/MembersPage'
 import { NewMemberPage } from './pages/admin/NewMemberPage'
@@ -26,6 +27,9 @@ export default function App() {
           <Route path="members/:id" element={<MemberPage />} />
           <Route path="plans" element={<PlansPage />} />
           <Route path="staff" element={<StaffPage />} />
+        </Route>
+        <Route path="/admin" element={<RequireRole roles={['owner']} />}>
+          <Route path="gym" element={<GymDetailsPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

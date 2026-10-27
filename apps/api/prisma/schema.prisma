@@ -33,17 +33,28 @@ enum ConsentPurpose {
 }
 
 model Gym {
-  id        String   @id @default(uuid()) @db.Uuid
+  id            String   @id @default(uuid()) @db.Uuid
   /// Short stable identifier, e.g. "onthec".
-  slug      String   @unique
-  name      String
-  address   String?
+  slug          String   @unique
+  name          String
+  address       String?
   /// Null when the gym is not GST-registered (issues a bill of supply instead).
-  gstin     String?
+  gstin         String?
+  /// Registered business name for invoices (falls back to `name`).
+  legalName     String?  @map("legal_name")
+  city          String?
+  pincode       String?
+  /// GST state code, e.g. "27" for Maharashtra.
+  stateCode     String?  @map("state_code")
+  sacCode       String   @default("999723") @map("sac_code")
+  /// Invoice numbers look like PREFIX/26-27/0001 (max 16 characters, so 1–5 characters here).
+  invoicePrefix String   @default("INV") @map("invoice_prefix")
+  contactPhone  String?  @map("contact_phone")
+  email         String?
   /// Per-gym settings (e.g. PT late-cancel hours); validated by Zod in the API.
-  settings  Json     @default("{}")
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  settings      Json     @default("{}")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   users             User[]
   refreshTokens     RefreshToken[]
@@ -52,6 +63,7 @@ model Gym {
   members           Member[]
   memberships       Membership[]
   membershipFreezes MembershipFreeze[]
+  payments          Payment[]
 
   @@map("gyms")
 }
@@ -75,6 +87,7 @@ model User {
   member             Member?
   membershipsCreated Membership[]       @relation("MembershipCreatedBy")
   freezesCreated     MembershipFreeze[] @relation("FreezeCreatedBy")
+  paymentsRecorded   Payment[]          @relation("PaymentRecordedBy")
 
   @@unique([gymId, phone])
   @@index([phone])
@@ -174,6 +187,7 @@ model Member {
   gym         Gym          @relation(fields: [gymId], references: [id], onDelete: Restrict)
   user        User         @relation(fields: [userId], references: [id], onDelete: Restrict)
   memberships Membership[]
+  payments    Payment[]
 
   @@index([gymId])
   @@map("members")
@@ -190,6 +204,11 @@ model Membership {
   durationMonths Int       @map("duration_months")
   pricePaise     Int       @map("price_paise")
   maxFreezeDays  Int       @map("max_freeze_days")
+  /// The plan's price at sale; `pricePaise` is lower when a discount was given.
+  listPricePaise Int       @map("list_price_paise")
+  discountReason String?   @map("discount_reason")
+  /// True for memberships sold before the app recorded payments: nothing is due on them.
+  paidOutsideApp Boolean   @default(false) @map("paid_outside_app")
   startDate      DateTime  @map("start_date") @db.Date
   /// Last valid day (inclusive), including freeze extensions.
   endDate        DateTime  @map("end_date") @db.Date
@@ -204,6 +223,7 @@ model Membership {
   plan      MembershipPlan     @relation(fields: [planId], references: [id], onDelete: Restrict)
   createdBy User               @relation("MembershipCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   freezes   MembershipFreeze[]
+  payments  Payment[]
 
   @@index([gymId])
   @@index([memberId])
@@ -229,4 +249,55 @@ model MembershipFreeze {
   @@index([gymId])
   @@index([membershipId])
   @@map("membership_freezes")
+}
+
+enum PaymentMethod {
+  cash
+  upi
+  card
+  bank_transfer
+  razorpay
+
+  @@map("payment_method")
+}
+
+enum PaymentStatus {
+  /// Online order created, waiting for Razorpay.
+  created
+  paid
+  failed
+
+  @@map("payment_status")
+}
+
+/// Money received (or, for online orders, expected) for a membership. Amounts in paise.
+model Payment {
+  id                String        @id @default(uuid()) @db.Uuid
+  gymId             String        @map("gym_id") @db.Uuid
+  memberId          String        @map("member_id") @db.Uuid
+  membershipId      String?       @map("membership_id") @db.Uuid
+  amountPaise       Int           @map("amount_paise")
+  method            PaymentMethod
+  status            PaymentStatus
+  /// UPI transaction ID, card slip number, bank reference…
+  reference         String?
+  note              String?
+  paidAt            DateTime?     @map("paid_at") @db.Timestamptz(3)
+  /// Desk staff who took the payment; null for online payments.
+  recordedById      String?       @map("recorded_by_id") @db.Uuid
+  razorpayOrderId   String?       @unique @map("razorpay_order_id")
+  razorpayPaymentId String?       @unique @map("razorpay_payment_id")
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym        Gym         @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  member     Member      @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  membership Membership? @relation(fields: [membershipId], references: [id], onDelete: Restrict)
+  recordedBy User?       @relation("PaymentRecordedBy", fields: [recordedById], references: [id], onDelete: Restrict)
+
+  @@index([gymId])
+  @@index([memberId])
+  @@index([membershipId])
+  @@index([gymId, paidAt])
+  @@map("payments")
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { MEMBER_FILTERS, todayInIndia, type MemberFilter, type MemberSummary } from '@onthec/shared'
+import { MEMBER_FILTERS, formatPaise, todayInIndia, type MemberFilter, type MemberSummary } from '@onthec/shared'
 import { useMembers } from '../../api/admin'
 import { errorMessage, formatPhone } from '../../lib/format'
 import { membershipSummary } from '../../lib/membership'
@@ -15,6 +15,7 @@ const FILTER_LABELS: Record<MemberFilter, string> = {
   expiring: 'Expiring',
   expired: 'Expired',
   none: 'No plan',
+  dues: 'Dues',
 }
 
 export function MembersPage() {
@@ -125,7 +126,12 @@ function MemberRow({ member, today }: { member: MemberSummary; today: string }) 
             : formatPhone(member.phone)}
         </p>
       </div>
-      <StatusBadge status={member.status} />
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <StatusBadge status={member.status} />
+        {member.duePaise > 0 && (
+          <span className="text-xs font-semibold text-warn">{formatPaise(member.duePaise)} due</span>
+        )}
+      </div>
     </Link>
   )
 }

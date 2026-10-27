@@ -8,6 +8,7 @@ import type { Env } from './env'
 import { AppError, registerErrorHandling } from './errors'
 import { createAuthenticate } from './plugins/auth'
 import { authRoutes } from './routes/auth'
+import { gymRoutes } from './routes/gym'
 import { healthRoutes } from './routes/health'
 import { meRoutes } from './routes/me'
 import { membersRoutes } from './routes/members'
@@ -60,6 +61,7 @@ export async function buildApp(deps: AppDeps) {
   await app.register(usersRoutes({ authenticate }), { prefix: API_PREFIX })
   await app.register(plansRoutes({ authenticate }), { prefix: API_PREFIX })
   await app.register(membersRoutes({ authenticate, today }), { prefix: API_PREFIX })
+  await app.register(gymRoutes({ authenticate }), { prefix: API_PREFIX })
 
   return app
 }

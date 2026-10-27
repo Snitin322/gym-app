@@ -4,6 +4,8 @@ import { membershipEndDate, normalizePhone, todayInIndia } from '@onthec/shared'
 import { useCreateMember, usePlans } from '../../api/admin'
 import { errorMessage, formatDate } from '../../lib/format'
 import { planOptionLabel } from '../../lib/membership'
+import { initialSale, saleToInput, type SaleState } from '../../lib/sale'
+import { SaleFields } from './SaleFields'
 import { AdminLayout } from '../../ui/AdminLayout'
 import { Button } from '../../ui/Button'
 import { Card, Field, PhoneInput, SelectInput, TextArea, TextInput } from '../../ui/Form'
@@ -23,10 +25,17 @@ export function NewMemberPage() {
   const [emergencyName, setEmergencyName] = useState('')
   const [emergencyPhone, setEmergencyPhone] = useState('')
   const [notes, setNotes] = useState('')
+  const [sale, setSale] = useState<SaleState>(initialSale())
   const [problem, setProblem] = useState<string | null>(null)
 
   const activePlans = plans.data?.filter((p) => p.active) ?? []
   const plan = activePlans.find((p) => p.id === planId)
+
+  const choosePlan = (id: string) => {
+    setPlanId(id)
+    // Start each plan at its own price.
+    setSale({ ...sale, price: initialSale(activePlans.find((p) => p.id === id)).price, discountReason: '' })
+  }
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -34,6 +43,8 @@ export function NewMemberPage() {
     if (name.trim().length < 2) return setProblem('Enter the member’s name')
     if (!normalized) return setProblem('Enter a valid 10-digit Indian mobile number')
     if (emergencyPhone && !normalizePhone(emergencyPhone)) return setProblem('Emergency contact number is not valid')
+    const checked = plan ? saleToInput(plan, sale) : null
+    if (checked && 'error' in checked) return setProblem(checked.error)
     setProblem(null)
     create.mutate(
       {
@@ -43,7 +54,7 @@ export function NewMemberPage() {
         emergencyContactName: emergencyName || undefined,
         emergencyContactPhone: emergencyPhone || undefined,
         notes: notes || undefined,
-        firstMembership: planId ? { planId, startDate } : undefined,
+        firstMembership: plan && checked ? { planId: plan.id, startDate, ...checked.input } : undefined,
       },
       { onSuccess: (member) => navigate(`/admin/members/${member.id}`, { replace: true }) },
     )
@@ -65,7 +76,7 @@ export function NewMemberPage() {
           <h2 className="font-semibold">Membership</h2>
           <Field label="Plan">
             {(id) => (
-              <SelectInput id={id} value={planId} onChange={(e) => setPlanId(e.target.value)}>
+              <SelectInput id={id} value={planId} onChange={(e) => choosePlan(e.target.value)}>
                 <option value="">No plan yet</option>
                 {activePlans.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -76,14 +87,17 @@ export function NewMemberPage() {
             )}
           </Field>
           {plan && (
-            <Field
-              label="Starts on"
-              hint={`Ends ${formatDate(membershipEndDate(startDate || today, plan.durationMonths))}. No payment is recorded yet.`}
-            >
-              {(id) => (
-                <TextInput id={id} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-              )}
-            </Field>
+            <>
+              <Field
+                label="Starts on"
+                hint={`Ends ${formatDate(membershipEndDate(startDate || today, plan.durationMonths))}.`}
+              >
+                {(id) => (
+                  <TextInput id={id} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                )}
+              </Field>
+              <SaleFields plan={plan} value={sale} onChange={setSale} />
+            </>
           )}
         </Card>
 

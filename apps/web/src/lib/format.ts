@@ -10,6 +10,12 @@ export function formatDate(date: IsoDate, { short = false }: { short?: boolean }
   }).format(new Date(`${date}T00:00:00Z`))
 }
 
+/** 450050 → "4500.50", 450000 → "4500" for editable amount fields (integer maths, no floats). */
+export function paiseToRupeesInput(paise: number) {
+  const rest = paise % 100
+  return rest === 0 ? String(paise / 100) : `${Math.floor(paise / 100)}.${String(rest).padStart(2, '0')}`
+}
+
 export function plural(count: number, word: string) {
   return `${count} ${word}${count === 1 ? '' : 's'}`
 }

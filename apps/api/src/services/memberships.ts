@@ -6,6 +6,7 @@ import {
   addDays,
   daysBetween,
   daysLeft,
+  formatPaise,
   freezeDaysUsed,
   inclusiveDays,
   membershipEndDate,
@@ -15,6 +16,7 @@ import {
   type MembershipView,
   type freezeInputSchema,
   type newMembershipSchema,
+  type recordPaymentSchema,
 } from '@onthec/shared'
 import type { TenantDb, TenantTx } from '../db/tenant'
 import { AppError } from '../errors'
@@ -31,6 +33,7 @@ const SERIALIZABLE = { isolationLevel: Prisma.TransactionIsolationLevel.Serializ
 
 export const membershipInclude = {
   freezes: { orderBy: { fromDate: 'asc' } },
+  payments: { where: { status: 'paid' }, select: { amountPaise: true } },
 } as const satisfies Prisma.MembershipInclude
 
 export type MembershipRow = Prisma.MembershipGetPayload<{ include: typeof membershipInclude }>
@@ -62,11 +65,18 @@ export function toMembershipView(row: MembershipRow, today: IsoDate): Membership
     cancelled: row.cancelledAt !== null,
     freezes,
   }
+  const paidPaise = row.payments.reduce((sum, p) => sum + p.amountPaise, 0)
+  // Nothing is owed on a cancelled membership or one settled before the app recorded payments.
+  const duePaise = dates.cancelled || row.paidOutsideApp ? 0 : Math.max(0, row.pricePaise - paidPaise)
   return {
     id: row.id,
     planName: row.planName,
     durationMonths: row.durationMonths,
     pricePaise: row.pricePaise,
+    listPricePaise: row.listPricePaise,
+    discountReason: row.discountReason,
+    paidPaise,
+    duePaise,
     startDate: dates.startDate,
     endDate: dates.endDate,
     status: membershipStatus(dates, today),
@@ -135,6 +145,16 @@ export async function addMembershipInTx(
     )
   }
 
+  // Discounts only go down from the plan price, and every discount needs a reason.
+  const price = input.pricePaise ?? plan.pricePaise
+  if (price > plan.pricePaise) {
+    throw new AppError(400, ErrorCode.PRICE_ABOVE_PLAN, `The price can't be more than the plan price (${formatPaise(plan.pricePaise)}).`)
+  }
+  const discounted = price < plan.pricePaise
+  if (discounted && !input.discountReason) {
+    throw new AppError(400, ErrorCode.DISCOUNT_REASON_REQUIRED, 'Please give a reason for the discount.')
+  }
+
   const row = await tx.membership.create({
     data: {
       gymId: actor.gymId,
@@ -142,15 +162,67 @@ export async function addMembershipInTx(
       planId: plan.id,
       planName: plan.name,
       durationMonths: plan.durationMonths,
-      pricePaise: plan.pricePaise,
+      pricePaise: price,
+      listPricePaise: plan.pricePaise,
+      discountReason: discounted ? input.discountReason : null,
       maxFreezeDays: plan.maxFreezeDays,
       startDate: toDbDate(start),
       endDate: toDbDate(end),
       createdById: actor.userId,
     },
-    include: membershipInclude,
   })
-  return toMembershipView(row, today)
+
+  // Paid at the desk now (always the full sale price); otherwise it stays due ("pay later").
+  if (input.payment && price > 0) {
+    await tx.payment.create({
+      data: {
+        gymId: actor.gymId,
+        memberId,
+        membershipId: row.id,
+        amountPaise: price,
+        method: input.payment.method,
+        status: 'paid',
+        reference: input.payment.reference,
+        paidAt: new Date(),
+        recordedById: actor.userId,
+      },
+    })
+  }
+
+  return toMembershipView(await loadMembership(tx, row.id), today)
+}
+
+/** Records money received at the desk against a membership that has an amount due. */
+export async function recordPayment(
+  db: TenantDb,
+  actor: Actor,
+  membershipId: string,
+  input: z.infer<typeof recordPaymentSchema>,
+  today: IsoDate,
+): Promise<MembershipView> {
+  return db.$transaction(async (tx) => {
+    const row = await loadMembership(tx, membershipId)
+    const { duePaise } = toMembershipView(row, today)
+    if (duePaise === 0) throw new AppError(409, ErrorCode.NOTHING_DUE, 'Nothing is due on this membership.')
+    if (input.amountPaise > duePaise) {
+      throw new AppError(400, ErrorCode.OVERPAYMENT, `Only ${formatPaise(duePaise)} is due.`)
+    }
+    await tx.payment.create({
+      data: {
+        gymId: actor.gymId,
+        memberId: row.memberId,
+        membershipId: row.id,
+        amountPaise: input.amountPaise,
+        method: input.method,
+        status: 'paid',
+        reference: input.reference,
+        note: input.note,
+        paidAt: new Date(),
+        recordedById: actor.userId,
+      },
+    })
+    return toMembershipView(await loadMembership(tx, row.id), today)
+  }, SERIALIZABLE)
 }
 
 export async function addMembership(

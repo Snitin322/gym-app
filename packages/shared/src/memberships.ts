@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { daysBetween, inclusiveDays, isValidIsoDate, type IsoDate } from './dates'
+import { salePaymentSchema, type PaymentView } from './payments'
 import { phoneSchema } from './phone'
 
 // ---------------------------------------------------------------------------
@@ -53,7 +54,7 @@ export type MemberListStatus = 'active' | 'frozen' | 'expiring' | 'upcoming' | '
 
 export const EXPIRING_WITHIN_DAYS = 7
 
-export const MEMBER_FILTERS = ['all', 'active', 'expiring', 'expired', 'none'] as const
+export const MEMBER_FILTERS = ['all', 'active', 'expiring', 'expired', 'none', 'dues'] as const
 export type MemberFilter = (typeof MEMBER_FILTERS)[number]
 
 // ---------------------------------------------------------------------------
@@ -79,7 +80,14 @@ export interface MembershipView {
   id: string
   planName: string
   durationMonths: number
+  /** What the member pays (after any discount), GST-inclusive. */
   pricePaise: number
+  /** The plan's price at the time of sale. */
+  listPricePaise: number
+  discountReason: string | null
+  paidPaise: number
+  /** Still owed: 0 when fully paid, cancelled, or settled before the app tracked payments. */
+  duePaise: number
   startDate: IsoDate
   endDate: IsoDate
   status: MembershipStatus
@@ -99,6 +107,8 @@ export interface MemberSummary {
   status: MemberListStatus
   /** The membership that matters today: running/frozen, else next upcoming, else latest. */
   current: MembershipView | null
+  /** Total still owed across all memberships. */
+  duePaise: number
 }
 
 export interface MemberDetail extends MemberSummary {
@@ -107,11 +117,14 @@ export interface MemberDetail extends MemberSummary {
   emergencyContactPhone: string | null
   notes: string | null
   memberships: MembershipView[]
+  payments: PaymentView[]
 }
 
 export interface MyMembership {
   current: MembershipView | null
   history: MembershipView[]
+  duePaise: number
+  payments: PaymentView[]
 }
 
 // ---------------------------------------------------------------------------
@@ -154,6 +167,11 @@ export const newMembershipSchema = z.object({
   planId: z.uuid(),
   /** Defaults to the day after the current membership ends, or today. */
   startDate: isoDateSchema.optional(),
+  /** Sale price if discounted (never above the plan price); a reason is then required. */
+  pricePaise: z.number().int().min(0).optional(),
+  discountReason: optionalText(120),
+  /** Payment taken now for the full sale price. Omit for "pay later". */
+  payment: salePaymentSchema.optional(),
 })
 
 export const memberInputSchema = z.object({

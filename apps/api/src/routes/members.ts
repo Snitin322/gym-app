@@ -7,13 +7,20 @@ import {
   createMemberSchema,
   freezeInputSchema,
   newMembershipSchema,
+  recordPaymentSchema,
   updateMemberSchema,
   type IsoDate,
 } from '@onthec/shared'
 import { AppError } from '../errors'
 import { getAuth, requireRole } from '../plugins/auth'
 import { createMember, getMember, listMembers, updateMember } from '../services/members'
-import { addMembership, cancelMembership, freezeMembership, unfreezeMembership } from '../services/memberships'
+import {
+  addMembership,
+  cancelMembership,
+  freezeMembership,
+  recordPayment,
+  unfreezeMembership,
+} from '../services/memberships'
 
 const idParams = z.object({ id: z.uuid() })
 const listQuery = z.object({
@@ -78,6 +85,13 @@ export function membersRoutes({ authenticate, today }: Deps): FastifyPluginAsync
     app.post('/memberships/:id/unfreeze', async (request) => {
       const { id } = idParams.parse(request.params)
       return unfreezeMembership(getAuth(request).db, id, today())
+    })
+
+    app.post('/memberships/:id/payments', async (request, reply) => {
+      const { id } = idParams.parse(request.params)
+      const input = recordPaymentSchema.parse(request.body)
+      const { db, actor: who } = actor(request)
+      return reply.status(201).send(await recordPayment(db, who, id, input, today()))
     })
 
     app.post('/memberships/:id/cancel', async (request) => {

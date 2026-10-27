@@ -7,6 +7,7 @@ import {
   type MemberFilter,
   type MemberSummary,
   type MyMembership,
+  type PaymentView,
   type createMemberSchema,
   type updateMemberSchema,
 } from '@onthec/shared'
@@ -29,7 +30,18 @@ const memberInclude = {
   memberships: { include: membershipInclude, orderBy: { startDate: 'desc' } },
 } as const satisfies Prisma.MemberInclude
 
+/** Detail adds the payment history (paid payments, newest first). */
+const memberDetailInclude = {
+  ...memberInclude,
+  payments: {
+    where: { status: 'paid' },
+    include: { membership: { select: { planName: true } }, recordedBy: { select: { name: true } } },
+    orderBy: { paidAt: 'desc' },
+  },
+} as const satisfies Prisma.MemberInclude
+
 type MemberRow = Prisma.MemberGetPayload<{ include: typeof memberInclude }>
+type MemberDetailRow = Prisma.MemberGetPayload<{ include: typeof memberDetailInclude }>
 
 function toSummary(row: MemberRow, today: IsoDate): MemberSummary {
   const views = row.memberships.map((m) => toMembershipView(m, today))
@@ -40,10 +52,26 @@ function toSummary(row: MemberRow, today: IsoDate): MemberSummary {
     phone: row.user.phone,
     status: memberListStatus(views),
     current: pickCurrent(views),
+    duePaise: views.reduce((sum, v) => sum + v.duePaise, 0),
   }
 }
 
-function toDetail(row: MemberRow, today: IsoDate): MemberDetail {
+function toPaymentView(p: MemberDetailRow['payments'][number]): PaymentView {
+  return {
+    id: p.id,
+    amountPaise: p.amountPaise,
+    method: p.method,
+    status: p.status,
+    reference: p.reference,
+    note: p.note,
+    paidAt: p.paidAt?.toISOString() ?? null,
+    membershipId: p.membershipId,
+    description: p.membership?.planName ?? 'Payment',
+    recordedByName: p.recordedBy?.name ?? null,
+  }
+}
+
+function toDetail(row: MemberDetailRow, today: IsoDate): MemberDetail {
   return {
     ...toSummary(row, today),
     joinedOn: fromDbDate(row.joinedOn),
@@ -51,16 +79,18 @@ function toDetail(row: MemberRow, today: IsoDate): MemberDetail {
     emergencyContactPhone: row.emergencyContactPhone,
     notes: row.notes,
     memberships: row.memberships.map((m) => toMembershipView(m, today)),
+    payments: row.payments.map(toPaymentView),
   }
 }
 
-const FILTERS: Record<MemberFilter, (status: MemberSummary['status']) => boolean> = {
+const FILTERS: Record<MemberFilter, (member: MemberSummary) => boolean> = {
   all: () => true,
   // Paying members: running, frozen, ending soon, or starting soon.
-  active: (s) => s === 'active' || s === 'frozen' || s === 'expiring' || s === 'upcoming',
-  expiring: (s) => s === 'expiring',
-  expired: (s) => s === 'expired',
-  none: (s) => s === 'none',
+  active: ({ status: s }) => s === 'active' || s === 'frozen' || s === 'expiring' || s === 'upcoming',
+  expiring: ({ status }) => status === 'expiring',
+  expired: ({ status }) => status === 'expired',
+  none: ({ status }) => status === 'none',
+  dues: ({ duePaise }) => duePaise > 0,
 }
 
 /**
@@ -89,11 +119,11 @@ export async function listMembers(
     include: memberInclude,
     orderBy: { user: { name: 'asc' } },
   })
-  return rows.map((row) => toSummary(row, today)).filter((m) => FILTERS[filter](m.status))
+  return rows.map((row) => toSummary(row, today)).filter(FILTERS[filter])
 }
 
 export async function getMember(db: TenantDb, id: string, today: IsoDate): Promise<MemberDetail | null> {
-  const row = await db.member.findUnique({ where: { id }, include: memberInclude })
+  const row = await db.member.findUnique({ where: { id }, include: memberDetailInclude })
   return row ? toDetail(row, today) : null
 }
 
@@ -161,9 +191,13 @@ export async function updateMember(
 
 /** The signed-in member's own memberships. Staff without a member profile get an empty result. */
 export async function getMyMembership(db: TenantDb, userId: string, today: IsoDate): Promise<MyMembership> {
-  const row = await db.member.findUnique({ where: { userId }, include: memberInclude })
-  if (!row) return { current: null, history: [] }
-  const views = row.memberships.map((m) => toMembershipView(m, today))
-  const current = pickCurrent(views)
-  return { current, history: views.filter((v) => v.id !== current?.id) }
+  const row = await db.member.findUnique({ where: { userId }, include: memberDetailInclude })
+  if (!row) return { current: null, history: [], duePaise: 0, payments: [] }
+  const detail = toDetail(row, today)
+  return {
+    current: detail.current,
+    history: detail.memberships.filter((v) => v.id !== detail.current?.id),
+    duePaise: detail.duePaise,
+    payments: detail.payments,
+  }
 }

@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  DeskPaymentMethod,
+  GymDetails,
   IsoDate,
   MemberDetail,
   MemberFilter,
@@ -18,6 +20,7 @@ export const queryKeys = {
   member: (id: string) => ['member', id] as const,
   myMembership: ['me', 'membership'] as const,
   staff: ['staff'] as const,
+  gym: ['gym'] as const,
 }
 
 // --- Plans -----------------------------------------------------------------
@@ -52,6 +55,15 @@ export function useMember(id: string) {
   return useQuery({ queryKey: queryKeys.member(id), queryFn: () => api<MemberDetail>(`/members/${id}`) })
 }
 
+/** A membership sale: plan, start, optional discount, and the desk payment (omit for "pay later"). */
+export interface SaleInput {
+  planId: string
+  startDate?: IsoDate
+  pricePaise?: number
+  discountReason?: string
+  payment?: { method: DeskPaymentMethod; reference?: string }
+}
+
 export interface NewMemberInput {
   name: string
   phone: string
@@ -59,7 +71,7 @@ export interface NewMemberInput {
   emergencyContactName?: string
   emergencyContactPhone?: string
   notes?: string
-  firstMembership?: { planId: string; startDate?: IsoDate }
+  firstMembership?: SaleInput
 }
 
 export function useCreateMember() {
@@ -91,9 +103,40 @@ export function useUpdateMember(memberId: string) {
 }
 
 export function useAddMembership(memberId: string) {
-  return useMemberMutation(memberId, (input: { planId: string; startDate?: IsoDate }) =>
+  return useMemberMutation(memberId, (input: SaleInput) =>
     api<MembershipView>(`/members/${memberId}/memberships`, { method: 'POST', body: input }),
   )
+}
+
+export function useRecordPayment(memberId: string) {
+  return useMemberMutation(
+    memberId,
+    ({
+      membershipId,
+      ...input
+    }: {
+      membershipId: string
+      amountPaise: number
+      method: DeskPaymentMethod
+      reference?: string
+      note?: string
+    }) => api<MembershipView>(`/memberships/${membershipId}/payments`, { method: 'POST', body: input }),
+  )
+}
+
+// --- Gym details -------------------------------------------------------------
+
+export function useGymDetails() {
+  return useQuery({ queryKey: queryKeys.gym, queryFn: () => api<GymDetails>('/gym') })
+}
+
+export function useSaveGymDetails() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (input: Partial<Record<keyof GymDetails, string>>) =>
+      api<GymDetails>('/gym', { method: 'PATCH', body: input }),
+    onSuccess: (gym) => client.setQueryData(queryKeys.gym, gym),
+  })
 }
 
 export function useFreeze(memberId: string) {

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { formatPaise, rupeesToPaise, suggestedMaxFreezeDays, type MembershipPlan } from '@onthec/shared'
 import { usePlans, useSavePlan } from '../../api/admin'
-import { errorMessage, plural } from '../../lib/format'
+import { errorMessage, paiseToRupeesInput, plural } from '../../lib/format'
 import { monthsLabel } from '../../lib/membership'
 import { AdminLayout, LoadingText } from '../../ui/AdminLayout'
 import { Button } from '../../ui/Button'
@@ -10,11 +10,6 @@ import { ErrorText } from '../../ui/Screen'
 
 const MONTH_OPTIONS = [1, 2, 3, 4, 6, 9, 12, 18, 24]
 
-/** 450050 → "4500.50" for the edit field (integer maths, no floats). */
-function paiseToRupeesInput(paise: number) {
-  const rest = paise % 100
-  return rest === 0 ? String(paise / 100) : `${Math.floor(paise / 100)}.${String(rest).padStart(2, '0')}`
-}
 
 export function PlansPage() {
   const plans = usePlans()

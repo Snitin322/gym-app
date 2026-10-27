@@ -32,6 +32,7 @@ export function HomePage() {
           <HomeLink to="/admin/members" title="Members" text="Add members, renew, freeze" />
           <HomeLink to="/admin/plans" title="Plans" text="Prices, lengths, freeze limits" />
           <HomeLink to="/admin/staff" title="Staff" text="Add trainers and admins" />
+          {user.role === 'owner' && <HomeLink to="/admin/gym" title="Gym details" text="Address, GSTIN, invoices" />}
         </nav>
       ) : user.role === 'member' ? (
         <>

@@ -164,7 +164,12 @@ describe.skipIf(!testDatabaseUrl)('plans, members and memberships', () => {
     })
 
     it('staff without a member profile have no membership', async () => {
-      expect((await call('GET', '/me/membership', trainer)).json()).toEqual({ current: null, history: [] })
+      expect((await call('GET', '/me/membership', trainer)).json()).toEqual({
+        current: null,
+        history: [],
+        duePaise: 0,
+        payments: [],
+      })
     })
   })
 

@@ -17,6 +17,10 @@ function membership(overrides: Partial<MembershipView> = {}): MembershipView {
     planName: '3 months',
     durationMonths: 3,
     pricePaise: 450000,
+    listPricePaise: 450000,
+    discountReason: null,
+    paidPaise: 450000,
+    duePaise: 0,
     startDate: addDays(today, -30),
     endDate: addDays(today, 61),
     status: 'active',
@@ -30,7 +34,8 @@ function membership(overrides: Partial<MembershipView> = {}): MembershipView {
   }
 }
 
-function renderHome(mine: MyMembership) {
+function renderHome(partial: Pick<MyMembership, 'current' | 'history'> & Partial<MyMembership>) {
+  const mine: MyMembership = { duePaise: 0, payments: [], ...partial }
   mockApi({
     'POST /auth/refresh': ok(session(sessionUser({ role: 'member', name: 'Asha Patel' }))),
     'GET /me/membership': ok(mine),
@@ -106,5 +111,32 @@ describe('member home card', () => {
     expect(await screen.findByText('Expired 3 days ago')).toBeTruthy()
     expect(screen.getByText(/Renew at the front desk to start again/)).toBeTruthy()
     expect(screen.getByText('Past memberships (1)')).toBeTruthy()
+  })
+})
+
+describe('member dues and payments', () => {
+  it('shows the amount due and past payments', async () => {
+    renderHome({
+      current: membership({ paidPaise: 200000, duePaise: 250000 }),
+      history: [],
+      duePaise: 250000,
+      payments: [
+        {
+          id: 'p1',
+          amountPaise: 200000,
+          method: 'upi',
+          status: 'paid',
+          reference: null,
+          note: null,
+          paidAt: '2026-10-20T05:00:00.000Z',
+          membershipId: 'ms-1',
+          description: '3 months',
+          recordedByName: 'Front Desk',
+        },
+      ],
+    })
+
+    expect((await screen.findByRole('alert')).textContent).toMatch(/₹2,500 due\. Please pay at the front desk/)
+    expect(screen.getByText('My payments (1)')).toBeTruthy()
   })
 })

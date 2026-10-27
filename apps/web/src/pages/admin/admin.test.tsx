@@ -36,6 +36,10 @@ function membership(overrides: Partial<MembershipView> = {}): MembershipView {
     planName: '3 months',
     durationMonths: 3,
     pricePaise: 450000,
+    listPricePaise: 450000,
+    discountReason: null,
+    paidPaise: 450000,
+    duePaise: 0,
     startDate: today,
     endDate: addDays(today, 91),
     status: 'active',
@@ -63,6 +67,8 @@ function memberDetail(overrides: Partial<MemberDetail> = {}): MemberDetail {
     emergencyContactPhone: null,
     notes: null,
     memberships: [current],
+    payments: [],
+    duePaise: 0,
     ...overrides,
   }
 }
@@ -145,7 +151,7 @@ describe('plans', () => {
 
 describe('members', () => {
   const list: MemberSummary[] = [
-    { id: 'mem-1', userId: 'u1', name: 'Asha Patel', phone: '+919876500001', status: 'active', current: membership() },
+    { id: 'mem-1', userId: 'u1', name: 'Asha Patel', phone: '+919876500001', status: 'active', current: membership(), duePaise: 0 },
     {
       id: 'mem-2',
       userId: 'u2',
@@ -153,6 +159,7 @@ describe('members', () => {
       phone: '+919876500002',
       status: 'expiring',
       current: membership({ daysLeft: 3, endDate: addDays(today, 2) }),
+      duePaise: 0,
     },
   ]
 
@@ -278,5 +285,138 @@ describe('staff', () => {
     await user.click(await screen.findByRole('button', { name: 'Add staff' }))
     const options = within(screen.getByLabelText('Role')).getAllByRole('option').map((o) => o.textContent)
     expect(options).toEqual(['Trainer'])
+  })
+})
+
+describe('payments at the desk', () => {
+  async function fillNewMember(user: ReturnType<typeof userEvent.setup>) {
+    await user.type(await screen.findByLabelText('Full name'), 'Asha Patel')
+    await user.type(screen.getByLabelText('Mobile number'), '98765 00001')
+    await user.selectOptions(await screen.findByLabelText('Plan'), 'plan-3')
+  }
+
+  it('takes the full price by UPI with a reference', async () => {
+    const { callsTo } = mockApi({
+      'POST /auth/refresh': ok(owner),
+      'GET /plans': ok([plan3]),
+      'POST /members': { status: 201, body: memberDetail() },
+      'GET /members/mem-1': ok(memberDetail()),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/members/new')
+
+    await fillNewMember(user)
+    expect((screen.getByLabelText('Price (incl. GST)') as HTMLInputElement).value).toBe('4500')
+    await user.click(screen.getByRole('radio', { name: 'UPI' }))
+    await user.type(screen.getByLabelText('Reference (optional)'), 'UPI-777')
+    await user.click(screen.getByRole('button', { name: 'Add member' }))
+
+    await vi.waitFor(() => expect(callsTo('POST /members')).toHaveLength(1))
+    expect(callsTo('POST /members')[0]?.body).toMatchObject({
+      firstMembership: { planId: 'plan-3', payment: { method: 'upi', reference: 'UPI-777' } },
+    })
+  })
+
+  it('"Pay later" sends no payment; a discount needs a reason', async () => {
+    const { callsTo } = mockApi({
+      'POST /auth/refresh': ok(owner),
+      'GET /plans': ok([plan3]),
+      'POST /members': { status: 201, body: memberDetail() },
+      'GET /members/mem-1': ok(memberDetail()),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/members/new')
+
+    await fillNewMember(user)
+    const price = screen.getByLabelText('Price (incl. GST)')
+    await user.clear(price)
+    await user.type(price, '4000')
+    await user.click(screen.getByRole('radio', { name: 'Pay later' }))
+    await user.click(screen.getByRole('button', { name: 'Add member' }))
+
+    expect((await screen.findByRole('alert')).textContent).toMatch(/reason for the discount/)
+    expect(callsTo('POST /members')).toHaveLength(0)
+
+    await user.type(screen.getByLabelText('Reason for discount'), 'Diwali offer')
+    await user.click(screen.getByRole('button', { name: 'Add member' }))
+
+    await vi.waitFor(() => expect(callsTo('POST /members')).toHaveLength(1))
+    const sale = (callsTo('POST /members')[0]?.body as { firstMembership: Record<string, unknown> }).firstMembership
+    expect(sale).toMatchObject({ pricePaise: 400000, discountReason: 'Diwali offer' })
+    expect(sale.payment).toBeUndefined()
+  })
+
+  it('shows what is due and records a part payment', async () => {
+    const due = membership({ paidPaise: 0, duePaise: 450000 })
+    const { callsTo } = mockApi({
+      'POST /auth/refresh': ok(owner),
+      'GET /members/mem-1': ok(memberDetail({ current: due, memberships: [due], duePaise: 450000 })),
+      'POST /memberships/ms-1/payments': { status: 201, body: membership({ paidPaise: 200000, duePaise: 250000 }) },
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/members/mem-1')
+
+    expect(await screen.findByRole('status')).toBeTruthy()
+    expect(screen.getAllByText(/₹4,500 due/).length).toBeGreaterThan(0)
+    await user.click(screen.getByRole('button', { name: 'Record payment' }))
+    const amount = screen.getByLabelText('Amount received')
+    expect((amount as HTMLInputElement).value).toBe('4500')
+    await user.clear(amount)
+    await user.type(amount, '2000')
+    await user.click(screen.getByRole('radio', { name: 'Card' }))
+    await user.click(screen.getByRole('button', { name: 'Record payment' }))
+
+    await vi.waitFor(() => expect(callsTo('POST /memberships/ms-1/payments')).toHaveLength(1))
+    expect(callsTo('POST /memberships/ms-1/payments')[0]?.body).toEqual({ amountPaise: 200000, method: 'card' })
+  })
+})
+
+describe('gym details', () => {
+  const gym = {
+    id: 'gym-1',
+    name: 'Onthec Gym',
+    legalName: null,
+    address: null,
+    city: null,
+    pincode: null,
+    stateCode: null,
+    gstin: null,
+    sacCode: '999723',
+    invoicePrefix: 'INV',
+    contactPhone: null,
+    email: null,
+  }
+
+  it('the owner saves invoice details; a mistyped GSTIN is caught first', async () => {
+    const { callsTo } = mockApi({
+      'POST /auth/refresh': ok(owner),
+      'GET /gym': ok(gym),
+      'PATCH /gym': ok({ ...gym, gstin: '27AAPFU0939F1ZV', stateCode: '27', invoicePrefix: 'OG' }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/gym')
+
+    const gstin = await screen.findByLabelText('GSTIN')
+    await user.type(gstin, '27aapfu0939f1zw')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect((await screen.findByRole('alert')).textContent).toMatch(/not valid/)
+    expect(callsTo('PATCH /gym')).toHaveLength(0)
+
+    await user.clear(gstin)
+    await user.type(gstin, '27aapfu0939f1zv')
+    const prefix = screen.getByLabelText('Invoice prefix')
+    await user.clear(prefix)
+    await user.type(prefix, 'og')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Saved.')).toBeTruthy()
+    expect(callsTo('PATCH /gym')[0]?.body).toMatchObject({ gstin: '27AAPFU0939F1ZV', invoicePrefix: 'OG' })
+  })
+
+  it('admins cannot open it', async () => {
+    mockApi({ 'POST /auth/refresh': ok(session(sessionUser({ role: 'admin', name: 'Admin A' }))) })
+    renderAt('/admin/gym')
+    expect(await screen.findByRole('heading', { name: 'Hi Admin' })).toBeTruthy()
+    expect(screen.queryByRole('link', { name: /Gym details/ })).toBeNull()
   })
 })
