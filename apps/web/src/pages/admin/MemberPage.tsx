@@ -31,6 +31,7 @@ import { PaymentRow } from '../../ui/PaymentRow'
 import { ErrorText } from '../../ui/Screen'
 import { StatusBadge } from '../../ui/StatusBadge'
 import { PanelButtons, PanelCard, RecordPaymentPanel } from './panels'
+import { MemberWorkoutPlan } from '../MemberWorkoutPlan'
 import { PtSection } from './PtSection'
 import { SaleFields } from './SaleFields'
 
@@ -44,7 +45,12 @@ export function MemberPage() {
   const today = todayInIndia()
   const back = { to: '/admin/members', label: 'Members' }
 
-  if (member.isPending) return <AdminLayout title="Member" back={back}><LoadingText /></AdminLayout>
+  if (member.isPending)
+    return (
+      <AdminLayout title="Member" back={back}>
+        <LoadingText />
+      </AdminLayout>
+    )
   if (!member.data) {
     return (
       <AdminLayout title="Member" back={back}>
@@ -113,6 +119,13 @@ export function MemberPage() {
 
       <PtSection member={m} today={today} />
 
+      <section aria-labelledby="workout-plan-heading" className="flex flex-col gap-3">
+        <h2 id="workout-plan-heading" className="mt-2 font-semibold">
+          Workout plan
+        </h2>
+        <MemberWorkoutPlan memberId={m.id} />
+      </section>
+
       {(m.emergencyContactName || m.emergencyContactPhone || m.notes) && (
         <Card className="text-sm">
           {(m.emergencyContactName || m.emergencyContactPhone) && (
@@ -156,7 +169,15 @@ export function MemberPage() {
   )
 }
 
-function PayPanel({ member, membership, onDone }: { member: MemberDetail; membership: MembershipView; onDone: () => void }) {
+function PayPanel({
+  member,
+  membership,
+  onDone,
+}: {
+  member: MemberDetail
+  membership: MembershipView
+  onDone: () => void
+}) {
   const record = useRecordPayment(member.id)
   return (
     <RecordPaymentPanel
@@ -277,7 +298,9 @@ function RenewPanel({ member, today, onDone }: { member: MemberDetail; today: st
         </Field>
         <Field
           label="Starts on"
-          hint={plan && startDate ? `Ends ${formatDate(membershipEndDate(startDate, plan.durationMonths))}.` : undefined}
+          hint={
+            plan && startDate ? `Ends ${formatDate(membershipEndDate(startDate, plan.durationMonths))}.` : undefined
+          }
         >
           {(id) => <TextInput id={id} type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />}
         </Field>
@@ -289,7 +312,12 @@ function RenewPanel({ member, today, onDone }: { member: MemberDetail; today: st
   )
 }
 
-function FreezePanel({ member, membership, today, onDone }: {
+function FreezePanel({
+  member,
+  membership,
+  today,
+  onDone,
+}: {
   member: MemberDetail
   membership: MembershipView
   today: string
@@ -307,7 +335,10 @@ function FreezePanel({ member, membership, today, onDone }: {
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (days > 0 && !tooLong) {
-      freeze.mutate({ membershipId: membership.id, fromDate, toDate, reason: reason || undefined }, { onSuccess: onDone })
+      freeze.mutate(
+        { membershipId: membership.id, fromDate, toDate, reason: reason || undefined },
+        { onSuccess: onDone },
+      )
     }
   }
 
@@ -333,7 +364,9 @@ function FreezePanel({ member, membership, today, onDone }: {
               : `${plural(days, 'day')} · new end date ${formatDate(addDays(membership.endDate, days))}`}
         </p>
         <Field label="Reason (optional)">
-          {(id) => <TextInput id={id} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Travel" />}
+          {(id) => (
+            <TextInput id={id} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Travel" />
+          )}
         </Field>
         <ErrorText>{errorMessage(freeze.error)}</ErrorText>
         <PanelButtons onCancel={onDone} submitLabel="Freeze" loading={freeze.isPending} />
@@ -358,7 +391,11 @@ function UnfreezeButton({ member, membership }: { member: MemberDetail; membersh
   )
 }
 
-function CancelPanel({ member, membership, onDone }: {
+function CancelPanel({
+  member,
+  membership,
+  onDone,
+}: {
   member: MemberDetail
   membership: MembershipView
   onDone: () => void
@@ -422,7 +459,9 @@ function EditPanel({ member, onDone }: { member: MemberDetail; onDone: () => voi
   return (
     <PanelCard title="Edit details">
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
-        <Field label="Full name">{(id) => <TextInput id={id} value={name} onChange={(e) => setName(e.target.value)} />}</Field>
+        <Field label="Full name">
+          {(id) => <TextInput id={id} value={name} onChange={(e) => setName(e.target.value)} />}
+        </Field>
         <Field label="Mobile number" hint="Changing it changes the number they log in with.">
           {(id) => <PhoneInput id={id} value={phone} onChange={(e) => setPhone(e.target.value)} />}
         </Field>
@@ -435,7 +474,9 @@ function EditPanel({ member, onDone }: { member: MemberDetail; onDone: () => voi
         <Field label="Emergency contact number">
           {(id) => <PhoneInput id={id} value={emergencyPhone} onChange={(e) => setEmergencyPhone(e.target.value)} />}
         </Field>
-        <Field label="Notes">{(id) => <TextArea id={id} value={notes} onChange={(e) => setNotes(e.target.value)} />}</Field>
+        <Field label="Notes">
+          {(id) => <TextArea id={id} value={notes} onChange={(e) => setNotes(e.target.value)} />}
+        </Field>
         <ErrorText>{problem ?? errorMessage(update.error)}</ErrorText>
         <PanelButtons onCancel={onDone} submitLabel="Save" loading={update.isPending} />
       </form>

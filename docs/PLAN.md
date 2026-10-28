@@ -267,7 +267,7 @@ Approved decisions: trainer notes are visible to the member and the desk; no-sho
 Phase 5 is complete.
 - 5c-1 API: `POST /pt-sessions/:id/mark` (`outcome` completed/no_show, `note`), `/undo-mark`, `/confirm`, `/dispute` (`reason`), `/resolve` (owner/admin: `resolution` upheld/rejected, `note`); `GET /pt-disputes` (open, owner/admin); `GET /pt-sessions/unmarked` (trainer: own; desk: all). `PtSessionView` gained `confirmation`, `disputeUntil`, `undoUntil`, notes and dispute fields. The 5b unique index on ledger (session, reason) was replaced by the booked-status check, because an undone mark can be marked again.
 
-### Phase 6 — Workout plans (plan approved 28 Oct 2026; 6a done, 6b next)
+### Phase 6 — Workout plans (done; plan approved 28 Oct 2026)
 
 Approved decisions: each member gets their own copy of a template; one line per set (pyramids allowed); every save keeps the previous version; the exercise library starts with ~50 common exercises (editable); trainers edit only their PT clients' plans; members without a plan see "Ask the front desk or your trainer for a plan" (no automatic default); exercise media is a video link only (uploads later with R2). QR check-in moved to Phase 7.
 
@@ -278,8 +278,11 @@ Approved decisions: each member gets their own copy of a template; one line per 
 - **Member home**: "Today's workout" (India date) and the full week.
 - Data: `workout_exercises`, `workout_plans` (template or member plan; the week is one Zod-validated JSON document), `workout_plan_versions`.
 - **Tests**: edit rights (trainer only for own PT clients, members read-only), template copy is independent, versions kept, today's workout by India date, validation limits, isolation; screens.
-- Delivery: **6a** exercise library, templates and plan editor (desk), backend and tests (done) → **6b** assigning to members, trainer access, member "Today's workout" (next).
+- Delivery: **6a** exercise library, templates and plan editor (desk), backend and tests (done) → **6b** assigning to members, trainer access, member "Today's workout" (done).
 - 6a: `GET/POST /workout-exercises` (`?all=1` includes inactive), `PATCH /workout-exercises/:id`, `POST /workout-exercises/starter` (adds the ~50 common exercises the gym lacks; the dev seed adds them too); `GET/POST /workout-templates`, `GET/PUT/DELETE /workout-templates/:id` (PUT sends the `version` it started from; a stale save gets 409 `PLAN_CHANGED`), `GET /workout-templates/:id/versions`. Trainers can read the library and templates; only owner/admin change them. Screens: **Workouts** tile → templates list, **Exercise library** (search, add/edit/deactivate, "Add common exercises"), template editor (`ui/WorkoutPlanEditor.tsx`, reused in 6b) with day tabs, sets (reps or timed, kg), rests, cardio, rest days, earlier versions and delete.
+- 6b: `GET/POST/PUT /members/:id/workout-plan` (POST `{templateId?}` gives a copy or a blank week; if the member already has a plan it becomes the next version), `GET /members/:id/workout-plan/versions`, `GET /me/workout-plan` (`{ plan }`). Access: owner/admin any member; trainer only a member with an active PT package with them (not expired, sessions left); members only their own read-only plan. Screens: **Workout plan** section on the member page and `/trainer/clients/:memberId/workout` ("Workout plan →" in My clients) — give plan from a template or blank, edit, show week, earlier versions, start again from a template; member home **Today's workout** (India date) with "See the whole week", or "Ask the front desk or your trainer for a plan".
+
+Phase 6 is complete.
 
 ### Phase 7 — QR check-in
 - Member: full-screen QR pass that rotates every 30s with a countdown; brightness hint.

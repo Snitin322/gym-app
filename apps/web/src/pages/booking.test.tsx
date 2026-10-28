@@ -107,6 +107,7 @@ function memberRoutes(overrides: Record<string, Parameters<typeof mockApi>[0][st
     'GET /me/membership': ok(myMembership),
     'GET /me/renewal-options': ok({ onlinePayments: false, startDate: today, plans: [] }),
     'GET /me/pt': ok([purchase()]),
+    'GET /me/workout-plan': ok({ plan: null }),
     'GET /me/pt-sessions': ok([]),
     'GET /pt-purchases/ptp-1/slots': ok(slots),
     ...overrides,
@@ -287,6 +288,7 @@ describe('member booking', () => {
     mockApi(
       memberRoutes({
         'GET /me/pt': ok([purchase({ status: 'expired', expiresOn: addDays(today, -1), sessionsBooked: 0 })]),
+        'GET /me/workout-plan': ok({ plan: null }),
       }),
     )
     renderAt('/home')

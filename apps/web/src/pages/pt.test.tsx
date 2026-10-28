@@ -53,8 +53,22 @@ function purchase(overrides: Partial<PtPurchaseView> = {}): PtPurchaseView {
     paidPaise: 1200000,
     duePaise: 0,
     ledger: [
-      { id: 'l1', change: 12, reason: 'purchase', note: null, createdAt: new Date().toISOString(), createdByName: 'Admin A' },
-      { id: 'l2', change: -3, reason: 'adjustment', note: 'Before the app', createdAt: new Date().toISOString(), createdByName: 'Admin A' },
+      {
+        id: 'l1',
+        change: 12,
+        reason: 'purchase',
+        note: null,
+        createdAt: new Date().toISOString(),
+        createdByName: 'Admin A',
+      },
+      {
+        id: 'l2',
+        change: -3,
+        reason: 'adjustment',
+        note: 'Before the app',
+        createdAt: new Date().toISOString(),
+        createdByName: 'Admin A',
+      },
     ],
     ...overrides,
   }
@@ -188,7 +202,10 @@ describe('selling PT at the desk', () => {
     await user.type(screen.getByLabelText('Reason'), 'Missed sessions last month')
     await user.click(screen.getByRole('button', { name: 'Save change' }))
     await vi.waitFor(() => expect(callsTo('POST /pt-purchases/ptp-1/adjust')).toHaveLength(1))
-    expect(callsTo('POST /pt-purchases/ptp-1/adjust')[0]?.body).toEqual({ change: -2, note: 'Missed sessions last month' })
+    expect(callsTo('POST /pt-purchases/ptp-1/adjust')[0]?.body).toEqual({
+      change: -2,
+      note: 'Missed sessions last month',
+    })
   })
 
   it('records a payment for a PT package that is due', async () => {
@@ -238,6 +255,7 @@ describe('what members and trainers see', () => {
       'POST /auth/refresh': ok(session(sessionUser({ role: 'member', name: 'Asha Patel' }))),
       'GET /me/membership': ok(mine),
       'GET /me/pt': ok([purchase()]),
+      'GET /me/workout-plan': ok({ plan: null }),
       'GET /me/renewal-options': ok({ onlinePayments: false, startDate: today, plans: [] }),
       'GET /me/pt-sessions': ok([]),
     })
@@ -251,7 +269,12 @@ describe('what members and trainers see', () => {
 
   it('trainers see their clients and sessions left', async () => {
     const clients: TrainerClient[] = [
-      { memberId: 'mem-1', name: 'Asha Patel', phone: '+919876500001', purchases: [purchase({ expiresOn: addDays(today, 3) })] },
+      {
+        memberId: 'mem-1',
+        name: 'Asha Patel',
+        phone: '+919876500001',
+        purchases: [purchase({ expiresOn: addDays(today, 3) })],
+      },
     ]
     mockApi({
       'POST /auth/refresh': ok(session(sessionUser({ role: 'trainer', name: 'Ravi Kumar' }))),

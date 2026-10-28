@@ -1,6 +1,13 @@
 import type { FastifyPluginAsync, FastifyRequest, preHandlerAsyncHookHandler } from 'fastify'
 import { z } from 'zod'
-import { workoutExerciseInputSchema, workoutExerciseUpdateSchema, workoutPlanInputSchema } from '@onthec/shared'
+import {
+  savePlanSchema,
+  startMemberPlanSchema,
+  workoutExerciseInputSchema,
+  workoutExerciseUpdateSchema,
+  workoutPlanInputSchema,
+  type IsoDate,
+} from '@onthec/shared'
 import { getAuth, requireRole } from '../plugins/auth'
 import {
   addStarterExercises,
@@ -8,31 +15,36 @@ import {
   createTemplate,
   deleteTemplate,
   getTemplate,
+  getMemberPlan,
+  getMemberPlanVersions,
+  getMyPlan,
   getTemplateVersions,
   listExercises,
   listTemplates,
+  saveMemberPlan,
   saveTemplate,
+  startMemberPlan,
   updateExercise,
 } from '../services/workouts'
 
 const idParams = z.object({ id: z.uuid() })
 const listQuery = z.object({ all: z.enum(['0', '1']).optional() })
-const planSaveSchema = workoutPlanInputSchema.extend({ version: z.number().int().min(1) })
 
 interface Deps {
   authenticate: preHandlerAsyncHookHandler
+  today: () => IsoDate
 }
 
 function actorOf(request: FastifyRequest) {
   const auth = getAuth(request)
-  return { db: auth.db, actor: { gymId: auth.gymId, userId: auth.userId } }
+  return { db: auth.db, actor: { gymId: auth.gymId, userId: auth.userId, role: auth.role } }
 }
 
 /**
  * Exercise library and plan templates. Owners and admins manage them; trainers can read them
  * (they build their PT clients' plans from them).
  */
-export function workoutRoutes({ authenticate }: Deps): FastifyPluginAsync {
+export function workoutRoutes({ authenticate, today }: Deps): FastifyPluginAsync {
   return async (app) => {
     app.addHook('preHandler', authenticate)
     const staff = requireRole('trainer', 'admin', 'owner')
@@ -69,7 +81,7 @@ export function workoutRoutes({ authenticate }: Deps): FastifyPluginAsync {
     app.put('/workout-templates/:id', { preHandler: managers }, async (request) => {
       const { id } = idParams.parse(request.params)
       const { db, actor } = actorOf(request)
-      return saveTemplate(db, actor, id, planSaveSchema.parse(request.body))
+      return saveTemplate(db, actor, id, savePlanSchema.parse(request.body))
     })
     app.delete('/workout-templates/:id', { preHandler: managers }, async (request, reply) => {
       const { id } = idParams.parse(request.params)
@@ -79,6 +91,35 @@ export function workoutRoutes({ authenticate }: Deps): FastifyPluginAsync {
     app.get('/workout-templates/:id/versions', { preHandler: staff }, async (request) => {
       const { id } = idParams.parse(request.params)
       return getTemplateVersions(getAuth(request).db, id)
+    })
+
+    // Members' own plans: owners/admins for anyone, trainers for their PT clients (checked in the service).
+    app.get('/members/:id/workout-plan', { preHandler: staff }, async (request) => {
+      const { id } = idParams.parse(request.params)
+      const { db, actor } = actorOf(request)
+      return getMemberPlan(db, actor, id, today())
+    })
+    app.post('/members/:id/workout-plan', { preHandler: staff }, async (request) => {
+      const { id } = idParams.parse(request.params)
+      const { db, actor } = actorOf(request)
+      const { templateId } = startMemberPlanSchema.parse(request.body ?? {})
+      return startMemberPlan(db, actor, id, templateId, today())
+    })
+    app.put('/members/:id/workout-plan', { preHandler: staff }, async (request) => {
+      const { id } = idParams.parse(request.params)
+      const { db, actor } = actorOf(request)
+      return saveMemberPlan(db, actor, id, savePlanSchema.parse(request.body), today())
+    })
+    app.get('/members/:id/workout-plan/versions', { preHandler: staff }, async (request) => {
+      const { id } = idParams.parse(request.params)
+      const { db, actor } = actorOf(request)
+      return getMemberPlanVersions(db, actor, id, today())
+    })
+
+    // The signed-in member's own plan (read-only).
+    app.get('/me/workout-plan', async (request) => {
+      const auth = getAuth(request)
+      return { plan: await getMyPlan(auth.db, auth.userId) }
     })
   }
 }

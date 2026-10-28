@@ -40,6 +40,7 @@ function renderHome(partial: Pick<MyMembership, 'current' | 'history'> & Partial
     'POST /auth/refresh': ok(session(sessionUser({ role: 'member', name: 'Asha Patel' }))),
     'GET /me/membership': ok(mine),
     'GET /me/pt': ok([]),
+    'GET /me/workout-plan': ok({ plan: null }),
   })
   render(
     <MemoryRouter initialEntries={['/home']}>

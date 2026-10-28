@@ -6,6 +6,7 @@ import { MyAvailabilityPage, TrainerAvailabilityPage } from './pages/Availabilit
 import { ConsentPage } from './pages/ConsentPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
+import { TrainerClientWorkoutPage } from './pages/TrainerClientWorkoutPage'
 import { WelcomePage } from './pages/WelcomePage'
 import { GymDetailsPage } from './pages/admin/GymDetailsPage'
 import { MemberPage } from './pages/admin/MemberPage'
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/home" element={<HomePage />} />
         <Route path="/trainer" element={<RequireRole roles={['trainer']} />}>
           <Route path="availability" element={<MyAvailabilityPage />} />
+          <Route path="clients/:memberId/workout" element={<TrainerClientWorkoutPage />} />
         </Route>
         <Route path="/admin" element={<RequireRole roles={MANAGER_ROLES} />}>
           <Route path="members" element={<MembersPage />} />

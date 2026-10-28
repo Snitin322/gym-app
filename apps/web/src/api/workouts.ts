@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  MemberWorkoutPlan,
+  MyWorkoutPlan,
   WorkoutExercise,
   WorkoutExerciseInput,
   WorkoutPlanInput,
@@ -96,4 +98,55 @@ export function useDeleteTemplate() {
     mutationFn: (id: string) => api<void>(`/workout-templates/${id}`, { method: 'DELETE' }),
     onSuccess: () => client.invalidateQueries({ queryKey: workoutKeys.templates }),
   })
+}
+
+// --- Members' own plans --------------------------------------------------------------
+
+const memberPlanKey = (memberId: string) => ['member-workout-plan', memberId] as const
+
+export function useMemberPlan(memberId: string) {
+  return useQuery({
+    queryKey: memberPlanKey(memberId),
+    queryFn: () => api<MemberWorkoutPlan>(`/members/${memberId}/workout-plan`),
+  })
+}
+
+export function useMemberPlanVersions(memberId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...memberPlanKey(memberId), 'versions'],
+    queryFn: () => api<WorkoutPlanVersionView[]>(`/members/${memberId}/workout-plan/versions`),
+    enabled,
+  })
+}
+
+/** Gives the member a copy of a template (or a blank week); an existing plan moves to the history. */
+export function useStartMemberPlan(memberId: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (templateId: string | undefined) =>
+      api<MemberWorkoutPlan>(`/members/${memberId}/workout-plan`, {
+        method: 'POST',
+        body: templateId ? { templateId } : {},
+      }),
+    onSuccess: async (data) => {
+      client.setQueryData(memberPlanKey(memberId), data)
+      await client.invalidateQueries({ queryKey: [...memberPlanKey(memberId), 'versions'] })
+    },
+  })
+}
+
+export function useSaveMemberPlan(memberId: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (input: WorkoutPlanInput & { version: number }) =>
+      api<MemberWorkoutPlan>(`/members/${memberId}/workout-plan`, { method: 'PUT', body: input }),
+    onSuccess: async (data) => {
+      client.setQueryData(memberPlanKey(memberId), data)
+      await client.invalidateQueries({ queryKey: [...memberPlanKey(memberId), 'versions'] })
+    },
+  })
+}
+
+export function useMyWorkoutPlan() {
+  return useQuery({ queryKey: ['me', 'workout-plan'], queryFn: () => api<MyWorkoutPlan>('/me/workout-plan') })
 }

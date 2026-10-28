@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { todayInIndia } from '@onthec/shared'
 import { useTrainerClients } from '../api/admin'
 import { errorMessage, formatPhone } from '../lib/format'
@@ -17,13 +18,19 @@ export function TrainerClients() {
       </h2>
       {query.isPending && (
         <Card>
-          <div aria-busy="true" aria-label="Loading your clients" className="h-20 animate-pulse rounded-xl bg-surface-2" />
+          <div
+            aria-busy="true"
+            aria-label="Loading your clients"
+            className="h-20 animate-pulse rounded-xl bg-surface-2"
+          />
         </Card>
       )}
       <ErrorText>{errorMessage(query.error)}</ErrorText>
       {query.data?.length === 0 && (
         <Card>
-          <p className="text-muted">No PT clients yet. Members appear here when the desk sells them a package with you.</p>
+          <p className="text-muted">
+            No PT clients yet. Members appear here when the desk sells them a package with you.
+          </p>
         </Card>
       )}
       <ul className="flex flex-col gap-3">
@@ -38,6 +45,14 @@ export function TrainerClients() {
             {client.purchases.map((p) => (
               <PtPurchaseCard key={p.id} purchase={p} today={today} showTrainer={false} />
             ))}
+            {client.purchases.some((p) => p.status === 'active') && (
+              <Link
+                to={`/trainer/clients/${client.memberId}/workout`}
+                className="self-start px-1 text-sm font-semibold text-accent underline"
+              >
+                Workout plan →
+              </Link>
+            )}
           </li>
         ))}
       </ul>

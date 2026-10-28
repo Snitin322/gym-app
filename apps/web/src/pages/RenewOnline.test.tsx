@@ -11,7 +11,15 @@ import { confirmation } from '../lib/razorpay'
 import { mockApi, ok, session, sessionUser } from '../test/mockApi'
 
 const today = todayInIndia()
-const plan = { id: 'plan-1', name: 'Gold', durationMonths: 3, pricePaise: 450000, maxFreezeDays: 15, description: null, active: true }
+const plan = {
+  id: 'plan-1',
+  name: 'Gold',
+  durationMonths: 3,
+  pricePaise: 450000,
+  maxFreezeDays: 15,
+  description: null,
+  active: true,
+}
 const order = {
   paymentId: 'pay-1',
   orderId: 'order_abc',
@@ -77,12 +85,17 @@ describe('renew online', () => {
       'POST /auth/refresh': member,
       'GET /me/membership': ok(noMembership),
       'GET /me/pt': ok([]),
+      'GET /me/workout-plan': ok({ plan: null }),
       'GET /me/renewal-options': ok({ onlinePayments: true, startDate: today, plans: [plan] }),
       'POST /me/orders': { status: 201, body: order },
       'POST /me/orders/verify': ok({ paymentId: 'pay-1', status: 'created', invoice: null }),
       // First check: not yet confirmed; second: the webhook has arrived.
       'GET /me/payments/pay-1': (_body, n) =>
-        ok({ paymentId: 'pay-1', status: n === 1 ? 'created' : 'paid', invoice: n === 1 ? null : { id: 'inv-1', number: 'OG/26-27/0007' } }),
+        ok({
+          paymentId: 'pay-1',
+          status: n === 1 ? 'created' : 'paid',
+          invoice: n === 1 ? null : { id: 'inv-1', number: 'OG/26-27/0007' },
+        }),
     })
     const user = userEvent.setup()
     renderHome()
@@ -111,6 +124,7 @@ describe('renew online', () => {
       'POST /auth/refresh': member,
       'GET /me/membership': ok(noMembership),
       'GET /me/pt': ok([]),
+      'GET /me/workout-plan': ok({ plan: null }),
       'GET /me/renewal-options': ok({ onlinePayments: true, startDate: today, plans: [plan] }),
       'POST /me/orders': { status: 201, body: order },
     })
@@ -132,6 +146,7 @@ describe('renew online', () => {
       'POST /auth/refresh': member,
       'GET /me/membership': ok(noMembership),
       'GET /me/pt': ok([]),
+      'GET /me/workout-plan': ok({ plan: null }),
       'GET /me/renewal-options': ok({ onlinePayments: true, startDate: today, plans: [plan] }),
       'POST /me/orders': { status: 201, body: order },
       'POST /me/orders/verify': ok({ paymentId: 'pay-1', status: 'created', invoice: null }),
@@ -153,6 +168,7 @@ describe('renew online', () => {
       'POST /auth/refresh': member,
       'GET /me/membership': ok(noMembership),
       'GET /me/pt': ok([]),
+      'GET /me/workout-plan': ok({ plan: null }),
       'GET /me/renewal-options': ok({ onlinePayments: false, startDate: today, plans: [plan] }),
     })
     renderHome()

@@ -211,3 +211,19 @@ export interface WorkoutPlanVersionView {
 export function trainingDays(week: WorkoutWeek) {
   return week.days.filter((d) => !d.rest && d.items.length > 0).length
 }
+
+/** GET /me/workout-plan */
+export interface MyWorkoutPlan {
+  plan: WorkoutPlanView | null
+}
+
+/** A member's plan as staff see it (null until the desk or their trainer gives them one). */
+export interface MemberWorkoutPlan {
+  member: { id: string; name: string }
+  plan: WorkoutPlanView | null
+}
+
+/** Start (or restart) a member's plan from a template, or blank when no template is given. */
+export const startMemberPlanSchema = z.object({ templateId: z.uuid().optional() })
+
+export const savePlanSchema = workoutPlanInputSchema.extend({ version: z.number().int().min(1) })

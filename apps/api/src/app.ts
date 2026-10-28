@@ -75,7 +75,7 @@ export async function buildApp(deps: AppDeps) {
   await app.register(ptAdminRoutes({ authenticate, today }), { prefix: API_PREFIX })
   await app.register(ptSelfRoutes({ authenticate, today }), { prefix: API_PREFIX })
   await app.register(ptSessionRoutes({ authenticate, now }), { prefix: API_PREFIX })
-  await app.register(workoutRoutes({ authenticate }), { prefix: API_PREFIX })
+  await app.register(workoutRoutes({ authenticate, today }), { prefix: API_PREFIX })
 
   const gateway = deps.razorpay === undefined ? createRazorpayGateway(env) : deps.razorpay
   await app.register(onlineRoutes({ authenticate, gateway, today }), { prefix: API_PREFIX })

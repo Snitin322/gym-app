@@ -2,8 +2,12 @@ import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import {
   ErrorCode,
+  emptyWeek,
   exerciseIdsIn,
   trainingDays,
+  type IsoDate,
+  type MemberWorkoutPlan,
+  type Role,
   type WorkoutExercise,
   type WorkoutExerciseInput,
   type WorkoutPlanInput,
@@ -15,6 +19,7 @@ import {
 } from '@onthec/shared'
 import type { TenantDb, TenantTx } from '../db/tenant'
 import { AppError } from '../errors'
+import { toDbDate } from '../lib/dates'
 import { isUniqueViolation } from '../lib/prisma-errors'
 import { STARTER_EXERCISES } from './workout-starter'
 
@@ -188,7 +193,7 @@ export async function savePlan(
   tx: TenantTx,
   actor: Actor,
   row: PlanRow,
-  input: WorkoutPlanInput & { version: number },
+  input: { name: string; notes?: string; week: WorkoutWeek; version: number },
 ): Promise<WorkoutPlanView> {
   if (input.version !== row.version) {
     throw new AppError(
@@ -261,4 +266,114 @@ export async function listVersions(db: TenantDb | TenantTx, planId: string): Pro
 export async function getTemplateVersions(db: TenantDb, id: string) {
   await loadTemplate(db, id)
   return listVersions(db, id)
+}
+
+// ---------------------------------------------------------------------------
+// Members' own plans
+// ---------------------------------------------------------------------------
+
+export interface Viewer extends Actor {
+  role: Role
+}
+
+/**
+ * Owners and admins can manage any member's plan; a trainer only their PT clients' (an active PT
+ * package with them: not expired, sessions left). Anyone else gets "not found".
+ */
+async function loadMemberFor(db: TenantDb | TenantTx, viewer: Viewer, memberId: string, today: IsoDate) {
+  const member = await db.member.findUnique({
+    where: { id: memberId },
+    select: { id: true, user: { select: { name: true } } },
+  })
+  if (!member) throw notFound('Member')
+  if (viewer.role === 'owner' || viewer.role === 'admin') return member
+  if (viewer.role === 'trainer') {
+    const purchases = await db.ptPurchase.findMany({
+      where: { memberId, trainerId: viewer.userId, expiresOn: { gte: toDbDate(today) } },
+      select: { ledger: { select: { change: true } } },
+    })
+    if (purchases.some((p) => p.ledger.reduce((sum, l) => sum + l.change, 0) > 0)) return member
+  }
+  throw notFound('Member')
+}
+
+async function memberPlanRow(db: TenantDb | TenantTx, memberId: string) {
+  return db.workoutPlan.findUnique({ where: { memberId }, include: planInclude })
+}
+
+export async function getMemberPlan(
+  db: TenantDb,
+  viewer: Viewer,
+  memberId: string,
+  today: IsoDate,
+): Promise<MemberWorkoutPlan> {
+  const member = await loadMemberFor(db, viewer, memberId, today)
+  const row = await memberPlanRow(db, memberId)
+  return { member: { id: member.id, name: member.user.name }, plan: row ? await toView(db, row) : null }
+}
+
+/**
+ * Gives the member their own copy of a template (or a blank week). If they already have a plan,
+ * the template becomes its next version, so the earlier plan stays in the history.
+ */
+export async function startMemberPlan(
+  db: TenantDb,
+  viewer: Viewer,
+  memberId: string,
+  templateId: string | undefined,
+  today: IsoDate,
+): Promise<MemberWorkoutPlan> {
+  await db.$transaction(async (tx) => {
+    await loadMemberFor(tx, viewer, memberId, today)
+    const template = templateId ? await loadTemplate(tx, templateId) : null
+    const source = template
+      ? { name: template.name, notes: template.notes ?? undefined, week: template.week as WorkoutWeek }
+      : { name: 'Workout plan', notes: undefined, week: emptyWeek() }
+    const existing = await memberPlanRow(tx, memberId)
+    if (existing) {
+      await savePlan(tx, viewer, existing, { ...source, version: existing.version })
+    } else {
+      await tx.workoutPlan.create({
+        data: {
+          gymId: viewer.gymId,
+          memberId,
+          name: source.name,
+          notes: source.notes,
+          week: source.week as Prisma.InputJsonValue,
+          createdById: viewer.userId,
+          updatedById: viewer.userId,
+        },
+      })
+    }
+  }, SERIALIZABLE)
+  return getMemberPlan(db, viewer, memberId, today)
+}
+
+export async function saveMemberPlan(
+  db: TenantDb,
+  viewer: Viewer,
+  memberId: string,
+  input: WorkoutPlanInput & { version: number },
+  today: IsoDate,
+): Promise<MemberWorkoutPlan> {
+  await db.$transaction(async (tx) => {
+    await loadMemberFor(tx, viewer, memberId, today)
+    const row = await memberPlanRow(tx, memberId)
+    if (!row) throw notFound('Workout plan')
+    await savePlan(tx, viewer, row, input)
+  }, SERIALIZABLE)
+  return getMemberPlan(db, viewer, memberId, today)
+}
+
+export async function getMemberPlanVersions(db: TenantDb, viewer: Viewer, memberId: string, today: IsoDate) {
+  await loadMemberFor(db, viewer, memberId, today)
+  const row = await memberPlanRow(db, memberId)
+  return row ? listVersions(db, row.id) : []
+}
+
+/** The signed-in member's own plan (read-only), or null. */
+export async function getMyPlan(db: TenantDb, userId: string): Promise<WorkoutPlanView | null> {
+  const member = await db.member.findUnique({ where: { userId }, select: { id: true } })
+  const row = member ? await memberPlanRow(db, member.id) : null
+  return row ? toView(db, row) : null
 }
