@@ -4,6 +4,7 @@ Multi-tenant gym management platform (members, trainers, owner/admin) delivered 
 
 - Project rules and stack: [CLAUDE.md](CLAUDE.md)
 - Detailed plan, phases and open decisions: [docs/PLAN.md](docs/PLAN.md)
+- Manual QA test cases to run on a phone: [docs/QA_TEST_CASES.md](docs/QA_TEST_CASES.md)
 
 ## Status
 
