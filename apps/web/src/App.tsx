@@ -12,6 +12,9 @@ import { MemberPage } from './pages/admin/MemberPage'
 import { MembersPage } from './pages/admin/MembersPage'
 import { NewMemberPage } from './pages/admin/NewMemberPage'
 import { PlansPage } from './pages/admin/PlansPage'
+import { ExerciseLibraryPage } from './pages/admin/ExerciseLibraryPage'
+import { WorkoutTemplatePage } from './pages/admin/WorkoutTemplatePage'
+import { WorkoutsPage } from './pages/admin/WorkoutsPage'
 import { PtDisputesPage } from './pages/admin/PtDisputesPage'
 import { PtPackagesPage } from './pages/admin/PtPackagesPage'
 import { StaffPage } from './pages/admin/StaffPage'
@@ -34,6 +37,9 @@ export default function App() {
           <Route path="plans" element={<PlansPage />} />
           <Route path="pt-packages" element={<PtPackagesPage />} />
           <Route path="pt-disputes" element={<PtDisputesPage />} />
+          <Route path="workouts" element={<WorkoutsPage />} />
+          <Route path="workouts/exercises" element={<ExerciseLibraryPage />} />
+          <Route path="workouts/templates/:id" element={<WorkoutTemplatePage />} />
           <Route path="staff" element={<StaffPage />} />
           <Route path="trainers/:id/availability" element={<TrainerAvailabilityPage />} />
         </Route>

@@ -12,14 +12,14 @@ Recommended defaults are in bold. Phase 0 only needs #9 (where to host the web a
 |---|----------|---------|----------------|-----------|
 | 1 | API framework | Express / Fastify | **Fastify** — built-in schema hooks, faster, good TS types; Zod via `fastify-type-provider-zod` | Phase 1 |
 | 2 | How a user picks their gym at login | Subdomain per gym / gym code / phone-first then pick gym | **Phone-first**: verify OTP, then list the gyms that phone has an account in (auto-select if one). Keeps `gym_id` out of URLs and works for one PWA install | Phase 2 |
-| 3 | OTP delivery | MSG91 SMS / Twilio / WhatsApp OTP / Firebase Auth | **Decided: WhatsApp Cloud API** authentication template (copy-code button). No DLT registration needed; free Meta test number during development; same Meta setup is reused for reminders in Phase 8. SMS (MSG91 + DLT) can be added later as a fallback channel | Phase 2 |
+| 3 | OTP delivery | MSG91 SMS / Twilio / WhatsApp OTP / Firebase Auth | **Decided: WhatsApp Cloud API** authentication template (copy-code button). No DLT registration needed; free Meta test number during development; same Meta setup is reused for reminders in Phase 9. SMS (MSG91 + DLT) can be added later as a fallback channel | Phase 2 |
 | 4 | Are plan prices GST-inclusive? | Inclusive / exclusive | **Inclusive** (what Indian gyms quote). Server back-calculates base and tax | Phase 3 |
 | 5 | Is the gym GST-registered? | Yes (tax invoice) / No (bill of supply) | Support both: `gyms.gstin` nullable; if null, issue a bill of supply with zero tax | Phase 4 |
 | 6 | Offline payments (cash / UPI at desk) | Support / Razorpay only | **Support** — admin records a manual payment; most Indian gyms still take cash | Phase 4 |
 | 7 | Late-cancel policy for PT | Free cancel up to N hours before; later = session used | **12 hours**, configurable per gym in `gyms.settings` | Phase 5 |
-| 8 | WhatsApp provider | Meta Cloud API direct / BSP (Interakt, Gupshup, AiSensy) | **Meta Cloud API** if you can verify a Meta Business account; BSP otherwise. Templates need Meta approval | Phase 8 |
+| 8 | WhatsApp provider | Meta Cloud API direct / BSP (Interakt, Gupshup, AiSensy) | **Meta Cloud API** if you can verify a Meta Business account; BSP otherwise. Templates need Meta approval | Phase 9 |
 | 9 | Hosting | see §8 | Web: **Cloudflare Pages** (or Vercel / Netlify) — HTTPS is required for Home Screen install. Later: Postgres + API in Mumbai region | Web: Phase 0. API: Phase 1 (public URL by Phase 4 for webhooks) |
-| 10 | Branding | — | Name is **Onthec Gym**; placeholder logo and lime-on-dark colours in Phase 0 — swap for the real logo when available | Phase 9 |
+| 10 | Branding | — | Name is **Onthec Gym**; placeholder logo and lime-on-dark colours in Phase 0 — swap for the real logo when available | Phase 10 |
 
 ---
 
@@ -248,7 +248,7 @@ Approved decisions: members, the desk and the trainer (for their own clients) ca
   - Desk: book/cancel for a member from the member page; view/edit a trainer's hours from Staff.
   - Owner: the three PT rules in Gym details.
 - Tests: slot generation (time off, bookings, session length, notice, horizon, use-by date); booking refused when balance − booked < 1; concurrent booking of the last session/slot (one wins); trainer double-booking blocked by the DB; late cancel deducts exactly once, free/staff cancel never; reschedule; another member's package refused; gym isolation; screens.
-- Delivery: **5b-1** schema, rules, API and tests (done) → **5b-2** screens (done). Session reminders wait for Phase 8.
+- Delivery: **5b-1** schema, rules, API and tests (done) → **5b-2** screens (done). Session reminders wait for Phase 9.
 - 5b-1 API: `GET/PUT /trainers/:id/availability`, `POST/DELETE /trainers/:id/time-off`, `GET /trainers/:id/sessions`, `GET /pt-purchases/:id/slots`, `POST /pt-purchases/:id/sessions`, `POST /pt-sessions/:id/cancel`, `POST /pt-sessions/:id/reschedule`, `GET /me/pt-sessions`, `GET /members/:id/pt-sessions`, `GET/PATCH /pt-rules` (owner edits). Slot rules live in `packages/shared/src/pt-booking.ts` so the app and API agree. DB exclusion constraints (btree_gist) stop overlapping booked sessions per trainer and per member.
 - 5b-2 screens: trainer **My availability** (`/trainer/availability`: weekly hours per weekday as 15-minute choices shown like "6:00 am", session length, time off with the list of sessions it cancelled) and **My schedule** on trainer home (next 14 days by day, client name/phone, cancel/reschedule); member **Book a session** on the PT card (day → time → confirm, "N sessions left · M booked", disabled with a reason when nothing is left to book or the package expired) and **Upcoming sessions** (free-cancel time shown; after it a warning that cancelling uses the session and no reschedule); desk **Book session** and upcoming sessions on the member page, **Hours →** per trainer on Staff (`/admin/trainers/:id/availability`); owner **PT booking rules** in Gym details. Web tests in `apps/web/src/pages/booking.test.tsx`.
 
@@ -267,7 +267,21 @@ Approved decisions: trainer notes are visible to the member and the desk; no-sho
 Phase 5 is complete.
 - 5c-1 API: `POST /pt-sessions/:id/mark` (`outcome` completed/no_show, `note`), `/undo-mark`, `/confirm`, `/dispute` (`reason`), `/resolve` (owner/admin: `resolution` upheld/rejected, `note`); `GET /pt-disputes` (open, owner/admin); `GET /pt-sessions/unmarked` (trainer: own; desk: all). `PtSessionView` gained `confirmation`, `disputeUntil`, `undoUntil`, notes and dispute fields. The 5b unique index on ledger (session, reason) was replaced by the booked-status check, because an undone mark can be marked again.
 
-### Phase 6 — QR check-in
+### Phase 6 — Workout plans (plan approved 28 Oct 2026; 6a done, 6b next)
+
+Approved decisions: each member gets their own copy of a template; one line per set (pyramids allowed); every save keeps the previous version; the exercise library starts with ~50 common exercises (editable); trainers edit only their PT clients' plans; members without a plan see "Ask the front desk or your trainer for a plan" (no automatic default); exercise media is a video link only (uploads later with R2). QR check-in moved to Phase 7.
+
+- **Exercise library** (per gym): name, muscle group, type (strength/cardio), description, optional video link; seeded with common exercises, editable; deactivate instead of delete.
+- **Weekly plan**: Monday–Sunday; each day has a title (e.g. "Chest + Triceps") or is a rest day, and an ordered list of items. Strength: one line per set (reps or seconds, weight in kg in 0.25 steps), rest between sets, rest before the next exercise, note. Cardio: minutes, optional distance, note.
+- **Templates** (owner/admin) and **member plans** (a copy; editing never affects other members). Every save stores the previous version with who changed it and when.
+- **Access**: owner/admin any plan and all templates; trainer their PT clients' plans (active PT package with them); member read-only.
+- **Member home**: "Today's workout" (India date) and the full week.
+- Data: `workout_exercises`, `workout_plans` (template or member plan; the week is one Zod-validated JSON document), `workout_plan_versions`.
+- **Tests**: edit rights (trainer only for own PT clients, members read-only), template copy is independent, versions kept, today's workout by India date, validation limits, isolation; screens.
+- Delivery: **6a** exercise library, templates and plan editor (desk), backend and tests (done) → **6b** assigning to members, trainer access, member "Today's workout" (next).
+- 6a: `GET/POST /workout-exercises` (`?all=1` includes inactive), `PATCH /workout-exercises/:id`, `POST /workout-exercises/starter` (adds the ~50 common exercises the gym lacks; the dev seed adds them too); `GET/POST /workout-templates`, `GET/PUT/DELETE /workout-templates/:id` (PUT sends the `version` it started from; a stale save gets 409 `PLAN_CHANGED`), `GET /workout-templates/:id/versions`. Trainers can read the library and templates; only owner/admin change them. Screens: **Workouts** tile → templates list, **Exercise library** (search, add/edit/deactivate, "Add common exercises"), template editor (`ui/WorkoutPlanEditor.tsx`, reused in 6b) with day tabs, sets (reps or timed, kg), rests, cardio, rest days, earlier versions and delete.
+
+### Phase 7 — QR check-in
 - Member: full-screen QR pass that rotates every 30s with a countdown; brightness hint.
 - Front desk: scanner screen (`@zxing/browser` or `html5-qrcode`, camera on a tablet/phone) → big green/red result with member photo, name, plan, days left; manual check-in by search.
 - Rules: deny if expired/frozen/no membership (red, with reason); dedupe window.
@@ -275,13 +289,13 @@ Phase 5 is complete.
 - *Offline note*: the member pass needs a signing key on the device to work offline; simplest safe option for MVP is **online-only generation** (pass fetched every 30s). Revisit if gym Wi-Fi is poor.
 - **Tests**: token expiry, tampering, cross-gym token rejected, dedupe, frozen membership denied.
 
-### Phase 7 — Admin dashboard
+### Phase 8 — Admin dashboard
 - Cards: active members, expiring this week, expired last 30 days (renewal targets), revenue today / this month (by method), pending dues, PT sessions this week, today's check-ins.
 - Leads: list, create, status pipeline (`new → contacted → trial → converted / lost`), follow-up date, convert-to-member.
 - All aggregates computed in SQL with IST date boundaries; indexes reviewed with `EXPLAIN`.
 - **Tests**: aggregates on a fixed seed, IST boundary cases, isolation (dashboard numbers never include other gyms).
 
-### Phase 8 — Notifications
+### Phase 9 — Notifications
 - Web push: subscribe/unsubscribe, VAPID keys in env, service worker handler, remove dead subscriptions on 404/410.
 - WhatsApp: approved templates — `membership_expiry_7d`, `_3d`, `_0d`, `pt_session_reminder` (2h before), `payment_receipt` (with invoice link). Only send if WhatsApp consent recorded.
 - Daily scheduler at 09:00 IST; `notifications_log.dedupe_key` prevents double sends; quiet hours.
@@ -289,7 +303,7 @@ Phase 5 is complete.
 - *iOS note*: web push on iPhone only works when the PWA is installed to the Home Screen (iOS 16.4+) — WhatsApp is the reliable channel there.
 - **Tests**: scheduler picks the right members on each day offset, dedupe, consent respected, provider failures logged and retried.
 
-### Phase 9 — PWA polish and production
+### Phase 10 — PWA polish and production
 - Real logo/branding, iOS splash screens, offline handling for data screens (cached last-known membership, "you're offline" banner), "update available" prompt.
 - 360px audit of every member/trainer screen; Lighthouse PWA + accessibility pass.
 - Production: env/secrets, migrations on deploy, daily DB backups with a tested restore, Sentry (web + API), uptime check, Razorpay live keys + live webhook URL.
@@ -341,10 +355,11 @@ Phase 5 is complete.
 | 3 Members + plans | M | |
 | 4 Payments + invoices | L | Razorpay account + KYC needed for live mode |
 | 5 PT booking | L | most business rules live here |
-| 6 QR check-in | S–M | |
-| 7 Dashboard | M | |
-| 8 Notifications | M | Meta template approval runs in parallel |
-| 9 PWA polish + production | M | |
+| 6 Workout plans | M | |
+| 7 QR check-in | S–M | |
+| 8 Dashboard | M | |
+| 9 Notifications | M | Meta template approval runs in parallel |
+| 10 PWA polish + production | M | |
 
 ## 10. Things to start outside the code now
 

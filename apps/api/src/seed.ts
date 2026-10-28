@@ -1,4 +1,5 @@
 import type { Db } from './db/unscoped'
+import { STARTER_EXERCISES } from './services/workout-starter'
 
 export const ONTHEC_GYM_SLUG = 'onthec'
 
@@ -22,6 +23,12 @@ export async function seedDatabase(db: Db, options: SeedOptions = {}) {
         create: { gymId: gym.id, phone: options.owner.phone, name: options.owner.name, role: 'owner' },
       })
     : null
+
+  // Common exercises for the workout library (names already there are skipped).
+  await db.workoutExercise.createMany({
+    data: STARTER_EXERCISES.map((e) => ({ ...e, gymId: gym.id })),
+    skipDuplicates: true,
+  })
 
   return { gym, owner }
 }

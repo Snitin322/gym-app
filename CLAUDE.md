@@ -100,14 +100,15 @@ Work one phase at a time, adding features one by one. At the end of each phase: 
 3. **Members and plans** — admin creates plans and members; member sees plan, expiry, days left
 4. **Payments and invoices** — Razorpay renew/buy flow, webhook, GST invoice PDF, payment history
 5. **PT packages and booking** — trainer availability, booking/reschedule/cancel, session ledger, trainer marks complete, member confirm/dispute
-6. **QR check-in** — member QR pass (signed, rotating token), front-desk scanner screen, attendance history
-7. **Admin dashboard** — active/expiring/expired members, renewals due this week, revenue, pending dues, leads
-8. **Notifications** — web push + WhatsApp reminders: expiry (7/3/0 days), PT session reminder, payment receipt
-9. **PWA polish and production** — offline app shell for data screens, update prompt, branding, production hardening (backups, Sentry, live keys)
+6. **Workout plans** — per-gym exercise library (strength/cardio, description, video link), weekly plan templates, each member gets their own copy (sets with reps/time and weight, rest between sets and exercises, cardio), version history; edited by owner/admin, and by the trainer for their PT clients; member sees "Today's workout"
+7. **QR check-in** — member QR pass (signed, rotating token), front-desk scanner screen, attendance history
+8. **Admin dashboard** — active/expiring/expired members, renewals due this week, revenue, pending dues, leads
+9. **Notifications** — web push + WhatsApp reminders: expiry (7/3/0 days), PT session reminder, payment receipt
+10. **PWA polish and production** — offline app shell for data screens, update prompt, branding, production hardening (backups, Sentry, live keys)
 
 ## Out of scope for MVP (do not build yet)
 
-Workout logging, diet plans, challenges/leaderboards, loyalty points, in-app store, biometric integration, multi-branch UI, SaaS billing for gyms. Keep the schema flexible enough to add these later.
+Workout logging (recording what a member actually lifted; workout *plans* are Phase 6), diet plans, challenges/leaderboards, loyalty points, in-app store, biometric integration, multi-branch UI, SaaS billing for gyms. Keep the schema flexible enough to add these later.
 
 ## Coding conventions
 

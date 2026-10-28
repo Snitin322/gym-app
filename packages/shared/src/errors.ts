@@ -59,6 +59,11 @@ export const ErrorCode = {
   PT_ALREADY_DISPUTED: 'PT_ALREADY_DISPUTED',
   PT_NOT_DISPUTED: 'PT_NOT_DISPUTED',
   PT_ALREADY_RESOLVED: 'PT_ALREADY_RESOLVED',
+
+  // Workout plans
+  EXERCISE_NAME_TAKEN: 'EXERCISE_NAME_TAKEN',
+  UNKNOWN_EXERCISE: 'UNKNOWN_EXERCISE',
+  PLAN_CHANGED: 'PLAN_CHANGED',
 } as const
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode]

@@ -73,6 +73,9 @@ model Gym {
   trainerHours      TrainerAvailability[]
   trainerTimeOff    TrainerTimeOff[]
   ptSessions        PtSession[]
+  workoutExercises  WorkoutExercise[]
+  workoutPlans      WorkoutPlan[]
+  workoutVersions   WorkoutPlanVersion[]
 
   @@map("gyms")
 }
@@ -90,25 +93,28 @@ model User {
   /// Set by the account deletion / anonymisation flow; such users cannot log in.
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(3)
 
-  gym                 Gym                   @relation(fields: [gymId], references: [id], onDelete: Restrict)
-  refreshTokens       RefreshToken[]
-  consents            Consent[]
-  member              Member?
-  membershipsCreated  Membership[]          @relation("MembershipCreatedBy")
-  freezesCreated      MembershipFreeze[]    @relation("FreezeCreatedBy")
-  paymentsRecorded    Payment[]             @relation("PaymentRecordedBy")
-  ptClients           PtPurchase[]          @relation("PtTrainer")
-  ptSold              PtPurchase[]          @relation("PtSoldBy")
-  ptLedgerEntries     PtSessionLedger[]     @relation("PtLedgerBy")
-  trainerProfile      TrainerProfile?
-  trainerHours        TrainerAvailability[]
-  timeOff             TrainerTimeOff[]      @relation("TimeOffTrainer")
-  timeOffCreated      TrainerTimeOff[]      @relation("TimeOffCreatedBy")
-  ptSessionsTrained   PtSession[]           @relation("PtSessionTrainer")
-  ptSessionsBooked    PtSession[]           @relation("PtSessionBookedBy")
-  ptSessionsCancelled PtSession[]           @relation("PtSessionCancelledBy")
-  ptSessionsMarked    PtSession[]           @relation("PtSessionMarkedBy")
-  ptSessionsResolved  PtSession[]           @relation("PtSessionResolvedBy")
+  gym                  Gym                   @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  refreshTokens        RefreshToken[]
+  consents             Consent[]
+  member               Member?
+  membershipsCreated   Membership[]          @relation("MembershipCreatedBy")
+  freezesCreated       MembershipFreeze[]    @relation("FreezeCreatedBy")
+  paymentsRecorded     Payment[]             @relation("PaymentRecordedBy")
+  ptClients            PtPurchase[]          @relation("PtTrainer")
+  ptSold               PtPurchase[]          @relation("PtSoldBy")
+  ptLedgerEntries      PtSessionLedger[]     @relation("PtLedgerBy")
+  trainerProfile       TrainerProfile?
+  trainerHours         TrainerAvailability[]
+  timeOff              TrainerTimeOff[]      @relation("TimeOffTrainer")
+  timeOffCreated       TrainerTimeOff[]      @relation("TimeOffCreatedBy")
+  ptSessionsTrained    PtSession[]           @relation("PtSessionTrainer")
+  ptSessionsBooked     PtSession[]           @relation("PtSessionBookedBy")
+  ptSessionsCancelled  PtSession[]           @relation("PtSessionCancelledBy")
+  ptSessionsMarked     PtSession[]           @relation("PtSessionMarkedBy")
+  ptSessionsResolved   PtSession[]           @relation("PtSessionResolvedBy")
+  workoutPlansCreated  WorkoutPlan[]         @relation("WorkoutPlanCreatedBy")
+  workoutPlansUpdated  WorkoutPlan[]         @relation("WorkoutPlanUpdatedBy")
+  workoutVersionsSaved WorkoutPlanVersion[]
 
   @@unique([gymId, phone])
   @@index([phone])
@@ -213,6 +219,7 @@ model Member {
   invoices    Invoice[]
   ptPurchases PtPurchase[]
   ptSessions  PtSession[]
+  workoutPlan WorkoutPlan?
 
   @@index([gymId])
   @@map("members")
@@ -626,4 +633,81 @@ model PtSession {
   @@index([trainerId, startsAt])
   @@index([gymId, disputedAt])
   @@map("pt_sessions")
+}
+
+enum WorkoutExerciseKind {
+  strength
+  cardio
+
+  @@map("workout_exercise_kind")
+}
+
+/// The gym's exercise library. Plans refer to these; exercises are deactivated, never deleted.
+model WorkoutExercise {
+  id          String              @id @default(uuid()) @db.Uuid
+  gymId       String              @map("gym_id") @db.Uuid
+  name        String
+  /// e.g. "Chest", "Back", "Legs", "Cardio".
+  muscleGroup String?             @map("muscle_group")
+  kind        WorkoutExerciseKind
+  /// How to do it.
+  description String?
+  videoUrl    String?             @map("video_url")
+  active      Boolean             @default(true)
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym Gym @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  @@unique([gymId, name])
+  @@index([gymId])
+  @@map("workout_exercises")
+}
+
+/// A weekly workout plan: a template (member_id null) or one member's own copy.
+/// The week (days, exercises, sets) is one document, validated by the shared Zod schema.
+model WorkoutPlan {
+  id          String   @id @default(uuid()) @db.Uuid
+  gymId       String   @map("gym_id") @db.Uuid
+  /// Set for a member's plan (one per member); null for templates.
+  memberId    String?  @unique @map("member_id") @db.Uuid
+  name        String
+  notes       String?
+  week        Json
+  /// Goes up by one on every save; earlier versions are kept in workout_plan_versions.
+  version     Int      @default(1)
+  createdById String   @map("created_by_id") @db.Uuid
+  updatedById String   @map("updated_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym       Gym                  @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  member    Member?              @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  createdBy User                 @relation("WorkoutPlanCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy User                 @relation("WorkoutPlanUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  versions  WorkoutPlanVersion[]
+
+  @@index([gymId])
+  @@map("workout_plans")
+}
+
+/// A plan as it was before a later save (who saved that version, and when).
+model WorkoutPlanVersion {
+  id        String   @id @default(uuid()) @db.Uuid
+  gymId     String   @map("gym_id") @db.Uuid
+  planId    String   @map("plan_id") @db.Uuid
+  version   Int
+  name      String
+  notes     String?
+  week      Json
+  savedById String   @map("saved_by_id") @db.Uuid
+  savedAt   DateTime @map("saved_at") @db.Timestamptz(3)
+
+  gym     Gym         @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  plan    WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  savedBy User        @relation(fields: [savedById], references: [id], onDelete: Restrict)
+
+  @@unique([planId, version])
+  @@index([gymId])
+  @@map("workout_plan_versions")
 }
