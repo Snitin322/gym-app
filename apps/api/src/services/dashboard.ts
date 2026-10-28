@@ -10,6 +10,7 @@ import {
 } from '@onthec/shared'
 import type { TenantDb } from '../db/tenant'
 import { fromDbDate, toDbDate } from '../lib/dates'
+import { leadsForDashboard } from './leads'
 import { listMembers } from './members'
 
 /** How far back "recently expired" looks. */
@@ -55,7 +56,7 @@ export async function getDashboard(db: TenantDb, role: Role, today: IsoDate, now
   const week = weekStart(today)
   const nextWeek = addDays(week, 7)
 
-  const [members, joinedThisMonth, sessions, openDisputes, unmarked, purchases, withPlan, tracked, money] =
+  const [members, joinedThisMonth, sessions, openDisputes, unmarked, purchases, withPlan, tracked, money, leads] =
     await Promise.all([
       listMembers(db, { filter: 'all' }, today),
       db.member.count({ where: { joinedOn: { gte: toDbDate(monthStart(today)), lte: toDbDate(today) } } }),
@@ -82,6 +83,7 @@ export async function getDashboard(db: TenantDb, role: Role, today: IsoDate, now
         select: { memberId: true },
       }),
       role === 'owner' ? revenue(db, today) : Promise.resolve(null),
+      leadsForDashboard(db, today),
     ])
 
   const contact = (m: (typeof members)[number]): DashboardMember | null =>
@@ -133,5 +135,6 @@ export async function getDashboard(db: TenantDb, role: Role, today: IsoDate, now
         })),
     },
     workouts: { withPlan, trackedThisWeek: tracked.length },
+    leads,
   }
 }

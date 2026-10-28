@@ -16,6 +16,7 @@ import { PlansPage } from './pages/admin/PlansPage'
 import { ExerciseLibraryPage } from './pages/admin/ExerciseLibraryPage'
 import { WorkoutTemplatePage } from './pages/admin/WorkoutTemplatePage'
 import { WorkoutsPage } from './pages/admin/WorkoutsPage'
+import { LeadsPage } from './pages/admin/LeadsPage'
 import { PtDisputesPage } from './pages/admin/PtDisputesPage'
 import { PtPackagesPage } from './pages/admin/PtPackagesPage'
 import { StaffPage } from './pages/admin/StaffPage'
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="plans" element={<PlansPage />} />
           <Route path="pt-packages" element={<PtPackagesPage />} />
           <Route path="pt-disputes" element={<PtDisputesPage />} />
+          <Route path="leads" element={<LeadsPage />} />
           <Route path="workouts" element={<WorkoutsPage />} />
           <Route path="workouts/exercises" element={<ExerciseLibraryPage />} />
           <Route path="workouts/templates/:id" element={<WorkoutTemplatePage />} />

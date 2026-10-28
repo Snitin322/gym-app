@@ -77,6 +77,7 @@ model Gym {
   workoutPlans      WorkoutPlan[]
   workoutVersions   WorkoutPlanVersion[]
   workoutLogs       WorkoutLog[]
+  leads             Lead[]
 
   @@map("gyms")
 }
@@ -117,6 +118,7 @@ model User {
   workoutPlansUpdated  WorkoutPlan[]         @relation("WorkoutPlanUpdatedBy")
   workoutVersionsSaved WorkoutPlanVersion[]
   workoutLogsSaved     WorkoutLog[]
+  leadsCreated         Lead[]
 
   @@unique([gymId, phone])
   @@index([phone])
@@ -223,6 +225,7 @@ model Member {
   ptSessions  PtSession[]
   workoutPlan WorkoutPlan?
   workoutLogs WorkoutLog[]
+  leads       Lead[]
 
   @@index([gymId])
   @@map("members")
@@ -742,4 +745,55 @@ model WorkoutLog {
   @@unique([memberId, date])
   @@index([gymId])
   @@map("workout_logs")
+}
+
+enum LeadSource {
+  walk_in
+  phone_call
+  instagram
+  facebook
+  google
+  referral
+  other
+
+  @@map("lead_source")
+}
+
+enum LeadStatus {
+  new
+  contacted
+  trial
+  joined
+  lost
+
+  @@map("lead_status")
+}
+
+/// Someone who enquired but isn't a member yet. Becomes "joined" when a member is added with the same phone.
+model Lead {
+  id          String     @id @default(uuid()) @db.Uuid
+  gymId       String     @map("gym_id") @db.Uuid
+  name        String
+  /// E.164. Not unique: the same person can enquire twice (the app warns).
+  phone       String
+  source      LeadSource
+  /// What they're after, e.g. "Weight loss, 3 months".
+  interest    String?
+  note        String?
+  followUpOn  DateTime?  @map("follow_up_on") @db.Date
+  status      LeadStatus @default(new)
+  lostReason  String?    @map("lost_reason")
+  /// Set when they joined.
+  memberId    String?    @map("member_id") @db.Uuid
+  createdById String     @map("created_by_id") @db.Uuid
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym       Gym     @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  member    Member? @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  createdBy User    @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([gymId, status, followUpOn])
+  @@index([gymId, phone])
+  @@map("leads")
 }

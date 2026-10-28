@@ -295,7 +295,7 @@ Approved decisions: no phone use during exercises — members tick the day after
 - **Tests**: pre-fill per weekday, mark done vs edits, history fixed after plan changes, date window, rest days, access, isolation; screens.
 - Built: `GET /me/workout-week?start=` (Monday–Sunday with planned items, log, status, `canLog`, last time), `PUT /me/workout-days/:date` (`{ items, note }`; only the member, today and the past 7 days, not a rest day, needs a plan), `GET /members/:id/workout-week` (PT trainer / desk, read-only). Members can now read the active exercise library (to add one when updating a day). Screens: **My week** under Today's workout (`ui/WorkoutCalendar.tsx`), and **Workout tracking** inside the member's plan section for the desk and trainer.
 
-### Phase 8 — Admin dashboard and leads (plan approved 28 Oct 2026; 8a done, 8b next)
+### Phase 8 — Admin dashboard and leads (done; plan approved 28 Oct 2026)
 
 Approved decisions: revenue/collections shown to the owner only (admins see members, dues, PT, workouts, leads); "expiring soon" = next 7 days; WhatsApp buttons open a pre-typed chat (wa.me link, staff press send — free, no Meta template); leads in this phase (8b); numbers and lists only (charts in the polish phase). "Today's check-ins" waits for Phase 9.
 
@@ -308,6 +308,9 @@ Approved decisions: revenue/collections shown to the owner only (admins see memb
 - Built: `GET /dashboard` (owner/admin; `revenue` is null for admins) and the dashboard at the top of the owner/admin home (`pages/admin/Dashboard.tsx`); WhatsApp links via `whatsappLink()` in packages/shared.
 
 **8b — Leads**: `leads` table (name, phone, source, interest, note, follow-up date, status new → contacted → trial → joined / lost with reason); follow-ups due today and overdue on the dashboard with call/WhatsApp; convert to member (pre-fills New member, marks Joined); duplicate phone warning (existing lead or member).
+- 8b built: `GET /leads?filter=open|joined|lost|all&q=`, `GET /leads/check-phone?phone=`, `POST /leads`, `PATCH /leads/:id` (status new/contacted/trial/lost; lost needs a reason; joined leads are read-only). Adding a member automatically marks open leads with the same phone **Joined** and links them (in the member's transaction). Dashboard: "Lead follow-ups due" (today and overdue) and a **Leads** tile; "Convert to member" opens New member pre-filled (`?name=&phone=`).
+
+Phase 8 is complete.
 
 - **Tests**: numbers on fixed data, India midnight boundaries, isolation, revenue hidden from admins, lead statuses and conversion; screens.
 

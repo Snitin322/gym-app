@@ -24,6 +24,7 @@ import {
   type Actor,
 } from './memberships'
 import { purchaseInclude, sortPurchases, toPurchaseView } from './pt'
+import { markLeadsJoined } from './leads'
 import { phoneTaken } from './users'
 
 const memberInclude = {
@@ -148,24 +149,29 @@ export async function createMember(
   today: IsoDate,
 ): Promise<MemberDetail> {
   try {
-    const memberId = await db.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: { gymId: actor.gymId, phone: input.phone, name: input.name, role: 'member' },
-      })
-      const member = await tx.member.create({
-        data: {
-          gymId: actor.gymId,
-          userId: user.id,
-          joinedOn: toDbDate(input.joinedOn ?? today),
-          emergencyContactName: input.emergencyContactName,
-          emergencyContactPhone: input.emergencyContactPhone,
-          notes: input.notes,
-        },
-      })
-      if (input.firstMembership) await addMembershipInTx(tx, actor, member.id, input.firstMembership, today)
-      return member.id
-      // Serializable: a first payment allocates an invoice number from the shared counter.
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+    const memberId = await db.$transaction(
+      async (tx) => {
+        const user = await tx.user.create({
+          data: { gymId: actor.gymId, phone: input.phone, name: input.name, role: 'member' },
+        })
+        const member = await tx.member.create({
+          data: {
+            gymId: actor.gymId,
+            userId: user.id,
+            joinedOn: toDbDate(input.joinedOn ?? today),
+            emergencyContactName: input.emergencyContactName,
+            emergencyContactPhone: input.emergencyContactPhone,
+            notes: input.notes,
+          },
+        })
+        if (input.firstMembership) await addMembershipInTx(tx, actor, member.id, input.firstMembership, today)
+        // Anyone who enquired with this number has now joined.
+        await markLeadsJoined(tx, input.phone, member.id)
+        return member.id
+        // Serializable: a first payment allocates an invoice number from the shared counter.
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    )
     return (await getMember(db, memberId, today)) as MemberDetail
   } catch (error) {
     if (isUniqueViolation(error)) throw phoneTaken()

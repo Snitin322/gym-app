@@ -45,6 +45,7 @@ export function HomePage() {
             <HomeLink to="/admin/plans" title="Plans" text="Prices, lengths, freeze limits" />
             <HomeLink to="/admin/pt-packages" title="PT packages" text="Personal training sessions" />
             <DisputesLink />
+            <HomeLink to="/admin/leads" title="Leads" text="Enquiries and follow-ups" />
             <HomeLink to="/admin/workouts" title="Workouts" text="Exercise library and weekly plans" />
             <HomeLink to="/admin/staff" title="Staff" text="Add trainers and admins" />
             {user.role === 'owner' && <HomeLink to="/admin/gym" title="Gym details" text="Address, GSTIN, invoices" />}

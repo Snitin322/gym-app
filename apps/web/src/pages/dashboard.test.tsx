@@ -49,6 +49,19 @@ function dashboard(overrides: Partial<DashboardView> = {}): DashboardView {
       ],
     },
     workouts: { withPlan: 20, trackedThisWeek: 14 },
+    leads: {
+      open: 6,
+      followUps: [
+        {
+          leadId: 'l1',
+          name: 'Riya Shah',
+          phone: '+919876511111',
+          status: 'contacted',
+          interest: 'Weight loss',
+          followUpOn: '2026-03-23',
+        },
+      ],
+    },
     ...overrides,
   }
 }

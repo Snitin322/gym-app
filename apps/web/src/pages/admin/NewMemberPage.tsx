@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import { membershipEndDate, normalizePhone, todayInIndia } from '@onthec/shared'
 import { useCreateMember, usePlans } from '../../api/admin'
 import { errorMessage, formatDate } from '../../lib/format'
@@ -16,9 +16,11 @@ export function NewMemberPage() {
   const plans = usePlans()
   const create = useCreateMember()
   const today = todayInIndia()
+  // "Convert to member" on a lead opens this form with their name and number filled in.
+  const [params] = useSearchParams()
 
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
+  const [name, setName] = useState(params.get('name') ?? '')
+  const [phone, setPhone] = useState(params.get('phone')?.replace(/^\+91/, '') ?? '')
   const [planId, setPlanId] = useState('')
   const [startDate, setStartDate] = useState(today)
   const [joinedOn, setJoinedOn] = useState(today)

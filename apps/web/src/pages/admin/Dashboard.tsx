@@ -1,6 +1,12 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { PAYMENT_METHOD_LABELS, formatPaise, whatsappLink, type DashboardMember } from '@onthec/shared'
+import {
+  LEAD_STATUS_LABELS,
+  PAYMENT_METHOD_LABELS,
+  formatPaise,
+  whatsappLink,
+  type DashboardMember,
+} from '@onthec/shared'
 import { useDashboard } from '../../api/dashboard'
 import { useSignedInUser } from '../../auth/AuthContext'
 import { errorMessage, formatDate, plural } from '../../lib/format'
@@ -117,6 +123,24 @@ export function Dashboard() {
         }))}
       />
 
+      {d.leads.followUps.length > 0 && (
+        <CallList
+          title="Lead follow-ups due"
+          empty=""
+          seeAll="/admin/leads"
+          items={d.leads.followUps.map((l) => ({
+            id: l.leadId,
+            href: '/admin/leads',
+            name: l.name,
+            phone: l.phone,
+            detail: `${LEAD_STATUS_LABELS[l.status]}${l.interest ? ` · ${l.interest}` : ''} · ${
+              l.followUpOn < d.today ? `overdue since ${formatDate(l.followUpOn, { short: true })}` : 'today'
+            }`,
+            message: `Hi ${firstName(l.name)}, this is ${gym}. Thanks for your interest! Would you like to come in for a free trial session this week?`,
+          }))}
+        />
+      )}
+
       <Card className="flex flex-col gap-3">
         <h2 className="font-semibold">Personal training this week</h2>
         <div className="grid grid-cols-3 gap-2 text-center">
@@ -196,6 +220,8 @@ function Mini({ label, value }: { label: string; value: number }) {
 
 interface CallItem {
   id: string
+  /** Where tapping the name goes (the member page by default). */
+  href?: string
   name: string
   phone: string
   detail: string
@@ -221,7 +247,7 @@ function CallList({
       <ul aria-label={title} className="flex flex-col divide-y divide-line">
         {items.slice(0, LIST_SIZE).map((item) => (
           <li key={item.id} className="flex items-center justify-between gap-2 py-2">
-            <Link to={`/admin/members/${item.id}`} className="min-w-0">
+            <Link to={item.href ?? `/admin/members/${item.id}`} className="min-w-0">
               <span className="block truncate font-semibold">{item.name}</span>
               <span className="block truncate text-xs text-muted">{item.detail}</span>
             </Link>

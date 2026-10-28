@@ -12,6 +12,7 @@ import { dashboardRoutes } from './routes/dashboard'
 import { gymRoutes } from './routes/gym'
 import { healthRoutes } from './routes/health'
 import { invoicesRoutes } from './routes/invoices'
+import { leadsRoutes } from './routes/leads'
 import { onlineRoutes } from './routes/online'
 import { ptAdminRoutes, ptSelfRoutes } from './routes/pt'
 import { ptSessionRoutes } from './routes/pt-sessions'
@@ -78,6 +79,7 @@ export async function buildApp(deps: AppDeps) {
   await app.register(ptSessionRoutes({ authenticate, now }), { prefix: API_PREFIX })
   await app.register(workoutRoutes({ authenticate, today }), { prefix: API_PREFIX })
   await app.register(dashboardRoutes({ authenticate, today, now }), { prefix: API_PREFIX })
+  await app.register(leadsRoutes({ authenticate }), { prefix: API_PREFIX })
 
   const gateway = deps.razorpay === undefined ? createRazorpayGateway(env) : deps.razorpay
   await app.register(onlineRoutes({ authenticate, gateway, today }), { prefix: API_PREFIX })

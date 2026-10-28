@@ -1,4 +1,5 @@
 import type { IsoDate } from './dates'
+import type { LeadStatus } from './leads'
 import type { DeskPaymentMethod } from './payments'
 
 /** A member to contact: their membership is ending soon, or has ended. */
@@ -36,6 +37,16 @@ export interface DashboardRevenue {
   monthByMethod: Partial<Record<DeskPaymentMethod | 'razorpay', number>>
 }
 
+/** An enquiry whose follow-up date is today or has passed. */
+export interface DashboardLead {
+  leadId: string
+  name: string
+  phone: string
+  status: LeadStatus
+  interest: string | null
+  followUpOn: IsoDate
+}
+
 export interface DashboardView {
   today: IsoDate
   members: {
@@ -61,6 +72,12 @@ export interface DashboardView {
     runningOut: DashboardPtPackage[]
   }
   workouts: { withPlan: number; trackedThisWeek: number }
+  leads: {
+    /** New, contacted or on trial. */
+    open: number
+    /** Follow-ups due today or overdue, oldest first. */
+    followUps: DashboardLead[]
+  }
 }
 
 /** A WhatsApp chat with the message typed in (staff press send). Free: no Meta template needed. */
