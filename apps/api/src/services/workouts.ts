@@ -31,7 +31,7 @@ export interface Actor {
 // Serializable: a save checks the version it started from, then writes the next one.
 const SERIALIZABLE = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
 
-function notFound(what: string) {
+export function notFound(what: string) {
   return new AppError(404, ErrorCode.NOT_FOUND, `${what} not found`)
 }
 
@@ -39,7 +39,7 @@ function notFound(what: string) {
 // Exercise library
 // ---------------------------------------------------------------------------
 
-const exerciseSelect = {
+export const exerciseSelect = {
   id: true,
   name: true,
   muscleGroup: true,
@@ -280,7 +280,7 @@ export interface Viewer extends Actor {
  * Owners and admins can manage any member's plan; a trainer only their PT clients' (an active PT
  * package with them: not expired, sessions left). Anyone else gets "not found".
  */
-async function loadMemberFor(db: TenantDb | TenantTx, viewer: Viewer, memberId: string, today: IsoDate) {
+export async function loadMemberFor(db: TenantDb | TenantTx, viewer: Viewer, memberId: string, today: IsoDate) {
   const member = await db.member.findUnique({
     where: { id: memberId },
     select: { id: true, user: { select: { name: true } } },

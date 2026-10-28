@@ -14,6 +14,7 @@ import { toEditor } from '../lib/workout-editor'
 import { Button } from '../ui/Button'
 import { Card, Field, SelectInput } from '../ui/Form'
 import { ErrorText } from '../ui/Screen'
+import { MemberWorkoutCalendar } from '../ui/WorkoutCalendar'
 import { WorkoutPlanEditor } from '../ui/WorkoutPlanEditor'
 import { WorkoutWeekView } from '../ui/WorkoutWeekView'
 
@@ -78,6 +79,7 @@ function PlanSummary({
       </Card>
       {showWeek && <WorkoutWeekView week={plan.week} exercises={plan.exercises} />}
       <PlanHistory memberId={memberId} exercises={plan.exercises} />
+      <MemberWorkoutCalendar memberId={memberId} />
     </div>
   )
 }

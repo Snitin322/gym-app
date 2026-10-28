@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  SaveWorkoutDayInput,
+  WorkoutCalendarWeek,
   MemberWorkoutPlan,
   MyWorkoutPlan,
   WorkoutExercise,
@@ -149,4 +151,37 @@ export function useSaveMemberPlan(memberId: string) {
 
 export function useMyWorkoutPlan() {
   return useQuery({ queryKey: ['me', 'workout-plan'], queryFn: () => api<MyWorkoutPlan>('/me/workout-plan') })
+}
+
+// --- Workout tracking (weekly calendar) ------------------------------------------------
+
+const myWeekKey = (start: string) => ['me', 'workout-week', start] as const
+
+export function useMyWorkoutWeek(start: string, enabled = true) {
+  return useQuery({
+    queryKey: myWeekKey(start),
+    queryFn: () => api<WorkoutCalendarWeek>(`/me/workout-week?start=${start}`),
+    enabled,
+  })
+}
+
+export function useMemberWorkoutWeek(memberId: string, start: string) {
+  return useQuery({
+    queryKey: ['member-workout-week', memberId, start],
+    queryFn: () => api<WorkoutCalendarWeek>(`/members/${memberId}/workout-week?start=${start}`),
+  })
+}
+
+/** Ticks a day (done as planned, or updated). The answer is the refreshed week. */
+export function useSaveWorkoutDay() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: ({ date, ...input }: SaveWorkoutDayInput & { date: string }) =>
+      api<WorkoutCalendarWeek>(`/me/workout-days/${date}`, { method: 'PUT', body: input }),
+    onSuccess: async (week) => {
+      client.setQueryData(myWeekKey(week.start), week)
+      // "Last time" in later weeks may change too.
+      await client.invalidateQueries({ queryKey: ['me', 'workout-week'] })
+    },
+  })
 }

@@ -76,6 +76,7 @@ model Gym {
   workoutExercises  WorkoutExercise[]
   workoutPlans      WorkoutPlan[]
   workoutVersions   WorkoutPlanVersion[]
+  workoutLogs       WorkoutLog[]
 
   @@map("gyms")
 }
@@ -115,6 +116,7 @@ model User {
   workoutPlansCreated  WorkoutPlan[]         @relation("WorkoutPlanCreatedBy")
   workoutPlansUpdated  WorkoutPlan[]         @relation("WorkoutPlanUpdatedBy")
   workoutVersionsSaved WorkoutPlanVersion[]
+  workoutLogsSaved     WorkoutLog[]
 
   @@unique([gymId, phone])
   @@index([phone])
@@ -220,6 +222,7 @@ model Member {
   ptPurchases PtPurchase[]
   ptSessions  PtSession[]
   workoutPlan WorkoutPlan?
+  workoutLogs WorkoutLog[]
 
   @@index([gymId])
   @@map("members")
@@ -710,4 +713,33 @@ model WorkoutPlanVersion {
   @@unique([planId, version])
   @@index([gymId])
   @@map("workout_plan_versions")
+}
+
+/**
+ * What a member did on one date (India), ticked afterwards from their plan. A copy of the exercises,
+ * sets, reps and weights, so later plan changes never alter it.
+ */
+model WorkoutLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  gymId       String   @map("gym_id") @db.Uuid
+  memberId    String   @map("member_id") @db.Uuid
+  date        DateTime @db.Date
+  /// The plan (and its version) the day came from; null if the plan was later removed.
+  planId      String?  @map("plan_id") @db.Uuid
+  planVersion Int?     @map("plan_version")
+  dayTitle    String?  @map("day_title")
+  /// Exercises done (or skipped), validated by the shared Zod schema.
+  items       Json
+  note        String?
+  savedById   String   @map("saved_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym     Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  member  Member @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  savedBy User   @relation(fields: [savedById], references: [id], onDelete: Restrict)
+
+  @@unique([memberId, date])
+  @@index([gymId])
+  @@map("workout_logs")
 }

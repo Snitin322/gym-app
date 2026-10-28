@@ -1,7 +1,9 @@
 import type { FastifyPluginAsync, FastifyRequest, preHandlerAsyncHookHandler } from 'fastify'
 import { z } from 'zod'
 import {
+  isoDateParam,
   savePlanSchema,
+  saveWorkoutDaySchema,
   startMemberPlanSchema,
   workoutExerciseInputSchema,
   workoutExerciseUpdateSchema,
@@ -26,9 +28,12 @@ import {
   startMemberPlan,
   updateExercise,
 } from '../services/workouts'
+import { getMemberWeek, getMyWeek, saveMyDay } from '../services/workout-logs'
 
 const idParams = z.object({ id: z.uuid() })
 const listQuery = z.object({ all: z.enum(['0', '1']).optional() })
+const weekQuery = z.object({ start: isoDateParam.optional() })
+const dateParams = z.object({ date: isoDateParam })
 
 interface Deps {
   authenticate: preHandlerAsyncHookHandler
@@ -50,9 +55,11 @@ export function workoutRoutes({ authenticate, today }: Deps): FastifyPluginAsync
     const staff = requireRole('trainer', 'admin', 'owner')
     const managers = requireRole('admin', 'owner')
 
-    app.get('/workout-exercises', { preHandler: staff }, async (request) => {
+    // Members can read the active library too (to add an exercise when ticking a day); staff see inactive ones.
+    app.get('/workout-exercises', async (request) => {
+      const auth = getAuth(request)
       const { all } = listQuery.parse(request.query)
-      return listExercises(getAuth(request).db, { all: all === '1' })
+      return listExercises(auth.db, { all: all === '1' && auth.role !== 'member' })
     })
     app.post('/workout-exercises', { preHandler: managers }, async (request, reply) => {
       const auth = getAuth(request)
@@ -120,6 +127,22 @@ export function workoutRoutes({ authenticate, today }: Deps): FastifyPluginAsync
     app.get('/me/workout-plan', async (request) => {
       const auth = getAuth(request)
       return { plan: await getMyPlan(auth.db, auth.userId) }
+    })
+
+    // Workout tracking: the member ticks days in a weekly calendar; their PT trainer and the desk can look.
+    app.get('/me/workout-week', async (request) => {
+      const auth = getAuth(request)
+      return getMyWeek(auth.db, auth.userId, weekQuery.parse(request.query).start, today())
+    })
+    app.put('/me/workout-days/:date', async (request) => {
+      const { date } = dateParams.parse(request.params)
+      const { db, actor } = actorOf(request)
+      return saveMyDay(db, actor, date, saveWorkoutDaySchema.parse(request.body), today())
+    })
+    app.get('/members/:id/workout-week', { preHandler: staff }, async (request) => {
+      const { id } = idParams.parse(request.params)
+      const { db, actor } = actorOf(request)
+      return getMemberWeek(db, actor, id, weekQuery.parse(request.query).start, today())
     })
   }
 }

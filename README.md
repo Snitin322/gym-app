@@ -14,6 +14,7 @@ Multi-tenant gym management platform (members, trainers, owner/admin) delivered 
 - **Phase 4 — Payments and invoices:** done. Desk payments and dues, GST invoices with PDF download, and online renewal with Razorpay (webhook-confirmed).
 - **Phase 5 — PT packages and booking:** done. PT packages sold at the desk with a trainer, session ledger, trainer hours and time off, member booking with the 12-hour cancel rule, trainer marks sessions completed/no-show, member confirms or disputes within 24 h, desk resolves disputes.
 - **Phase 6 — Workout plans:** done. Exercise library, weekly plan templates (sets, weights, rests, cardio), each member gets their own copy that the desk or their PT trainer can update any time (versions kept), and members see Today's workout.
+- **Phase 7 — Workout tracking:** done. Members tick each day in a weekly calendar (done as planned, or updated reps/weights), see "last time", and their trainer and the desk can look back.
 
 Login codes are sent on WhatsApp when `OTP_PROVIDER=whatsapp` — set it up with [docs/WHATSAPP_SETUP.md](docs/WHATSAPP_SETUP.md). With `OTP_PROVIDER=console` they appear in the API log (`pnpm dev` terminal) instead.
 

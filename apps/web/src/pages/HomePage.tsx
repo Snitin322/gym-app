@@ -9,6 +9,7 @@ import { MyMembershipCard } from './MyMembershipCard'
 import { MyPtCard } from './MyPtCard'
 import { MyPtSessions } from './MyPtSessions'
 import { TodaysWorkout } from './TodaysWorkout'
+import { MyWorkoutCalendar } from '../ui/WorkoutCalendar'
 import { TrainerClients } from './TrainerClients'
 import { TrainerSchedule } from './TrainerSchedule'
 import { UnmarkedSessions } from './UnmarkedSessions'
@@ -49,6 +50,7 @@ export function HomePage() {
         <>
           <MyMembershipCard />
           <TodaysWorkout />
+          <MyWorkoutCalendar />
           <MyPtCard />
           <MyPtSessions />
           <p className="text-center text-sm text-muted">Coming soon: your QR check-in pass.</p>

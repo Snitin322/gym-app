@@ -72,13 +72,14 @@ describe.skipIf(!testDatabaseUrl)('Workout library and plan templates', () => {
   })
 
   describe('exercise library', () => {
-    it('adds the common exercises once; staff can read it, members can’t', async () => {
+    it('adds the common exercises once; everyone signed in can read it', async () => {
       const again = (await call('POST', '/workout-exercises/starter', t.owner)).json()
       expect(again).toHaveLength(STARTER_EXERCISES.length)
       expect(treadmill).toMatchObject({ kind: 'cardio', muscleGroup: 'Cardio', active: true })
 
       expect((await call('GET', '/workout-exercises', t.trainer)).json()).toHaveLength(STARTER_EXERCISES.length)
-      expect((await call('GET', '/workout-exercises', t.member)).statusCode).toBe(403)
+      // Members read the active library (to add an exercise when ticking a day), never inactive ones.
+      expect((await call('GET', '/workout-exercises', t.member)).json()).toHaveLength(STARTER_EXERCISES.length)
       expect((await call('POST', '/workout-exercises/starter', t.trainer)).statusCode).toBe(403)
     })
 
@@ -108,6 +109,8 @@ describe.skipIf(!testDatabaseUrl)('Workout library and plan templates', () => {
       expect(active.some((e) => e.id === curl.id)).toBe(false)
       const all = (await call('GET', '/workout-exercises?all=1', t.admin)).json() as WorkoutExercise[]
       expect(all.find((e) => e.id === curl.id)).toMatchObject({ active: false, description: null })
+      const forMember = (await call('GET', '/workout-exercises?all=1', t.member)).json() as WorkoutExercise[]
+      expect(forMember.some((e) => e.id === curl.id)).toBe(false)
     })
   })
 
