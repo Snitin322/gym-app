@@ -8,6 +8,7 @@ import type { Env } from './env'
 import { AppError, registerErrorHandling } from './errors'
 import { createAuthenticate } from './plugins/auth'
 import { authRoutes } from './routes/auth'
+import { dashboardRoutes } from './routes/dashboard'
 import { gymRoutes } from './routes/gym'
 import { healthRoutes } from './routes/health'
 import { invoicesRoutes } from './routes/invoices'
@@ -76,6 +77,7 @@ export async function buildApp(deps: AppDeps) {
   await app.register(ptSelfRoutes({ authenticate, today }), { prefix: API_PREFIX })
   await app.register(ptSessionRoutes({ authenticate, now }), { prefix: API_PREFIX })
   await app.register(workoutRoutes({ authenticate, today }), { prefix: API_PREFIX })
+  await app.register(dashboardRoutes({ authenticate, today, now }), { prefix: API_PREFIX })
 
   const gateway = deps.razorpay === undefined ? createRazorpayGateway(env) : deps.razorpay
   await app.register(onlineRoutes({ authenticate, gateway, today }), { prefix: API_PREFIX })

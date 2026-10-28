@@ -1,4 +1,5 @@
 export * from './auth'
+export * from './dashboard'
 export * from './dates'
 export * from './errors'
 export * from './gst'

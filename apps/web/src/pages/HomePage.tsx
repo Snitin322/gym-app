@@ -5,6 +5,7 @@ import { InstallHint } from '../InstallHint'
 import { ROLE_LABELS, formatPhone } from '../lib/format'
 import { Button } from '../ui/Button'
 import { Logo, Screen } from '../ui/Screen'
+import { Dashboard } from './admin/Dashboard'
 import { MyMembershipCard } from './MyMembershipCard'
 import { MyPtCard } from './MyPtCard'
 import { MyPtSessions } from './MyPtSessions'
@@ -37,15 +38,18 @@ export function HomePage() {
       </p>
 
       {MANAGER_ROLES.includes(user.role) ? (
-        <nav aria-label="Manage the gym" className="grid grid-cols-2 gap-3">
-          <HomeLink to="/admin/members" title="Members" text="Add members, renew, freeze" />
-          <HomeLink to="/admin/plans" title="Plans" text="Prices, lengths, freeze limits" />
-          <HomeLink to="/admin/pt-packages" title="PT packages" text="Personal training sessions" />
-          <DisputesLink />
-          <HomeLink to="/admin/workouts" title="Workouts" text="Exercise library and weekly plans" />
-          <HomeLink to="/admin/staff" title="Staff" text="Add trainers and admins" />
-          {user.role === 'owner' && <HomeLink to="/admin/gym" title="Gym details" text="Address, GSTIN, invoices" />}
-        </nav>
+        <>
+          <Dashboard />
+          <nav aria-label="Manage the gym" className="grid grid-cols-2 gap-3">
+            <HomeLink to="/admin/members" title="Members" text="Add members, renew, freeze" />
+            <HomeLink to="/admin/plans" title="Plans" text="Prices, lengths, freeze limits" />
+            <HomeLink to="/admin/pt-packages" title="PT packages" text="Personal training sessions" />
+            <DisputesLink />
+            <HomeLink to="/admin/workouts" title="Workouts" text="Exercise library and weekly plans" />
+            <HomeLink to="/admin/staff" title="Staff" text="Add trainers and admins" />
+            {user.role === 'owner' && <HomeLink to="/admin/gym" title="Gym details" text="Address, GSTIN, invoices" />}
+          </nav>
+        </>
       ) : user.role === 'member' ? (
         <>
           <MyMembershipCard />

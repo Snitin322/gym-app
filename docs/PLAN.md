@@ -295,19 +295,29 @@ Approved decisions: no phone use during exercises — members tick the day after
 - **Tests**: pre-fill per weekday, mark done vs edits, history fixed after plan changes, date window, rest days, access, isolation; screens.
 - Built: `GET /me/workout-week?start=` (Monday–Sunday with planned items, log, status, `canLog`, last time), `PUT /me/workout-days/:date` (`{ items, note }`; only the member, today and the past 7 days, not a rest day, needs a plan), `GET /members/:id/workout-week` (PT trainer / desk, read-only). Members can now read the active exercise library (to add one when updating a day). Screens: **My week** under Today's workout (`ui/WorkoutCalendar.tsx`), and **Workout tracking** inside the member's plan section for the desk and trainer.
 
-### Phase 8 — QR check-in
+### Phase 8 — Admin dashboard and leads (plan approved 28 Oct 2026; 8a done, 8b next)
+
+Approved decisions: revenue/collections shown to the owner only (admins see members, dues, PT, workouts, leads); "expiring soon" = next 7 days; WhatsApp buttons open a pre-typed chat (wa.me link, staff press send — free, no Meta template); leads in this phase (8b); numbers and lists only (charts in the polish phase). "Today's check-ins" waits for Phase 9.
+
+**8a — Dashboard** (top of the owner/admin home; tiles below; numbers link to the matching list)
+- Members: active, joined this month; expiring in 7 days and expired in the last 30 days (name, plan, end date, call + WhatsApp with a ready message); frozen; no plan.
+- Money (owner): collected today and this month by method; this month vs last month. Pending dues total and list (memberships + PT) for owner and admin.
+- PT: sessions booked / completed / no-shows this week; open disputes and unmarked sessions; packages with sessions left and use-by within 7 days.
+- Workouts: members who ticked a day this week out of members with a plan.
+- Computed from existing tables with India-time day/week/month boundaries; no new tables.
+- Built: `GET /dashboard` (owner/admin; `revenue` is null for admins) and the dashboard at the top of the owner/admin home (`pages/admin/Dashboard.tsx`); WhatsApp links via `whatsappLink()` in packages/shared.
+
+**8b — Leads**: `leads` table (name, phone, source, interest, note, follow-up date, status new → contacted → trial → joined / lost with reason); follow-ups due today and overdue on the dashboard with call/WhatsApp; convert to member (pre-fills New member, marks Joined); duplicate phone warning (existing lead or member).
+
+- **Tests**: numbers on fixed data, India midnight boundaries, isolation, revenue hidden from admins, lead statuses and conversion; screens.
+
+### Phase 9 — QR check-in
 - Member: full-screen QR pass that rotates every 30s with a countdown; brightness hint.
 - Front desk: scanner screen (`@zxing/browser` or `html5-qrcode`, camera on a tablet/phone) → big green/red result with member photo, name, plan, days left; manual check-in by search.
 - Rules: deny if expired/frozen/no membership (red, with reason); dedupe window.
 - Member: attendance history + simple monthly count.
 - *Offline note*: the member pass needs a signing key on the device to work offline; simplest safe option for MVP is **online-only generation** (pass fetched every 30s). Revisit if gym Wi-Fi is poor.
 - **Tests**: token expiry, tampering, cross-gym token rejected, dedupe, frozen membership denied.
-
-### Phase 9 — Admin dashboard
-- Cards: active members, expiring this week, expired last 30 days (renewal targets), revenue today / this month (by method), pending dues, PT sessions this week, today's check-ins.
-- Leads: list, create, status pipeline (`new → contacted → trial → converted / lost`), follow-up date, convert-to-member.
-- All aggregates computed in SQL with IST date boundaries; indexes reviewed with `EXPLAIN`.
-- **Tests**: aggregates on a fixed seed, IST boundary cases, isolation (dashboard numbers never include other gyms).
 
 ### Phase 10 — Notifications
 - Web push: subscribe/unsubscribe, VAPID keys in env, service worker handler, remove dead subscriptions on 404/410.
@@ -371,8 +381,8 @@ Approved decisions: no phone use during exercises — members tick the day after
 | 5 PT booking | L | most business rules live here |
 | 6 Workout plans | M | |
 | 7 Workout tracking | S–M | |
-| 8 QR check-in | S–M | |
-| 9 Dashboard | M | |
+| 8 Dashboard + leads | M | |
+| 9 QR check-in | S–M | |
 | 10 Notifications | M | Meta template approval runs in parallel |
 | 11 PWA polish + production | M | |
 

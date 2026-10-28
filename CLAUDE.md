@@ -102,8 +102,8 @@ Work one phase at a time, adding features one by one. At the end of each phase: 
 5. **PT packages and booking** — trainer availability, booking/reschedule/cancel, session ledger, trainer marks complete, member confirm/dispute
 6. **Workout plans** — per-gym exercise library (strength/cardio, description, video link), weekly plan templates, each member gets their own copy (sets with reps/time and weight, rest between sets and exercises, cardio), version history; edited by owner/admin, and by the trainer for their PT clients; member sees "Today's workout"
 7. **Workout tracking** — weekly calendar on the member home: tap a date to see that day's plan pre-filled, then "Mark done" or update reps/weights/skips; one log per member per date (today and the past 7 days, editable within that window), a snapshot independent of later plan changes, "last time" per exercise; read-only for their PT trainer and owner/admin
-8. **QR check-in** — member QR pass (signed, rotating token), front-desk scanner screen, attendance history
-9. **Admin dashboard** — active/expiring/expired members, renewals due this week, revenue, pending dues, leads
+8. **Admin dashboard and leads** — owner/admin home: active, expiring (7 days) and recently expired members with call/WhatsApp links, collections today/this month by method (owner only), pending dues, PT this week, disputes/unmarked, PT packages running out, workout engagement; leads (enquiries) with follow-ups and convert-to-member
+9. **QR check-in** — member QR pass (signed, rotating token), front-desk scanner screen, attendance history
 10. **Notifications** — web push + WhatsApp reminders: expiry (7/3/0 days), PT session reminder, payment receipt
 11. **PWA polish and production** — offline app shell for data screens, update prompt, branding, production hardening (backups, Sentry, live keys)
 
