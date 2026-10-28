@@ -4,7 +4,7 @@ import { addDays, formatPaise, ptExpiresOn, type IsoDate, type MemberDetail, typ
 import { useAdjustPt, useExtendPt, usePtPackages, useRecordPtPayment, useSellPt, useStaff } from '../../api/admin'
 import { useBookSession, useMemberSessions } from '../../api/pt-booking'
 import { errorMessage, formatDate, plural } from '../../lib/format'
-import { bookingBlockedReason, ptBookingLabel, upcomingSessions } from '../../lib/pt'
+import { bookingBlockedReason, pastSessions, ptBookingLabel, sessionsToAnswer, upcomingSessions } from '../../lib/pt'
 import { initialSale, saleToInput, type SaleState } from '../../lib/sale'
 import { Button } from '../../ui/Button'
 import { Field, SelectInput, TextInput } from '../../ui/Form'
@@ -202,10 +202,15 @@ function BookPanel({ purchase, onDone }: { purchase: PtPurchaseView; onDone: () 
   )
 }
 
-/** The member's upcoming PT sessions; the desk can move or cancel them (never uses up a session). */
+/**
+ * The member's PT sessions: upcoming ones (the desk can move or cancel them, never using up a session),
+ * then the last 30 days with how each was marked, the member's answer, and disputes to resolve.
+ */
 function MemberSessions({ memberId }: { memberId: string }) {
   const sessions = useMemberSessions(memberId)
-  const upcoming = upcomingSessions(sessions.data ?? [])
+  const all = sessions.data ?? []
+  const upcoming = upcomingSessions(all)
+  const recent = [...sessionsToAnswer(all), ...pastSessions(all)]
   return (
     <div className="flex flex-col gap-2">
       <h3 className="font-semibold">Upcoming PT sessions</h3>
@@ -214,10 +219,22 @@ function MemberSessions({ memberId }: { memberId: string }) {
       <ul className="flex flex-col gap-2">
         {upcoming.map((s) => (
           <li key={s.id}>
-            <PtSessionCard session={s} viewer="staff" showTrainer />
+            <PtSessionCard session={s} viewer="staff" desk showTrainer />
           </li>
         ))}
       </ul>
+      {recent.length > 0 && (
+        <>
+          <h3 className="mt-2 font-semibold">Recent PT sessions</h3>
+          <ul className="flex flex-col gap-2">
+            {recent.map((s) => (
+              <li key={s.id}>
+                <PtSessionCard session={s} viewer="staff" desk showTrainer />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   )
 }

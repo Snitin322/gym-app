@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import type {
   AvailabilityInput,
+  PtMarkOutcome,
   PtRules,
   PtSessionView,
   PtSlotsResponse,
@@ -17,6 +18,9 @@ export const bookingKeys = {
   trainerSessions: (trainerId: string) => ['pt-sessions', 'trainer', trainerId] as const,
   availability: (trainerId: string) => ['trainer-availability', trainerId] as const,
   rules: ['pt-rules'] as const,
+  // Under 'pt-sessions' so every booking change refreshes them too.
+  unmarked: ['pt-sessions', 'unmarked'] as const,
+  disputes: ['pt-sessions', 'disputes'] as const,
 }
 
 /** A booking changed: refresh every session list, open slots and the "booked" counts on PT cards. */
@@ -87,6 +91,63 @@ export function useRescheduleSession() {
       api<PtSessionView>(`/pt-sessions/${sessionId}/reschedule`, { method: 'POST', body: { startsAt } }),
     onSuccess: () => refreshBookings(client),
   })
+}
+
+// --- Completing sessions and disputes ---------------------------------------------
+
+/** Started sessions nobody has marked yet (trainer: their own; desk: everyone's). */
+export function useUnmarkedSessions(enabled = true) {
+  return useQuery({
+    queryKey: bookingKeys.unmarked,
+    queryFn: () => api<PtSessionView[]>('/pt-sessions/unmarked'),
+    enabled,
+  })
+}
+
+/** Open disputes (owner/admin). */
+export function usePtDisputes(enabled = true) {
+  return useQuery({ queryKey: bookingKeys.disputes, queryFn: () => api<PtSessionView[]>('/pt-disputes'), enabled })
+}
+
+function useSessionAction<TInput extends { sessionId: string }>(path: string, body: (input: TInput) => object) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (input: TInput) =>
+      api<PtSessionView>(`/pt-sessions/${input.sessionId}/${path}`, { method: 'POST', body: body(input) }),
+    onSuccess: () => refreshBookings(client),
+  })
+}
+
+export function useMarkSession() {
+  return useSessionAction(
+    'mark',
+    ({ outcome, note }: { sessionId: string; outcome: PtMarkOutcome; note?: string }) => ({
+      outcome,
+      ...(note ? { note } : {}),
+    }),
+  )
+}
+
+export function useUndoMark() {
+  return useSessionAction('undo-mark', () => ({}))
+}
+
+export function useConfirmSession() {
+  return useSessionAction('confirm', () => ({}))
+}
+
+export function useDisputeSession() {
+  return useSessionAction('dispute', ({ reason }: { sessionId: string; reason: string }) => ({ reason }))
+}
+
+export function useResolveDispute() {
+  return useSessionAction(
+    'resolve',
+    ({ resolution, note }: { sessionId: string; resolution: 'upheld' | 'rejected'; note: string }) => ({
+      resolution,
+      note,
+    }),
+  )
 }
 
 // --- Trainer hours and time off ----------------------------------------------------

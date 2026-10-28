@@ -10,9 +10,11 @@ const tones: Record<BadgeTone, string> = {
   muted: 'bg-surface-2 text-muted',
 }
 
-function Badge({ label, tone }: { label: string; tone: BadgeTone }) {
+export function Badge({ label, tone }: { label: string; tone: BadgeTone }) {
   return (
-    <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${tones[tone]}`}>
+    <span
+      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${tones[tone]}`}
+    >
       {label}
     </span>
   )

@@ -59,3 +59,36 @@ export function upcomingSessions(sessions: PtSessionView[], now = Date.now()) {
     .filter((s) => s.status === 'booked' && Date.parse(s.endsAt) > now)
     .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))
 }
+
+/** Marked sessions the member still has to confirm or dispute, soonest deadline first. */
+export function sessionsToAnswer(sessions: PtSessionView[]) {
+  return sessions
+    .filter((s) => s.confirmation === 'pending')
+    .sort((a, b) => Date.parse(a.disputeUntil ?? a.startsAt) - Date.parse(b.disputeUntil ?? b.startsAt))
+}
+
+/** Marked sessions already settled (confirmed, disputed or resolved), newest first. */
+export function pastSessions(sessions: PtSessionView[]) {
+  return sessions
+    .filter((s) => s.confirmation !== null && s.confirmation !== 'pending')
+    .sort((a, b) => Date.parse(b.startsAt) - Date.parse(a.startsAt))
+}
+
+/**
+ * A trainer's day: booked sessions not yet over (started ones can be marked), plus sessions they
+ * marked within the last hour, so a mistake can still be undone.
+ */
+export function scheduleSessions(sessions: PtSessionView[], now = Date.now()) {
+  return sessions
+    .filter(
+      (s) =>
+        (s.status === 'booked' && Date.parse(s.endsAt) > now) ||
+        (s.confirmation === 'pending' && s.undoUntil !== null && now <= Date.parse(s.undoUntil)),
+    )
+    .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))
+}
+
+/** Sessions that are over but nobody marked (still booked, so still reserved). */
+export function unmarkedSessions(sessions: PtSessionView[], now = Date.now()) {
+  return sessions.filter((s) => s.status === 'booked' && Date.parse(s.endsAt) <= now)
+}

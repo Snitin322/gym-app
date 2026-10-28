@@ -1,7 +1,7 @@
 import { todayInIndia } from '@onthec/shared'
 import { useTrainerSessions } from '../api/pt-booking'
 import { errorMessage, plural } from '../lib/format'
-import { upcomingSessions } from '../lib/pt'
+import { scheduleSessions } from '../lib/pt'
 import { formatDay, groupByDay } from '../lib/time'
 import { Card } from '../ui/Form'
 import { PtSessionCard } from '../ui/PtSessionCard'
@@ -11,7 +11,7 @@ import { ErrorText } from '../ui/Screen'
 export function TrainerSchedule({ trainerId }: { trainerId: string }) {
   const query = useTrainerSessions(trainerId)
   const today = todayInIndia()
-  const days = groupByDay(upcomingSessions(query.data ?? []), (s) => s.startsAt)
+  const days = groupByDay(scheduleSessions(query.data ?? []), (s) => s.startsAt)
 
   return (
     <section aria-labelledby="schedule-heading" className="flex flex-col gap-3">

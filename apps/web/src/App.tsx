@@ -12,6 +12,7 @@ import { MemberPage } from './pages/admin/MemberPage'
 import { MembersPage } from './pages/admin/MembersPage'
 import { NewMemberPage } from './pages/admin/NewMemberPage'
 import { PlansPage } from './pages/admin/PlansPage'
+import { PtDisputesPage } from './pages/admin/PtDisputesPage'
 import { PtPackagesPage } from './pages/admin/PtPackagesPage'
 import { StaffPage } from './pages/admin/StaffPage'
 
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="members/:id" element={<MemberPage />} />
           <Route path="plans" element={<PlansPage />} />
           <Route path="pt-packages" element={<PtPackagesPage />} />
+          <Route path="pt-disputes" element={<PtDisputesPage />} />
           <Route path="staff" element={<StaffPage />} />
           <Route path="trainers/:id/availability" element={<TrainerAvailabilityPage />} />
         </Route>

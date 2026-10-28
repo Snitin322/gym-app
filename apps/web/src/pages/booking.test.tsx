@@ -70,6 +70,18 @@ function ptSession(overrides: Partial<PtSessionView> & { startsAt: string }): Pt
     cancelledByName: null,
     bookedByName: 'Asha Patel',
     freeCancelUntil: new Date(start - 12 * HOUR).toISOString(),
+    trainerNotes: null,
+    markedAt: null,
+    markedByName: null,
+    confirmation: null,
+    disputeUntil: null,
+    undoUntil: null,
+    disputedAt: null,
+    disputeReason: null,
+    resolution: null,
+    resolutionNote: null,
+    resolvedByName: null,
+    resolvedAt: null,
     ...overrides,
   }
 }
@@ -140,7 +152,9 @@ describe('trainer availability', () => {
 
     expect(await screen.findByRole('heading', { name: 'My availability' })).toBeTruthy()
     // Times are shown like "6:00 am".
-    expect(((await screen.findByLabelText('Mon from')) as HTMLSelectElement).selectedOptions[0]?.textContent).toBe('6:00 am')
+    expect(((await screen.findByLabelText('Mon from')) as HTMLSelectElement).selectedOptions[0]?.textContent).toBe(
+      '6:00 am',
+    )
     expect((screen.getByLabelText('Mon to') as HTMLSelectElement).selectedOptions[0]?.textContent).toBe('10:00 am')
 
     const length = screen.getByLabelText('Session length (minutes)')
@@ -456,5 +470,131 @@ describe('owner PT rules', () => {
       minNoticeHours: 2,
     })
     expect(await screen.findByText('PT rules saved.')).toBeTruthy()
+  })
+})
+
+describe('completing sessions', () => {
+  const MIN = 60_000
+  /** Marked 10 minutes ago by Ravi: the member has 24 hours to answer, Ravi an hour to undo. */
+  function marked(overrides: Partial<PtSessionView> = {}) {
+    const markedAt = Date.now() - 10 * MIN
+    return ptSession({
+      startsAt: new Date(Date.now() - 2 * HOUR).toISOString(),
+      status: 'completed',
+      markedAt: new Date(markedAt).toISOString(),
+      markedByName: 'Ravi Kumar',
+      trainerNotes: 'Leg day, squats 60 kg',
+      confirmation: 'pending',
+      disputeUntil: new Date(markedAt + 24 * HOUR).toISOString(),
+      undoUntil: new Date(markedAt + 60 * MIN).toISOString(),
+      ...overrides,
+    })
+  }
+
+  function trainerHome(sessions: PtSessionView[], unmarked: PtSessionView[] = []) {
+    return mockApi({
+      'POST /auth/refresh': trainer,
+      'GET /trainer/clients': ok([]),
+      'GET /trainers/trainer-1/sessions': ok(sessions),
+      'GET /pt-sessions/unmarked': ok(unmarked),
+      'POST /pt-sessions/ses-1/mark': ok(marked()),
+      'POST /pt-sessions/ses-1/undo-mark': ok(ptSession({ startsAt: new Date(Date.now() - 2 * HOUR).toISOString() })),
+    })
+  }
+
+  it('the trainer marks a session that has started, with a note', async () => {
+    const now = ptSession({ startsAt: new Date(Date.now() - 30 * MIN).toISOString() })
+    const { callsTo } = trainerHome([now])
+    const user = userEvent.setup()
+    renderAt('/home')
+
+    await user.click(await screen.findByRole('button', { name: 'Mark session' }))
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect((await screen.findByRole('alert')).textContent).toBe('Choose Completed or No-show')
+
+    await user.click(screen.getByRole('radio', { name: 'Completed' }))
+    await user.type(screen.getByLabelText('Note for the member (optional)'), 'Leg day')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await vi.waitFor(() => expect(callsTo('POST /pt-sessions/ses-1/mark')).toHaveLength(1))
+    expect(callsTo('POST /pt-sessions/ses-1/mark')[0]?.body).toEqual({ outcome: 'completed', note: 'Leg day' })
+  })
+
+  it('lists sessions nobody marked, and lets the trainer undo a fresh mark', async () => {
+    const forgotten = ptSession({ id: 'ses-2', startsAt: new Date(Date.now() - 26 * HOUR).toISOString() })
+    const { callsTo } = trainerHome([marked()], [forgotten])
+    const user = userEvent.setup()
+    renderAt('/home')
+
+    const unmarked = await screen.findByRole('region', { name: 'Not marked yet' })
+    expect(within(unmarked).getByRole('button', { name: 'Mark session' })).toBeTruthy()
+
+    const schedule = screen.getByRole('region', { name: 'My schedule' })
+    expect(await within(schedule).findByText('Completed')).toBeTruthy()
+    expect(within(schedule).getByText('Trainer’s note: Leg day, squats 60 kg')).toBeTruthy()
+    expect(within(schedule).getByText('Waiting for the member')).toBeTruthy()
+    await user.click(within(schedule).getByRole('button', { name: 'Undo mark' }))
+    await vi.waitFor(() => expect(callsTo('POST /pt-sessions/ses-1/undo-mark')).toHaveLength(1))
+  })
+
+  it('the member confirms, or disputes with a reason', async () => {
+    const { callsTo } = mockApi(
+      memberRoutes({
+        'GET /me/pt-sessions': ok([
+          marked(),
+          marked({ id: 'ses-2', startsAt: new Date(Date.now() - 26 * HOUR).toISOString() }),
+        ]),
+        'POST /pt-sessions/ses-1/confirm': ok(marked({ confirmation: 'confirmed' })),
+        'POST /pt-sessions/ses-2/dispute': ok(marked({ id: 'ses-2', confirmation: 'disputed' })),
+      }),
+    )
+    const user = userEvent.setup()
+    renderAt('/home')
+
+    const toAnswer = await screen.findByRole('region', { name: 'Please confirm' })
+    expect(within(toAnswer).getAllByText(/Is this right\? Please confirm or tell us by/)).toHaveLength(2)
+    const [first, second] = within(toAnswer).getAllByRole('article') as [HTMLElement, HTMLElement]
+
+    await user.click(within(first).getByRole('button', { name: 'Confirm' }))
+    await vi.waitFor(() => expect(callsTo('POST /pt-sessions/ses-1/confirm')).toHaveLength(1))
+
+    await user.click(within(second).getByRole('button', { name: 'Not right?' }))
+    await user.click(within(second).getByRole('button', { name: 'Send to front desk' }))
+    expect((await within(second).findByRole('alert')).textContent).toBe('Tell the gym what went wrong')
+    await user.type(within(second).getByLabelText('What happened?'), 'I was there, the trainer was late')
+    await user.click(within(second).getByRole('button', { name: 'Send to front desk' }))
+    await vi.waitFor(() => expect(callsTo('POST /pt-sessions/ses-2/dispute')).toHaveLength(1))
+    expect(callsTo('POST /pt-sessions/ses-2/dispute')[0]?.body).toEqual({ reason: 'I was there, the trainer was late' })
+  })
+
+  it('the desk sees open disputes on home and resolves them', async () => {
+    const disputed = marked({
+      confirmation: 'disputed',
+      disputeReason: 'Trainer was late',
+      disputedAt: new Date().toISOString(),
+    })
+    const { callsTo } = mockApi({
+      'POST /auth/refresh': owner,
+      'GET /pt-disputes': ok([disputed]),
+      'GET /pt-sessions/unmarked': ok([]),
+      'POST /pt-sessions/ses-1/resolve': ok({ ...disputed, confirmation: 'upheld' }),
+    })
+    const user = userEvent.setup()
+    renderAt('/home')
+
+    await user.click(await screen.findByRole('link', { name: /1 open dispute to resolve/ }))
+    expect(await screen.findByText('Asha Patel says: Trainer was late')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Resolve dispute' }))
+    await user.click(screen.getByRole('radio', { name: 'Give session back' }))
+    await user.click(screen.getByRole('button', { name: 'Save decision' }))
+    expect((await screen.findByRole('alert')).textContent).toBe('Add a short note for the member')
+
+    await user.type(screen.getByLabelText('Note for the member'), 'Checked with Ravi')
+    await user.click(screen.getByRole('button', { name: 'Save decision' }))
+    await vi.waitFor(() => expect(callsTo('POST /pt-sessions/ses-1/resolve')).toHaveLength(1))
+    expect(callsTo('POST /pt-sessions/ses-1/resolve')[0]?.body).toEqual({
+      resolution: 'upheld',
+      note: 'Checked with Ravi',
+    })
   })
 })

@@ -10,6 +10,9 @@ import { MyPtCard } from './MyPtCard'
 import { MyPtSessions } from './MyPtSessions'
 import { TrainerClients } from './TrainerClients'
 import { TrainerSchedule } from './TrainerSchedule'
+import { UnmarkedSessions } from './UnmarkedSessions'
+import { usePtDisputes } from '../api/pt-booking'
+import { plural } from '../lib/format'
 
 export function HomePage() {
   const user = useSignedInUser()
@@ -36,6 +39,7 @@ export function HomePage() {
           <HomeLink to="/admin/members" title="Members" text="Add members, renew, freeze" />
           <HomeLink to="/admin/plans" title="Plans" text="Prices, lengths, freeze limits" />
           <HomeLink to="/admin/pt-packages" title="PT packages" text="Personal training sessions" />
+          <DisputesLink />
           <HomeLink to="/admin/staff" title="Staff" text="Add trainers and admins" />
           {user.role === 'owner' && <HomeLink to="/admin/gym" title="Gym details" text="Address, GSTIN, invoices" />}
         </nav>
@@ -55,6 +59,7 @@ export function HomePage() {
               text="Weekly hours, session length, time off"
             />
           </nav>
+          <UnmarkedSessions />
           <TrainerSchedule trainerId={user.id} />
           <TrainerClients />
         </>
@@ -80,6 +85,18 @@ export function HomePage() {
         Log out
       </Button>
     </Screen>
+  )
+}
+
+/** Owner/admin: open PT disputes, with a count when there are any. */
+function DisputesLink() {
+  const count = usePtDisputes().data?.length ?? 0
+  return (
+    <HomeLink
+      to="/admin/pt-disputes"
+      title="PT disputes"
+      text={count > 0 ? `${plural(count, 'open dispute')} to resolve` : 'Disputed and unmarked sessions'}
+    />
   )
 }
 
