@@ -146,6 +146,75 @@ export interface PtSessionView {
   bookedByName: string
   /** Member cancellations after this time use up the session. */
   freeCancelUntil: string
+  /** Set once the trainer (or desk) marks it completed or no-show. */
+  trainerNotes: string | null
+  markedAt: string | null
+  markedByName: string | null
+  /** Null until the session is marked. */
+  confirmation: PtConfirmation | null
+  /** The member can confirm or dispute until then (null if not marked). */
+  disputeUntil: string | null
+  /** Whoever marked it can undo until then (null if not marked). */
+  undoUntil: string | null
+  disputedAt: string | null
+  disputeReason: string | null
+  resolution: PtDisputeResolution | null
+  resolutionNote: string | null
+  resolvedByName: string | null
+  resolvedAt: string | null
+}
+
+// ---------------------------------------------------------------------------
+// Completing sessions and disputes
+// ---------------------------------------------------------------------------
+
+/** How long the member has to confirm or dispute a marked session. */
+export const DISPUTE_WINDOW_HOURS = 24
+/** How long a trainer can undo their own mark. */
+export const UNDO_WINDOW_MINUTES = 60
+
+export const PT_MARK_OUTCOMES = ['completed', 'no_show'] as const
+export type PtMarkOutcome = (typeof PT_MARK_OUTCOMES)[number]
+
+export type PtDisputeResolution = 'upheld' | 'rejected'
+
+/**
+ * Where a marked session stands with the member. "auto_confirmed" is worked out from the time:
+ * no reply within the dispute window counts as confirmed (no background job needed).
+ */
+export type PtConfirmation = 'pending' | 'confirmed' | 'auto_confirmed' | 'disputed' | 'upheld' | 'rejected'
+
+export function disputeUntil(markedAt: Date): Date {
+  return new Date(markedAt.getTime() + DISPUTE_WINDOW_HOURS * HOUR_MS)
+}
+
+export function undoUntil(markedAt: Date): Date {
+  return new Date(markedAt.getTime() + UNDO_WINDOW_MINUTES * MINUTE_MS)
+}
+
+export function ptConfirmation(
+  s: {
+    markedAt: Date | null
+    confirmedAt: Date | null
+    disputedAt: Date | null
+    resolution: PtDisputeResolution | null
+  },
+  now: Date,
+): PtConfirmation | null {
+  if (!s.markedAt) return null
+  if (s.resolution) return s.resolution
+  if (s.disputedAt) return 'disputed'
+  if (s.confirmedAt) return 'confirmed'
+  return now.getTime() > disputeUntil(s.markedAt).getTime() ? 'auto_confirmed' : 'pending'
+}
+
+export const PT_CONFIRMATION_LABELS: Record<PtConfirmation, string> = {
+  pending: 'Waiting for the member',
+  confirmed: 'Confirmed',
+  auto_confirmed: 'Confirmed (no reply in 24 h)',
+  disputed: 'Disputed',
+  upheld: 'Session given back',
+  rejected: 'Dispute closed, session used',
 }
 
 export interface TimeOffView {
@@ -228,4 +297,18 @@ export const cancelSessionSchema = z.object({ reason: optionalText(200) })
 export const sessionRangeQuerySchema = z.object({
   from: z.string().refine(isValidIsoDate, 'Enter a valid date').optional(),
   days: z.coerce.number().int().min(1).max(62).default(14),
+})
+
+export const markSessionSchema = z.object({
+  outcome: z.enum(PT_MARK_OUTCOMES),
+  note: optionalText(500),
+})
+
+export const disputeSessionSchema = z.object({
+  reason: z.string().trim().min(3, 'Tell the gym what went wrong').max(300),
+})
+
+export const resolveDisputeSchema = z.object({
+  resolution: z.enum(['upheld', 'rejected']),
+  note: z.string().trim().min(3, 'Add a short note for the member').max(300),
 })

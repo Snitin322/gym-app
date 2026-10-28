@@ -107,6 +107,8 @@ model User {
   ptSessionsTrained   PtSession[]           @relation("PtSessionTrainer")
   ptSessionsBooked    PtSession[]           @relation("PtSessionBookedBy")
   ptSessionsCancelled PtSession[]           @relation("PtSessionCancelledBy")
+  ptSessionsMarked    PtSession[]           @relation("PtSessionMarkedBy")
+  ptSessionsResolved  PtSession[]           @relation("PtSessionResolvedBy")
 
   @@unique([gymId, phone])
   @@index([phone])
@@ -496,8 +498,7 @@ model PtSessionLedger {
   createdBy User?      @relation("PtLedgerBy", fields: [createdById], references: [id], onDelete: Restrict)
   session   PtSession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
 
-  /// A session can be charged (or refunded) only once for each reason.
-  @@unique([sessionId, reason])
+  @@index([sessionId])
   @@index([gymId])
   @@index([purchaseId])
   @@map("pt_session_ledger")
@@ -561,6 +562,15 @@ model TrainerTimeOff {
   @@map("trainer_time_off")
 }
 
+enum PtDisputeResolution {
+  /// The member was right: the session is given back.
+  upheld
+  /// The session stays used.
+  rejected
+
+  @@map("pt_dispute_resolution")
+}
+
 enum PtSessionStatus {
   booked
   cancelled
@@ -572,23 +582,33 @@ enum PtSessionStatus {
 
 /// One booked PT session (one member, one trainer). Using up the session is a ledger line, never a counter.
 model PtSession {
-  id            String          @id @default(uuid()) @db.Uuid
-  gymId         String          @map("gym_id") @db.Uuid
-  purchaseId    String          @map("purchase_id") @db.Uuid
-  trainerId     String          @map("trainer_id") @db.Uuid
-  memberId      String          @map("member_id") @db.Uuid
-  startsAt      DateTime        @map("starts_at") @db.Timestamptz(3)
-  endsAt        DateTime        @map("ends_at") @db.Timestamptz(3)
-  status        PtSessionStatus @default(booked)
-  bookedById    String          @map("booked_by_id") @db.Uuid
-  cancelledAt   DateTime?       @map("cancelled_at") @db.Timestamptz(3)
-  cancelledById String?         @map("cancelled_by_id") @db.Uuid
-  cancelReason  String?         @map("cancel_reason")
+  id             String               @id @default(uuid()) @db.Uuid
+  gymId          String               @map("gym_id") @db.Uuid
+  purchaseId     String               @map("purchase_id") @db.Uuid
+  trainerId      String               @map("trainer_id") @db.Uuid
+  memberId       String               @map("member_id") @db.Uuid
+  startsAt       DateTime             @map("starts_at") @db.Timestamptz(3)
+  endsAt         DateTime             @map("ends_at") @db.Timestamptz(3)
+  status         PtSessionStatus      @default(booked)
+  bookedById     String               @map("booked_by_id") @db.Uuid
+  cancelledAt    DateTime?            @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById  String?              @map("cancelled_by_id") @db.Uuid
+  cancelReason   String?              @map("cancel_reason")
   /// Cancelled by the member inside the free-cancel window: the session was used up.
-  lateCancel    Boolean         @default(false) @map("late_cancel")
-  trainerNotes  String?         @map("trainer_notes")
-  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  lateCancel     Boolean              @default(false) @map("late_cancel")
+  trainerNotes   String?              @map("trainer_notes")
+  /// When the trainer (or desk) marked it completed or no-show; the member can confirm or dispute for 24 hours.
+  markedAt       DateTime?            @map("marked_at") @db.Timestamptz(3)
+  markedById     String?              @map("marked_by_id") @db.Uuid
+  confirmedAt    DateTime?            @map("confirmed_at") @db.Timestamptz(3)
+  disputedAt     DateTime?            @map("disputed_at") @db.Timestamptz(3)
+  disputeReason  String?              @map("dispute_reason")
+  resolvedAt     DateTime?            @map("resolved_at") @db.Timestamptz(3)
+  resolvedById   String?              @map("resolved_by_id") @db.Uuid
+  resolution     PtDisputeResolution?
+  resolutionNote String?              @map("resolution_note")
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   gym         Gym               @relation(fields: [gymId], references: [id], onDelete: Restrict)
   purchase    PtPurchase        @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
@@ -596,11 +616,14 @@ model PtSession {
   member      Member            @relation(fields: [memberId], references: [id], onDelete: Restrict)
   bookedBy    User              @relation("PtSessionBookedBy", fields: [bookedById], references: [id], onDelete: Restrict)
   cancelledBy User?             @relation("PtSessionCancelledBy", fields: [cancelledById], references: [id], onDelete: Restrict)
+  markedBy    User?             @relation("PtSessionMarkedBy", fields: [markedById], references: [id], onDelete: Restrict)
+  resolvedBy  User?             @relation("PtSessionResolvedBy", fields: [resolvedById], references: [id], onDelete: Restrict)
   ledger      PtSessionLedger[]
 
   @@index([gymId])
   @@index([purchaseId])
   @@index([memberId, startsAt])
   @@index([trainerId, startsAt])
+  @@index([gymId, disputedAt])
   @@map("pt_sessions")
 }

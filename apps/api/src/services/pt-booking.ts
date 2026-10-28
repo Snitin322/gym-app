@@ -3,11 +3,14 @@ import { z } from 'zod'
 import {
   ErrorCode,
   addDays,
+  disputeUntil,
   freeCancelUntil,
   generateSlots,
   indiaDateTime,
+  ptConfirmation,
   ptRulesFromSettings,
   todayInIndia,
+  undoUntil,
   type AvailabilityInput,
   type IsoDate,
   type PtRules,
@@ -32,13 +35,13 @@ export interface Viewer {
 }
 
 // Serializable: a booking checks the balance and free time, then writes, in one consistent view.
-const SERIALIZABLE = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+export const SERIALIZABLE = { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
 const DEFAULT_SESSION_MINUTES = 60
 const DAY_MS = 24 * 60 * 60_000
 
-const isManager = (viewer: Viewer) => viewer.role === 'admin' || viewer.role === 'owner'
+export const isManager = (viewer: Viewer) => viewer.role === 'admin' || viewer.role === 'owner'
 
-function notFound(what: string) {
+export function notFound(what: string) {
   return new AppError(404, ErrorCode.NOT_FOUND, `${what} not found`)
 }
 
@@ -66,7 +69,7 @@ async function guardOverlap<T>(work: () => Promise<T>): Promise<T> {
 // Gym rules
 // ---------------------------------------------------------------------------
 
-async function loadRules(db: TenantDb | TenantTx): Promise<PtRules> {
+export async function loadRules(db: TenantDb | TenantTx): Promise<PtRules> {
   const gym = await db.gym.findFirstOrThrow({ select: { settings: true } })
   return ptRulesFromSettings(gym.settings)
 }
@@ -195,7 +198,7 @@ export async function addTimeOff(
     }
     const rules = await loadRules(tx)
     const cancelled = await tx.ptSession.findMany({ where: { id: { in: ids } }, include: sessionInclude, orderBy: { startsAt: 'asc' } })
-    return { timeOff: toTimeOffView(timeOff), cancelledSessions: cancelled.map((s) => toSessionView(s, rules)) }
+    return { timeOff: toTimeOffView(timeOff), cancelledSessions: cancelled.map((s) => toSessionView(s, rules, now)) }
   }, SERIALIZABLE)
 }
 
@@ -209,17 +212,19 @@ export async function removeTimeOff(db: TenantDb, viewer: Viewer, trainerId: str
 // Sessions
 // ---------------------------------------------------------------------------
 
-const sessionInclude = {
+export const sessionInclude = {
   purchase: { select: { packageName: true } },
   trainer: { select: { id: true, name: true } },
   member: { select: { id: true, user: { select: { name: true, phone: true } } } },
   bookedBy: { select: { name: true } },
   cancelledBy: { select: { name: true } },
+  markedBy: { select: { name: true } },
+  resolvedBy: { select: { name: true } },
 } as const satisfies Prisma.PtSessionInclude
 
-type SessionRow = Prisma.PtSessionGetPayload<{ include: typeof sessionInclude }>
+export type SessionRow = Prisma.PtSessionGetPayload<{ include: typeof sessionInclude }>
 
-function toSessionView(row: SessionRow, rules: PtRules): PtSessionView {
+export function toSessionView(row: SessionRow, rules: PtRules, now: Date): PtSessionView {
   return {
     id: row.id,
     purchaseId: row.purchaseId,
@@ -235,6 +240,18 @@ function toSessionView(row: SessionRow, rules: PtRules): PtSessionView {
     cancelledByName: row.cancelledBy?.name ?? null,
     bookedByName: row.bookedBy.name,
     freeCancelUntil: freeCancelUntil(row.startsAt, rules).toISOString(),
+    trainerNotes: row.trainerNotes,
+    markedAt: row.markedAt?.toISOString() ?? null,
+    markedByName: row.markedBy?.name ?? null,
+    confirmation: ptConfirmation(row, now),
+    disputeUntil: row.markedAt ? disputeUntil(row.markedAt).toISOString() : null,
+    undoUntil: row.markedAt ? undoUntil(row.markedAt).toISOString() : null,
+    disputedAt: row.disputedAt?.toISOString() ?? null,
+    disputeReason: row.disputeReason,
+    resolution: row.resolution,
+    resolutionNote: row.resolutionNote,
+    resolvedByName: row.resolvedBy?.name ?? null,
+    resolvedAt: row.resolvedAt?.toISOString() ?? null,
   }
 }
 
@@ -312,8 +329,8 @@ function matchSlot(slots: { startsAt: string; endsAt: string }[], startsAt: Date
   return new Date(slot.endsAt)
 }
 
-async function loadSessionView(tx: TenantTx | TenantDb, id: string, rules: PtRules) {
-  return toSessionView(await tx.ptSession.findUniqueOrThrow({ where: { id }, include: sessionInclude }), rules)
+export async function loadSessionView(tx: TenantTx | TenantDb, id: string, rules: PtRules, now: Date) {
+  return toSessionView(await tx.ptSession.findUniqueOrThrow({ where: { id }, include: sessionInclude }), rules, now)
 }
 
 /**
@@ -359,7 +376,7 @@ export async function bookSession(
           bookedById: viewer.userId,
         },
       })
-      return loadSessionView(tx, session.id, rules)
+      return loadSessionView(tx, session.id, rules, now)
     }, SERIALIZABLE),
   )
 }
@@ -417,7 +434,7 @@ export async function cancelSession(
         })
       }
     }
-    return loadSessionView(tx, session.id, rules)
+    return loadSessionView(tx, session.id, rules, now)
   }, SERIALIZABLE)
 }
 
@@ -462,7 +479,7 @@ export async function rescheduleSession(
           bookedById: viewer.userId,
         },
       })
-      return loadSessionView(tx, moved.id, rules)
+      return loadSessionView(tx, moved.id, rules, now)
     }, SERIALIZABLE),
   )
 }
@@ -481,7 +498,7 @@ async function sessionsOfMember(db: TenantDb, memberId: string, now: Date): Prom
       orderBy: { startsAt: 'asc' },
     }),
   ])
-  return rows.map((row) => toSessionView(row, rules))
+  return rows.map((row) => toSessionView(row, rules, now))
 }
 
 export async function getMySessions(db: TenantDb, userId: string, now: Date): Promise<PtSessionView[]> {
@@ -513,6 +530,6 @@ export async function getTrainerSessions(
       orderBy: { startsAt: 'asc' },
     }),
   ])
-  return rows.map((row) => toSessionView(row, rules))
+  return rows.map((row) => toSessionView(row, rules, now))
 }
 

@@ -4,6 +4,9 @@ import {
   availabilityInputSchema,
   bookSessionSchema,
   cancelSessionSchema,
+  disputeSessionSchema,
+  markSessionSchema,
+  resolveDisputeSchema,
   ptRulesUpdateSchema,
   sessionRangeQuerySchema,
   timeOffInputSchema,
@@ -24,6 +27,15 @@ import {
   setAvailability,
   updatePtRules,
 } from '../services/pt-booking'
+import {
+  confirmSession,
+  disputeSession,
+  listDisputes,
+  listUnmarked,
+  markSession,
+  resolveDispute,
+  undoMark,
+} from '../services/pt-completion'
 
 const idParams = z.object({ id: z.uuid() })
 const timeOffParams = z.object({ id: z.uuid(), timeOffId: z.uuid() })
@@ -105,6 +117,40 @@ export function ptSessionRoutes({ authenticate, now }: Deps): FastifyPluginAsync
       const { db, viewer } = viewerOf(request)
       const { startsAt } = bookSessionSchema.parse(request.body)
       return rescheduleSession(db, viewer, id, startsAt, now())
+    })
+
+    // Completing sessions: the trainer (or desk) marks, the member confirms or disputes, the desk resolves.
+    app.post('/pt-sessions/:id/mark', async (request) => {
+      const { id } = idParams.parse(request.params)
+      const { db, viewer } = viewerOf(request)
+      return markSession(db, viewer, id, markSessionSchema.parse(request.body), now())
+    })
+    app.post('/pt-sessions/:id/undo-mark', async (request) => {
+      const { id } = idParams.parse(request.params)
+      const { db, viewer } = viewerOf(request)
+      return undoMark(db, viewer, id, now())
+    })
+    app.post('/pt-sessions/:id/confirm', async (request) => {
+      const { id } = idParams.parse(request.params)
+      const { db, viewer } = viewerOf(request)
+      return confirmSession(db, viewer, id, now())
+    })
+    app.post('/pt-sessions/:id/dispute', async (request) => {
+      const { id } = idParams.parse(request.params)
+      const { db, viewer } = viewerOf(request)
+      return disputeSession(db, viewer, id, disputeSessionSchema.parse(request.body).reason, now())
+    })
+    app.post('/pt-sessions/:id/resolve', { preHandler: requireRole('admin', 'owner') }, async (request) => {
+      const { id } = idParams.parse(request.params)
+      const { db, viewer } = viewerOf(request)
+      return resolveDispute(db, viewer, id, resolveDisputeSchema.parse(request.body), now())
+    })
+    app.get('/pt-disputes', { preHandler: requireRole('admin', 'owner') }, async (request) =>
+      listDisputes(getAuth(request).db, now()),
+    )
+    app.get('/pt-sessions/unmarked', { preHandler: requireRole('trainer', 'admin', 'owner') }, async (request) => {
+      const { db, viewer } = viewerOf(request)
+      return listUnmarked(db, viewer, now())
     })
 
     // Session lists.
