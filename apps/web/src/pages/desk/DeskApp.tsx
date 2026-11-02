@@ -29,18 +29,20 @@ export function DeskToday() {
           <Logo size={44} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm text-muted">{greeting()}</p>
+          <p className="truncate text-sm text-muted">{greeting()}</p>
           <h1 className="truncate text-2xl font-bold tracking-tight">{user.name.split(' ')[0]}</h1>
-          <p className="text-xs text-muted">
+          <p className="truncate text-xs text-muted">
             {ROLE_LABELS[user.role]} · {user.gym.name}
           </p>
         </div>
+        {/* Just the icon on small phones, so the greeting keeps its room. */}
         <Link
           to="/admin/members/new"
-          className="flex min-h-11 shrink-0 items-center gap-2 rounded-xl bg-accent px-4 font-semibold text-accent-ink"
+          aria-label="Add member"
+          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-3 font-semibold text-accent-ink min-[400px]:px-4"
         >
           <UserPlus aria-hidden="true" size={18} />
-          Add member
+          <span className="hidden min-[400px]:inline">Add member</span>
         </Link>
       </header>
       <Dashboard />

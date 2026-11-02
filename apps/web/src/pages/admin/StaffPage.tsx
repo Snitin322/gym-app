@@ -8,6 +8,8 @@ import { AdminLayout, LoadingText } from '../../ui/AdminLayout'
 import { Button } from '../../ui/Button'
 import { Card, Field, PhoneInput, SelectInput, TextInput } from '../../ui/Form'
 import { ErrorText } from '../../ui/Screen'
+import { useDoneToast } from '../../ui/toast-context'
+import { PanelCard } from './panels'
 
 const ROLE_HELP: Record<Role, string> = {
   owner: 'Everything, including adding admins.',
@@ -77,6 +79,7 @@ function StaffRow({ person }: { person: UserSummary }) {
 function AddStaffForm({ onDone }: { onDone: () => void }) {
   const me = useSignedInUser()
   const add = useAddStaff()
+  const done = useDoneToast(onDone)
   // Only the owner can add admins; admins add trainers.
   const roles: ('trainer' | 'admin')[] = me.role === 'owner' ? ['trainer', 'admin'] : ['trainer']
   const [name, setName] = useState('')
@@ -90,13 +93,12 @@ function AddStaffForm({ onDone }: { onDone: () => void }) {
     if (name.trim().length < 2) return setProblem('Enter their name')
     if (!normalized) return setProblem('Enter a valid 10-digit Indian mobile number')
     setProblem(null)
-    add.mutate({ name: name.trim(), phone: normalized, role }, { onSuccess: onDone })
+    add.mutate({ name: name.trim(), phone: normalized, role }, { onSuccess: done(`${ROLE_LABELS[role]} added`) })
   }
 
   return (
-    <Card>
+    <PanelCard title="Add staff" onClose={onDone}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
-        <h2 className="text-lg font-bold">Add staff</h2>
         <Field label="Full name">
           {(id) => <TextInput id={id} value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />}
         </Field>
@@ -124,6 +126,6 @@ function AddStaffForm({ onDone }: { onDone: () => void }) {
           </Button>
         </div>
       </form>
-    </Card>
+    </PanelCard>
   )
 }

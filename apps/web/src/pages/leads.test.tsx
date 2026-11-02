@@ -97,13 +97,16 @@ describe('leads', () => {
     expect(within(card).getByRole('link', { name: 'Call Riya Shah' }).getAttribute('href')).toBe('tel:+919876511111')
 
     await user.click(within(card).getByRole('button', { name: 'Update' }))
-    await user.selectOptions(within(card).getByLabelText('Status'), 'lost')
-    await user.click(within(card).getByRole('button', { name: 'Save' }))
-    expect((await within(card).findByRole('alert')).textContent).toBe('Say why they didn’t join')
-    await user.type(within(card).getByLabelText('Why didn’t they join?'), 'Too far')
-    await user.click(within(card).getByRole('button', { name: 'Save' }))
+    const sheet = screen.getByRole('dialog', { name: 'Update Riya Shah' })
+    await user.selectOptions(within(sheet).getByLabelText('Status'), 'lost')
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
+    expect((await within(sheet).findByRole('alert')).textContent).toBe('Say why they didn’t join')
+    await user.type(within(sheet).getByLabelText('Why didn’t they join?'), 'Too far')
+    await user.click(within(sheet).getByRole('button', { name: 'Save' }))
     await vi.waitFor(() => expect(callsTo('PATCH /leads/lead-1')).toHaveLength(1))
     expect(callsTo('PATCH /leads/lead-1')[0]?.body).toMatchObject({ status: 'lost', lostReason: 'Too far' })
+    expect(await screen.findByText('Lead updated')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('Convert to member opens New member with their name and number', async () => {

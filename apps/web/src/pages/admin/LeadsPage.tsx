@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { MessageCircle, Phone } from 'lucide-react'
 import {
   LEAD_FILTERS,
   LEAD_SOURCES,
@@ -22,6 +23,8 @@ import { Button } from '../../ui/Button'
 import { Card, Field, PhoneInput, SelectInput, TextArea, TextInput } from '../../ui/Form'
 import { ErrorText } from '../../ui/Screen'
 import { Badge } from '../../ui/StatusBadge'
+import { useDoneToast } from '../../ui/toast-context'
+import { PanelCard } from './panels'
 
 const FILTER_LABELS: Record<LeadFilter, string> = { open: 'Open', joined: 'Joined', lost: 'Lost', all: 'All' }
 const STATUS_TONES: Record<LeadView['status'], BadgeTone> = {
@@ -152,45 +155,42 @@ function LeadCard({ lead }: { lead: LeadView }) {
       )}
       <DuplicateNote duplicates={lead.duplicates} />
 
-      {editing ? (
-        <LeadForm lead={lead} onDone={() => setEditing(false)} />
-      ) : (
-        lead.status !== 'joined' && (
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={`tel:${lead.phone}`}
-              aria-label={`Call ${lead.name}`}
-              className="flex size-12 items-center justify-center rounded-xl border border-line"
-            >
-              📞
-            </a>
-            <a
-              href={whatsappLink(
-                lead.phone,
-                `Hi ${firstName}, this is ${gym}. Thanks for your interest! Would you like to come in for a free trial session this week?`,
-              )}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`WhatsApp ${lead.name}`}
-              className="flex size-12 items-center justify-center rounded-xl border border-line"
-            >
-              💬
-            </a>
-            <Button variant="secondary" className="w-auto flex-1" onClick={() => setEditing(true)}>
-              Update
-            </Button>
-            {open && (
-              <Button
-                className="w-full"
-                onClick={() =>
-                  void navigate(`/admin/members/new?${new URLSearchParams({ name: lead.name, phone: lead.phone })}`)
-                }
-              >
-                Convert to member
-              </Button>
+      {editing && <LeadForm lead={lead} onDone={() => setEditing(false)} />}
+      {lead.status !== 'joined' && (
+        <div className="flex flex-wrap gap-2">
+          <a
+            href={`tel:${lead.phone}`}
+            aria-label={`Call ${lead.name}`}
+            className="flex size-12 items-center justify-center rounded-xl bg-surface-2"
+          >
+            <Phone aria-hidden="true" size={20} />
+          </a>
+          <a
+            href={whatsappLink(
+              lead.phone,
+              `Hi ${firstName}, this is ${gym}. Thanks for your interest! Would you like to come in for a free trial session this week?`,
             )}
-          </div>
-        )
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`WhatsApp ${lead.name}`}
+            className="flex size-12 items-center justify-center rounded-xl bg-surface-2"
+          >
+            <MessageCircle aria-hidden="true" size={20} />
+          </a>
+          <Button variant="secondary" className="w-auto flex-1" onClick={() => setEditing(true)}>
+            Update
+          </Button>
+          {open && (
+            <Button
+              className="w-full"
+              onClick={() =>
+                void navigate(`/admin/members/new?${new URLSearchParams({ name: lead.name, phone: lead.phone })}`)
+              }
+            >
+              Convert to member
+            </Button>
+          )}
+        </div>
       )}
     </article>
   )
@@ -199,6 +199,7 @@ function LeadCard({ lead }: { lead: LeadView }) {
 /** Add a lead, or update one (status, follow-up date, note, details). */
 function LeadForm({ lead, onDone }: { lead?: LeadView; onDone: () => void }) {
   const save = useSaveLead()
+  const done = useDoneToast(onDone)
   const [name, setName] = useState(lead?.name ?? '')
   const [phone, setPhone] = useState(lead?.phone.replace(/^\+91/, '') ?? '')
   const [source, setSource] = useState<LeadSource>(lead?.source ?? 'walk_in')
@@ -239,14 +240,13 @@ function LeadForm({ lead, onDone }: { lead?: LeadView; onDone: () => void }) {
             lostReason: status === 'lost' ? lostReason : undefined,
           }
         : { ...details, followUpOn: followUpOn || undefined },
-      { onSuccess: onDone },
+      { onSuccess: done(lead ? 'Lead updated' : 'Lead added') },
     )
   }
 
   return (
-    <Card className={lead ? 'border-t border-line !p-0 !pt-3' : 'border border-accent/40'}>
+    <PanelCard title={lead ? `Update ${lead.name}` : 'New lead'} onClose={onDone}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
-        {!lead && <h2 className="text-lg font-bold">New lead</h2>}
         {lead && (
           <Field label="Status">
             {(id) => (
@@ -320,6 +320,6 @@ function LeadForm({ lead, onDone }: { lead?: LeadView; onDone: () => void }) {
           </Button>
         </div>
       </form>
-    </Card>
+    </PanelCard>
   )
 }

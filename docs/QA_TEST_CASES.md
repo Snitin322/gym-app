@@ -1,8 +1,8 @@
-# Onthec Gym — QA test cases (phone)
+# Onthec Fitness Club — QA test cases (phone)
 
 Manual end-to-end tests for the live app: **https://gym-app.snitin322.workers.dev**
 
-Covers everything built up to Phase 8 (members, payments, invoices, PT booking, workout plans and tracking, dashboard, leads).
+Covers everything built up to Phase 8 (members, payments, invoices, PT booking, workout plans and tracking, dashboard, leads) and the design refresh: tabs at the bottom for each role, a sidebar on laptops, and actions in panels that slide up from the bottom.
 
 Work through the cases in order. Later sections use data created earlier. Tick each one ✅ or ❌, and report every ❌ using the template at the end.
 
@@ -34,11 +34,25 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 - The server sleeps after 15 minutes. The first tap after a break can take 30–60 seconds. That's expected, not a bug.
 - Cases marked ⏱ need you to wait (hours or a day) or to do them at a certain time.
 
+### Where things are now (design refresh)
+Every role has tabs at the bottom of the screen:
+
+| Role | Tabs |
+|---|---|
+| Member | **Home · Workout · PT · Profile** |
+| Trainer | **Today · Clients · Schedule · Profile** |
+| Owner / admin ("desk") | **Today · Members · PT · More** |
+
+- Desk screens used less often (Leads, Plans, Workouts, Staff, Gym details) are under **More**. Log out is on **More** (desk) or **Profile** (member, trainer).
+- Most actions (Renew, Freeze, Record payment, Book, Mark session, Add plan…) open a **panel that slides up from the bottom**. Close it with **✕** or by tapping the dimmed area. A short message (e.g. "Payment recorded") pops up at the bottom when something is saved.
+- Long screens are split into **views** you switch at the top (e.g. *Overview · Payments · PT · Workout* on a member page).
+
 ### What to check on every screen (no separate test case)
 - Nothing is cut off and the page doesn't scroll sideways.
 - Buttons are big enough to tap.
-- Text is readable in the dark theme.
+- Text is readable in **both light and dark** (the app follows the phone's setting).
 - Error messages are in plain words, not codes.
+- The bottom tabs never cover the last button on a screen (scroll to the bottom to check).
 
 ---
 
@@ -48,7 +62,7 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 1. Open the app link in Chrome.
 2. Tap **Install app** (or the browser menu → *Install app* / *Add to Home screen*).
 
-**Expected:** An Onthec Gym icon appears on the home screen and opens full screen, without the browser address bar.
+**Expected:** The Onthec logo icon (olive background), named **Onthec**, appears on the home screen and opens full screen, without the browser address bar. If you installed the app before, remove it and install again to get the new icon.
 - [ ] Pass / [ ] Fail
 
 **IN-02 — Install on iPhone (Safari)** · any role
@@ -73,7 +87,7 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 **LG-03 — Owner logs in**
 1. Owner number → correct code.
 
-**Expected:** Home screen shows "Hi ‹name›", OWNER, the dashboard, and tiles: Members, Plans, PT packages, PT disputes, Workouts, Leads, Staff, Gym details.
+**Expected:** The **Today** tab: a greeting, your first name, "Owner · ‹gym›", an **Add member** button (just a + icon on small phones), four count tiles, then the dashboard. Tabs at the bottom: **Today · Members · PT · More**.
 - [ ] Pass / [ ] Fail
 
 **LG-04 — Stay logged in**
@@ -84,7 +98,7 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 - [ ] Pass / [ ] Fail
 
 **LG-05 — Log out**
-1. Home → **Log out**.
+1. **More** tab → **Log out** (members and trainers: **Profile** tab → **Log out**).
 
 **Expected:** Back to the start screen. Opening the app again asks for login.
 - [ ] Pass / [ ] Fail
@@ -99,7 +113,7 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 ## 2. Gym setup (owner)
 
 **GY-01 — Gym details**
-1. Home → **Gym details**.
+1. **More → Gym details**.
 2. Fill in legal name, address, city, PIN, contact number and email. Leave GSTIN **empty**. Save.
 
 **Expected:** Saved message. Opening it again shows the same values.
@@ -112,12 +126,13 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 - [ ] Pass / [ ] Fail
 
 **PL-01 — Add plans**
-1. **Plans** → **Add plan**: "QA 1 month", length 1 month, ₹1,500.
+1. **More → Plans** → **Add plan** (a panel slides up): "QA 1 month", length 1 month, ₹1,500.
 2. Add "QA 3 months", 3 months, ₹4,000.
 
 **Expected:**
 - "Max freeze days" fills in automatically (0 for 1 month, 15 for 3 months).
-- Both plans are listed with prices "incl. GST".
+- A "Plan added" message pops up and the panel closes.
+- Both plans are listed with prices "incl. GST". **Edit** on a plan opens the same panel.
 - [ ] Pass / [ ] Fail
 
 **PL-02 — Bad price**
@@ -138,9 +153,9 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 ## 3. Staff (owner, then admin)
 
 **ST-01 — Add an admin** · owner
-1. **Staff → Add staff** → "QA Desk", phone, role **Admin**.
+1. **More → Staff → Add staff** → "QA Desk", phone, role **Admin**.
 
-**Expected:** Listed under staff as Admin. That person can log in and sees the admin home (dashboard and tiles).
+**Expected:** Listed under staff as Admin. That person can log in and sees the desk app (Today · Members · PT · More). Under **More** they have no *Gym details*.
 - [ ] Pass / [ ] Fail
 
 **ST-02 — Add a trainer** · owner
@@ -150,7 +165,7 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 - [ ] Pass / [ ] Fail
 
 **ST-03 — Admin can only add trainers** · admin
-1. As QA Desk: **Staff → Add staff** → role list.
+1. As QA Desk: **More → Staff → Add staff** → role list.
 
 **Expected:** Only "Trainer" can be chosen.
 - [ ] Pass / [ ] Fail
@@ -166,18 +181,19 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 ## 4. Members (admin)
 
 **MB-01 — Add member with plan, paid** · admin
-1. **Members → Add member** → "QA Asha", phone, plan **QA 1 month**, start today, payment **UPI**, reference "TEST123" → Add member.
+1. **Members → Add member** (or **Today → Add member**) → "QA Asha", phone, plan **QA 1 month**, start today, payment **UPI**, reference "TEST123" → Add member.
 
 **Expected:**
-- The member page opens: Active, days left, end date one month later.
-- Payments shows ₹1,500 UPI with an **Invoice …** link.
+- The member page opens on **Overview**: name, Call and WhatsApp buttons, Active, days left, end date one month later.
+- Views at the top: **Overview · Payments · PT · Workout**.
+- **Payments** shows ₹1,500 UPI with an **Invoice …** link.
 - [ ] Pass / [ ] Fail
 
 **MB-02 — Add member, pay later** · admin
 1. Add "QA Bina", plan **QA 3 months**, payment **Pay later**.
 
 **Expected:**
-- The member page shows **₹4,000 due** with a *Record payment* button.
+- The member page shows **₹4,000 due**, and the membership card on **Overview** has a *Record payment* button.
 - The warning "amount will show as due" appeared before saving.
 - [ ] Pass / [ ] Fail
 
@@ -201,17 +217,17 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 - [ ] Pass / [ ] Fail
 
 **MB-06 — Edit details**
-1. QA Asha → **Edit details** → add emergency contact and notes → Save.
+1. QA Asha → Overview → **Edit details** (panel slides up) → add emergency contact and notes → Save.
 
-**Expected:** Shown on the member page.
+**Expected:** "Details saved" message. Shown on Overview.
 - [ ] Pass / [ ] Fail
 
 **MB-07 — Part payment** · admin
-1. QA Bina → **Record payment** → ₹1,000, Cash.
+1. QA Bina → Overview → **Record payment** (panel) → ₹1,000, Cash.
 2. Then record another ₹4,000.
 
 **Expected:**
-- After ₹1,000: "₹3,000 due · ₹1,000 paid", with an invoice for ₹1,000.
+- After ₹1,000: "Payment recorded" message, then "₹3,000 due · ₹1,000 paid". The invoice is under **Payments**.
 - ₹4,000 is refused ("Only ₹3,000 is due").
 - Recording ₹3,000 clears the due.
 - [ ] Pass / [ ] Fail
@@ -219,7 +235,7 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 **MB-08 — Renew (queue next membership)**
 1. QA Asha → **Renew** → QA 3 months.
 
-**Expected:** "Starts on" defaults to the day after the current membership ends. The new membership shows as upcoming under "All memberships".
+**Expected:** "Starts on" defaults to the day after the current membership ends. "Membership added" message. The new membership shows as upcoming under **Payments → Other memberships**.
 - [ ] Pass / [ ] Fail
 
 **MB-09 — Freeze and unfreeze**
@@ -227,7 +243,7 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 2. Then **Unfreeze**.
 
 **Expected:**
-- Status becomes Frozen, and the end date moves 5 days later.
+- "Membership frozen" message. Status becomes Frozen, and the end date moves 5 days later.
 - Freezing more days than allowed is refused.
 - Unfreeze ends the freeze, and the end date adjusts.
 - [ ] Pass / [ ] Fail
@@ -243,7 +259,7 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 ## 5. Invoices
 
 **IV-01 — Download invoice (receipt)** · admin
-1. QA Asha → Payments → tap **Invoice …**.
+1. QA Asha → **Payments** view → tap **Invoice …**.
 
 **Expected:**
 - A PDF opens or downloads, titled as a receipt with "Receipt no.".
@@ -268,7 +284,7 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 - [ ] Pass / [ ] Fail
 
 **IV-04 — Member downloads their own invoice** · Member A
-1. Member home → **Payments** → invoice link.
+1. **Profile** tab → **My payments** → invoice link.
 
 **Expected:** The same PDF opens.
 - [ ] Pass / [ ] Fail
@@ -281,14 +297,20 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 1. Log in as QA Asha.
 
 **Expected:**
-- Card shows plan name, Active, a big "N days left", date range and progress bar.
-- The upcoming renewal from MB-08 shows as "Next: …".
+- **Home**: greeting and first name, then an olive card with the plan, "N days left", a progress bar and the end date. Below it: today's workout and personal training.
+- **Profile**: the full membership card (date range, "Next: …" for the renewal from MB-08), Renew online, My payments, install help and Log out.
 - [ ] Pass / [ ] Fail
 
 **MH-02 — Due shown to member** · Member B
 1. Log in as QA Bina (before MB-07 is fully paid, or on another pay-later member).
 
 **Expected:** Amount due is shown.
+- [ ] Pass / [ ] Fail
+
+**MH-04 — Member tabs**
+1. Tap **Home**, **Workout**, **PT** and **Profile** in turn.
+
+**Expected:** Each tab opens its screen and is highlighted. **Workout** has *Today · My week · Full plan*. **PT** has *Upcoming · Book · History*. The phone's back button returns to the previous screen.
 - [ ] Pass / [ ] Fail
 
 **MH-03 — Member can't open admin screens**
@@ -302,13 +324,13 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 ## 7. Online renewal (Razorpay test mode) — Member A
 
 **ON-01 — Renew online**
-1. Member home → **Renew online** → pick QA 1 month.
+1. **Profile** tab → **Renew online** → pick QA 1 month.
 2. Pay with the test card 4100 2800 0000 1007 → success on the test page.
 
 **Expected:**
 - "Payment successful" (or "Payment received, it will update shortly").
 - Within about a minute the new membership appears and the payment is listed with an invoice.
-- The desk sees it on the member page as Razorpay.
+- The desk sees it on the member page under **Payments** as Razorpay.
 - [ ] Pass / [ ] Fail
 
 **ON-02 — Payment cancelled**
@@ -322,13 +344,13 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 ## 8. PT packages and selling (owner or admin)
 
 **PT-01 — Create package**
-1. **PT packages → Add package** → "QA 4 Sessions", 4 sessions, 30 days, ₹2,000.
+1. **PT** tab → **Packages** → **Add package** (panel) → "QA 4 Sessions", 4 sessions, 30 days, ₹2,000.
 
 **Expected:** Listed as 4 sessions · valid 30 days · ₹2,000.
 - [ ] Pass / [ ] Fail
 
 **PT-02 — Sell PT with trainer**
-1. QA Asha → **Sell PT package** → QA 4 Sessions, trainer **QA Trainer**, Cash → Sell package.
+1. QA Asha → **PT** view → **Sell PT package** (panel) → QA 4 Sessions, trainer **QA Trainer**, Cash → Sell package.
 
 **Expected:**
 - The PT card shows "4 of 4 sessions left", "with QA Trainer" and the use-by date (30 days including today).
@@ -343,7 +365,7 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 - [ ] Pass / [ ] Fail
 
 **PT-04 — Adjust sessions**
-1. On QA Asha's PT card → **Adjust sessions** → Remove 10, reason "test".
+1. QA Asha → **PT** view → **Adjust sessions** → Remove 10, reason "test".
 2. Then Remove 1 with reason "Before the app".
 
 **Expected:**
@@ -360,12 +382,12 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 
 **PT-06 — Member sees PT** · Member A
 
-**Expected:** Home shows the PT card with sessions left, trainer and use-by date.
+**Expected:** **Home** shows a *Personal training* card ("with QA Trainer · N sessions left"). The **PT** tab shows the package with sessions left, trainer and use-by date.
 - [ ] Pass / [ ] Fail
 
 **PT-07 — Trainer sees client** · Trainer
 
-**Expected:** Trainer home → **My clients** shows QA Asha, phone, sessions left.
+**Expected:** **Clients** tab shows QA Asha with sessions left and use-by date. Tapping her opens her page: Call and WhatsApp buttons, and views **Plan · Tracking · PT**.
 - [ ] Pass / [ ] Fail
 
 ---
@@ -373,17 +395,17 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 ## 9. Trainer hours and booking
 
 **BK-01 — Set weekly hours** · Trainer
-1. Home → **My availability** → **Add hours on** today's weekday, from about 3 hours from now to 6 hours from now.
+1. **Profile** tab → **My availability** → **Add hours on** today's weekday, from about 3 hours from now to 6 hours from now.
 2. Add tomorrow too. Session length 60 → **Save hours**.
 
 **Expected:** "Saved" message. Overlapping ranges on the same day are refused before saving.
 - [ ] Pass / [ ] Fail
 
 **BK-02 — Book a session** · Member A
-1. PT card → **Book a session** → pick tomorrow → pick a time → **Book session**.
+1. **PT** tab → **Book** → pick tomorrow → pick a time → **Book session**.
 
 **Expected:**
-- **Upcoming sessions** shows it, with "Free to cancel until …" (12 hours before).
+- **PT → Upcoming** shows it, with "Free to cancel until …" (12 hours before).
 - The PT card says "… sessions left · 1 booked".
 - [ ] Pass / [ ] Fail
 
@@ -397,13 +419,13 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 
 **BK-04 — Trainer's schedule** · Trainer
 
-**Expected:** **My schedule** shows the booking with QA Asha's name and phone.
+**Expected:** The **Schedule** tab shows the booking with QA Asha's name and phone. The desk sees it too: **PT** tab → **Sessions** → QA Trainer.
 - [ ] Pass / [ ] Fail
 
 **BK-05 — Reschedule** · Member A
-1. Tomorrow's session → **Reschedule** → another time.
+1. **PT → Upcoming** → tomorrow's session → **Reschedule** (panel) → another time.
 
-**Expected:** Moved. The old time is free again.
+**Expected:** "Session moved" message. The old time is free again.
 - [ ] Pass / [ ] Fail
 
 **BK-06 — Free cancel** · Member A
@@ -422,26 +444,26 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 - [ ] Pass / [ ] Fail
 
 **BK-08 — Trainer cancels (free)** · Trainer
-1. Member books again, then the trainer cancels it from **My schedule** with a reason.
+1. Member books again, then the trainer cancels it from the **Schedule** tab with a reason.
 
 **Expected:** The member's sessions left is unchanged.
 - [ ] Pass / [ ] Fail
 
 **BK-09 — Time off cancels bookings** · Trainer
 1. Member books tomorrow.
-2. Trainer → My availability → **Add time off** → **Whole days** tomorrow, reason "QA leave".
+2. Trainer → **Profile → My availability** → **Add time off** → **Whole days** tomorrow, reason "QA leave".
 
 **Expected:** The app lists the cancelled session. The member's session disappears and nothing is used up. Tomorrow has no bookable times. Remove the time off afterwards.
 - [ ] Pass / [ ] Fail
 
 **BK-10 — Desk books for a member** · admin
-1. QA Asha's page → PT → **Book session**.
+1. QA Asha's page → **PT** view → **Book session** (panel).
 
-**Expected:** Booked. It shows in the member's Upcoming and in the trainer's schedule.
+**Expected:** "Session booked" message. It shows in the member's Upcoming and in the trainer's Schedule tab.
 - [ ] Pass / [ ] Fail
 
 **BK-11 — Owner PT rules** · owner
-1. Gym details → **PT booking rules** → change free-cancel to 6 hours → save.
+1. **More → Gym details** → **PT booking rules** → change free-cancel to 6 hours → save.
 2. Change it back to 12.
 
 **Expected:** The member's "Free to cancel until" reflects the new rule.
@@ -453,9 +475,9 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 Book a session that starts within the next 2–3 hours (set the trainer's hours accordingly), then wait until it starts.
 
 **CS-01 — Trainer marks Completed** · Trainer
-1. My schedule → the session → **Mark session** → **Completed** → note "Leg day" → Save.
+1. **Today** tab → the session → **Mark session** (panel) → **Completed** → note "Leg day" → Save.
 
-**Expected:** Shows "Completed · marked by QA Trainer" and "Waiting for the member". Sessions left drops by 1.
+**Expected:** "Session marked" message. Shows "Completed · marked by QA Trainer" and "Waiting for the member". Sessions left drops by 1.
 - [ ] Pass / [ ] Fail
 
 **CS-02 — Undo within an hour** · Trainer
@@ -465,7 +487,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 - [ ] Pass / [ ] Fail
 
 **CS-03 — Member confirms** · Member A
-1. Home → **Please confirm** → **Confirm**.
+1. **Home** shows "1 session to confirm" → tap it (or **PT** tab → *Please confirm*) → **Confirm**.
 
 **Expected:** Status "Confirmed". The trainer's Undo is gone.
 - [ ] Pass / [ ] Fail
@@ -477,7 +499,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 - [ ] Pass / [ ] Fail
 
 **CS-05 — Desk resolves** · owner or admin
-1. Home shows **PT disputes** with a count → open it → **Resolve dispute** → **Give session back** + note → Save decision.
+1. **PT** tab → **To resolve · 1** → **Resolve dispute** (panel) → **Give session back** + note → Save decision.
 
 **Expected:** The member's sessions left goes up by 1, and they see "Session given back" with the note. "Keep as used" on another dispute changes nothing.
 - [ ] Pass / [ ] Fail
@@ -485,7 +507,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 **CS-06 — Not marked yet**
 1. Let a booked session end without marking it.
 
-**Expected:** It appears under **Not marked yet** on the trainer home and on the PT disputes screen. The dashboard shows "1 session not marked".
+**Expected:** It appears under **Not marked yet** on the trainer's Today tab and on the desk's **PT → To resolve**. Desk **Today → Training** shows "1 session not marked".
 - [ ] Pass / [ ] Fail
 
 **CS-07 — Auto-confirm after 24 h ⏱** · Member A (next day)
@@ -499,19 +521,19 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 ## 11. Workout plans
 
 **WP-01 — Exercise library** · owner or admin
-1. **Workouts → Exercise library**. If empty, tap **Add common exercises**.
+1. **More → Workouts → Exercise library**. If empty, tap **Add common exercises**.
 
 **Expected:** About 50 exercises, grouped by muscle group, each with a short how-to. Search works.
 - [ ] Pass / [ ] Fail
 
 **WP-02 — Add your own exercise**
-1. **Add exercise** → "QA Battle Ropes", Cardio, Full body, video link "youtube" (wrong), then fix it to `https://youtu.be/…`.
+1. **Add exercise** (panel) → "QA Battle Ropes", Cardio, Full body, video link "youtube" (wrong), then fix it to `https://youtu.be/…`.
 
 **Expected:** A wrong link is refused. The right one saves, and a **Video** link shows on the exercise.
 - [ ] Pass / [ ] Fail
 
 **WP-03 — Build a template**
-1. **Workouts → New template** → name "QA Beginner split".
+1. **More → Workouts → New template** → name "QA Beginner split".
 2. **Mon:** title "Chest + Triceps" → add Barbell Bench Press. Set weights to 20, 22.5 and 25 kg. **Copy last set** once. Rest 90 s.
 3. **Tue:** add Treadmill, 20 minutes.
 4. **Sun:** tick **Rest day**.
@@ -529,7 +551,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 - [ ] Pass / [ ] Fail
 
 **WP-05 — Give a member a plan** · admin
-1. QA Asha → **Workout plan** → Start from **QA Beginner split** → **Give plan**.
+1. QA Asha → **Workout** view → Start from **QA Beginner split** → **Give plan**.
 
 **Expected:** The plan shows, and **Show week** displays all 7 days.
 - [ ] Pass / [ ] Fail
@@ -542,7 +564,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 - [ ] Pass / [ ] Fail
 
 **WP-07 — Trainer edits client plan** · Trainer
-1. **My clients** → QA Asha → **Workout plan →** → **Edit plan** → heavier weight → Save new version.
+1. **Clients** tab → QA Asha → **Plan** → **Edit plan** → heavier weight → Save new version.
 
 **Expected:** Saved with "by QA Trainer". The trainer can't open the plan of a member who has no PT with them.
 - [ ] Pass / [ ] Fail
@@ -550,8 +572,9 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 **WP-08 — Today's workout** · Member A
 
 **Expected:**
-- Home shows **Today's workout** for today's weekday, with sets, weights, rest times and notes.
-- **See the whole week** shows all 7 days, and Sunday is a rest day.
+- **Home** shows a *Today's workout* card; tapping it opens the **Workout** tab.
+- **Workout → Today** shows today's weekday with sets, weights, rest times and notes.
+- **Workout → Full plan** shows all 7 days, and Sunday is a rest day.
 - [ ] Pass / [ ] Fail
 
 **WP-09 — No plan** · Member B
@@ -565,7 +588,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 
 **TR-01 — The week**
 
-**Expected:** **My week** shows Mon–Sun. Today is selected, past days show "To do" (•) or "Missed" (✕), Sunday shows Rest (–), and future days show nothing.
+**Expected:** **Workout → My week** shows Mon–Sun. Today is selected, past days show "To do" (•) or "Missed" (✕), Sunday shows Rest (–), and future days show nothing.
 - [ ] Pass / [ ] Fail
 
 **TR-02 — Mark done**
@@ -609,7 +632,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 - [ ] Pass / [ ] Fail
 
 **TR-08 — Trainer and desk can look, not tick**
-1. Trainer (client plan page) and admin (member page) → **Workout tracking**.
+1. Trainer (**Clients** → QA Asha → **Tracking**) and admin (QA Asha → **Workout** view → *Workout tracking*).
 
 **Expected:** Same week and ticks, with no *Mark done* or *Update* buttons.
 - [ ] Pass / [ ] Fail
@@ -621,33 +644,34 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 **DB-01 — Owner dashboard** · owner
 
 **Expected:**
-- Active members, Ending in 7 days, Expired (30 days) and No plan, each tappable and opening the matching member list.
-- **Money taken:** today and this month match the payments you made today, with the split by method.
+- **Today** tab: Active members, Ending in 7 days, Expired (30 days) and No plan, each tappable and opening the matching member list.
+- Views below them: **Follow up · Money · Training**.
+- **Money**: today and this month match the payments you made today, with the split by method.
 - [ ] Pass / [ ] Fail
 
 **DB-02 — Who to call** · owner or admin
 1. Make sure a QA member's membership ends within 7 days (e.g. start QA 1 month about 25 days ago).
-2. Tap 📞, then 💬.
+2. **Today → Follow up** → tap the phone icon, then the chat icon next to them.
 
-**Expected:** 📞 opens the dialer with their number. 💬 opens WhatsApp with a ready message naming the gym and the end date. Do **not** press send unless it's your own number.
+**Expected:** The phone icon opens the dialer with their number. The chat icon opens WhatsApp with a ready message naming the gym and the end date. Do **not** press send unless it's your own number.
 - [ ] Pass / [ ] Fail
 
 **DB-03 — Admin can't see money** · admin
 
-**Expected:** No "Money taken" card. Dues, PT, Workouts and Leads are visible.
+**Expected:** Only **Follow up · Training** views (no Money). Dues, PT, Workouts and Leads are visible.
 - [ ] Pass / [ ] Fail
 
 **DB-04 — PT and workouts numbers**
 
-**Expected:**
+**Expected:** On **Today → Training**:
 - PT this week shows the sessions you booked, completed and no-showed.
 - "Workouts" shows how many members with a plan ticked a day this week.
-- Disputes and unmarked counts link to PT disputes.
+- Disputes and unmarked counts link to **PT → To resolve**.
 - [ ] Pass / [ ] Fail
 
 **DB-05 — Trainer and member have no dashboard**
 
-**Expected:** The trainer home shows schedule and clients. The member home shows their own cards. Neither shows gym numbers.
+**Expected:** The trainer's Today tab shows their sessions. The member's Home shows their own cards. Neither shows gym numbers.
 - [ ] Pass / [ ] Fail
 
 ---
@@ -655,9 +679,9 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 ## 14. Leads — owner or admin
 
 **LD-01 — Add a lead**
-1. **Leads → Add lead** → "QA Riya", a new number, source Instagram, interest "Weight loss", follow-up **today** → Add lead.
+1. **More → Leads → Add lead** (panel) → "QA Riya", a new number, source Instagram, interest "Weight loss", follow-up **today** → Add lead.
 
-**Expected:** Listed under **Open** as "New", with "Follow up today" highlighted.
+**Expected:** "Lead added" message. Listed under **Open** as "New", with "Follow up today" highlighted.
 - [ ] Pass / [ ] Fail
 
 **LD-02 — Duplicate warning**
@@ -667,7 +691,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 - [ ] Pass / [ ] Fail
 
 **LD-03 — Update status**
-1. QA Riya → **Update** → Contacted, follow-up yesterday, note "Call after 6" → Save.
+1. QA Riya → **Update** (panel) → Contacted, follow-up yesterday, note "Call after 6" → Save.
 
 **Expected:** Status Contacted, and the follow-up shows in **red** as overdue.
 - [ ] Pass / [ ] Fail
@@ -679,7 +703,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 - [ ] Pass / [ ] Fail
 
 **LD-05 — Dashboard follow-ups**
-1. Home dashboard.
+1. **Today → Follow up**.
 
 **Expected:** **Lead follow-ups due** lists QA Riya (overdue), with call and WhatsApp buttons.
 - [ ] Pass / [ ] Fail
@@ -732,7 +756,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 **GN-01 — Small phone:** use the smallest phone you have. Every screen fits, with no sideways scrolling.
 - [ ] Pass / [ ] Fail
 
-**GN-02 — Back navigation:** the phone's back button and the in-app "← Back" links go where you expect.
+**GN-02 — Back navigation:** the phone's back button and the in-app "‹ Members", "‹ More"… links go where you expect. After switching a view (e.g. a member's **PT** view), opening something and coming back returns to the same view.
 - [ ] Pass / [ ] Fail
 
 **GN-03 — Slow or no internet:** turn on airplane mode and tap something.
@@ -747,6 +771,52 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 
 ---
 
+## 17. New design (all roles)
+
+**DS-01 — Desk tabs** · owner or admin
+1. Tap **Today**, **Members**, **PT** and **More**. Then open **More → Plans**.
+
+**Expected:** Each tab opens its screen and is highlighted. On Plans (and Leads, Workouts, Staff, Gym details) the **More** tab stays highlighted and "‹ More" goes back.
+- [ ] Pass / [ ] Fail
+
+**DS-02 — Member page views** · admin
+1. QA Asha → tap **Overview**, **Payments**, **PT**, **Workout**.
+
+**Expected:** Each view is short. The name, Call/WhatsApp buttons and any amount due stay on top in every view.
+- [ ] Pass / [ ] Fail
+
+**DS-03 — Panels** · any role
+1. Open any panel (e.g. **Renew**). Close it with ✕. Open it again and tap the dimmed area above it.
+
+**Expected:** It slides up from the bottom and closes both ways without saving anything. The page behind doesn't scroll while it's open. Long panels scroll inside.
+- [ ] Pass / [ ] Fail
+
+**DS-04 — PT tab (desk)** · owner or admin
+1. **PT** tab → **Sessions** → pick each trainer → **To resolve** → **Packages**.
+
+**Expected:** Sessions shows the chosen trainer's next two weeks. *To resolve* shows a count when there are disputes or unmarked sessions. Packages lists PT packages with **Add package**.
+- [ ] Pass / [ ] Fail
+
+**DS-05 — Trainer tabs** · Trainer
+1. Tap **Today**, **Clients**, **Schedule**, **Profile**.
+
+**Expected:** Today: greeting, "Sessions today" and "Later this fortnight" counts, today's sessions. Clients: list (search box appears when there are more than 5). Schedule: next two weeks. Profile: account, *My availability*, Log out.
+- [ ] Pass / [ ] Fail
+
+**DS-06 — Light and dark** · any role
+1. Switch the phone between light and dark mode (Settings → Display) with the app open.
+
+**Expected:** The app switches too: cream background with olive buttons in light, dark green-black with light-olive buttons in dark. All text is readable in both.
+- [ ] Pass / [ ] Fail
+
+**DS-07 — Laptop** · owner or admin
+1. Open the app link in a laptop browser (window wider than a tablet).
+
+**Expected:** A sidebar on the left lists Today, Members, PT, Leads, Plans, Workouts, Staff, Gym details (owner only) and Account. No tabs at the bottom. The four count tiles sit in one row. Making the window narrow switches back to bottom tabs.
+- [ ] Pass / [ ] Fail
+
+---
+
 ## Reporting a failure
 
 Copy this for each ❌ and send it to me (a screenshot helps a lot):
@@ -755,6 +825,7 @@ Copy this for each ❌ and send it to me (a screenshot helps a lot):
 Test ID:        e.g. BK-07
 Phone / browser: e.g. iPhone 13, Safari (installed app)
 Logged in as:   Owner / Admin / Trainer / Member A / Member B
+Light or dark:  e.g. dark
 Steps I did:    1. …  2. …
 What I expected:
 What happened:

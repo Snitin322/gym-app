@@ -6,6 +6,8 @@ import { AdminLayout, LoadingText } from '../../ui/AdminLayout'
 import { Button } from '../../ui/Button'
 import { Card, Field, SelectInput, TextArea, TextInput } from '../../ui/Form'
 import { ErrorText } from '../../ui/Screen'
+import { useDoneToast } from '../../ui/toast-context'
+import { PanelCard } from './panels'
 
 const KIND_LABELS: Record<WorkoutExerciseKind, string> = { strength: 'Strength', cardio: 'Cardio' }
 
@@ -61,11 +63,8 @@ export function ExerciseLibraryPage() {
           <ul className="flex flex-col gap-2">
             {list.map((e) => (
               <li key={e.id}>
-                {editing === e.id ? (
-                  <ExerciseForm exercise={e} onDone={() => setEditing(null)} />
-                ) : (
-                  <ExerciseRow exercise={e} onEdit={() => setEditing(e.id)} />
-                )}
+                {editing === e.id && <ExerciseForm exercise={e} onDone={() => setEditing(null)} />}
+                <ExerciseRow exercise={e} onEdit={() => setEditing(e.id)} />
               </li>
             ))}
           </ul>
@@ -116,6 +115,7 @@ function ExerciseRow({ exercise: e, onEdit }: { exercise: WorkoutExercise; onEdi
 
 function ExerciseForm({ exercise, onDone }: { exercise?: WorkoutExercise; onDone: () => void }) {
   const save = useSaveExercise()
+  const done = useDoneToast(onDone)
   const [name, setName] = useState(exercise?.name ?? '')
   const [kind, setKind] = useState<WorkoutExerciseKind>(exercise?.kind ?? 'strength')
   const [muscleGroup, setMuscleGroup] = useState(exercise?.muscleGroup ?? '')
@@ -131,14 +131,13 @@ function ExerciseForm({ exercise, onDone }: { exercise?: WorkoutExercise; onDone
     setProblem(null)
     save.mutate(
       { id: exercise?.id, name: name.trim(), kind, muscleGroup, description, videoUrl: videoUrl.trim() },
-      { onSuccess: onDone },
+      { onSuccess: done(exercise ? 'Exercise saved' : 'Exercise added') },
     )
   }
 
   return (
-    <Card className="border border-accent/40">
+    <PanelCard title={exercise ? `Edit ${exercise.name}` : 'New exercise'} onClose={onDone}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
-        <h2 className="text-lg font-bold">{exercise ? `Edit ${exercise.name}` : 'New exercise'}</h2>
         <Field label="Name">
           {(id) => <TextInput id={id} value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />}
         </Field>
@@ -185,6 +184,6 @@ function ExerciseForm({ exercise, onDone }: { exercise?: WorkoutExercise; onDone
           </Button>
         </div>
       </form>
-    </Card>
+    </PanelCard>
   )
 }

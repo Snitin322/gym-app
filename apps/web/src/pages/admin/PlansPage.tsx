@@ -7,6 +7,8 @@ import { AdminLayout, LoadingText } from '../../ui/AdminLayout'
 import { Button } from '../../ui/Button'
 import { Card, Field, RupeeInput, SelectInput, TextArea, TextInput } from '../../ui/Form'
 import { ErrorText } from '../../ui/Screen'
+import { useDoneToast } from '../../ui/toast-context'
+import { PanelCard } from './panels'
 
 const MONTH_OPTIONS = [1, 2, 3, 4, 6, 9, 12, 18, 24]
 
@@ -37,17 +39,12 @@ export function PlansPage() {
       )}
 
       <ul className="flex flex-col gap-3">
-        {plans.data?.map((plan) =>
-          editing === plan.id ? (
-            <li key={plan.id}>
-              <PlanForm plan={plan} onDone={() => setEditing(null)} />
-            </li>
-          ) : (
-            <li key={plan.id}>
-              <PlanCard plan={plan} onEdit={() => setEditing(plan.id)} />
-            </li>
-          ),
-        )}
+        {plans.data?.map((plan) => (
+          <li key={plan.id}>
+            <PlanCard plan={plan} onEdit={() => setEditing(plan.id)} />
+            {editing === plan.id && <PlanForm plan={plan} onDone={() => setEditing(null)} />}
+          </li>
+        ))}
       </ul>
     </AdminLayout>
   )
@@ -92,6 +89,7 @@ function PlanCard({ plan, onEdit }: { plan: MembershipPlan; onEdit: () => void }
 
 function PlanForm({ plan, onDone }: { plan?: MembershipPlan; onDone: () => void }) {
   const save = useSavePlan()
+  const done = useDoneToast(onDone)
   const [name, setName] = useState(plan?.name ?? '')
   const [months, setMonths] = useState(plan?.durationMonths ?? 1)
   const [price, setPrice] = useState(plan ? paiseToRupeesInput(plan.pricePaise) : '')
@@ -116,14 +114,13 @@ function PlanForm({ plan, onDone }: { plan?: MembershipPlan; onDone: () => void 
     setProblem(null)
     save.mutate(
       { id: plan?.id, name: name.trim(), durationMonths: months, pricePaise, maxFreezeDays, description },
-      { onSuccess: onDone },
+      { onSuccess: done(plan ? 'Plan saved' : 'Plan added') },
     )
   }
 
   return (
-    <Card>
+    <PanelCard title={plan ? `Edit ${plan.name}` : 'New plan'} onClose={onDone}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
-        <h2 className="text-lg font-bold">{plan ? `Edit ${plan.name}` : 'New plan'}</h2>
         <Field label="Plan name">
           {(id) => <TextInput id={id} value={name} onChange={(e) => setName(e.target.value)} placeholder="3 months" />}
         </Field>
@@ -183,6 +180,6 @@ function PlanForm({ plan, onDone }: { plan?: MembershipPlan; onDone: () => void 
           </Button>
         </div>
       </form>
-    </Card>
+    </PanelCard>
   )
 }

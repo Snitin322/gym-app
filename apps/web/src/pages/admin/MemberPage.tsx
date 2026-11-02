@@ -136,7 +136,9 @@ export function MemberPage() {
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <Button onClick={() => setPanel('renew')}>{current ? 'Renew' : 'Add membership'}</Button>
+            <Button className={current ? 'w-full' : 'col-span-2 w-full'} onClick={() => setPanel('renew')}>
+              {current ? 'Renew' : 'Add membership'}
+            </Button>
             {canFreeze && (
               <Button variant="secondary" onClick={() => setPanel('freeze')}>
                 Freeze

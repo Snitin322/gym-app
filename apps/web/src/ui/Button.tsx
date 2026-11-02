@@ -16,10 +16,12 @@ export function Button({
   disabled,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; loading?: boolean }) {
+  // Full width unless the caller sets a width (e.g. w-auto); both in one class list would clash.
+  const width = /(^|\s)w-/.test(className) ? '' : 'w-full'
   return (
     <button
       type="button"
-      className={`min-h-12 w-full cursor-pointer rounded-xl px-4 text-base transition-opacity disabled:cursor-not-allowed ${variants[variant]} ${className}`}
+      className={`min-h-12 ${width} cursor-pointer rounded-xl px-4 text-base transition-opacity disabled:cursor-not-allowed ${variants[variant]} ${className}`}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       {...props}

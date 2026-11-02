@@ -6,6 +6,8 @@ import { LoadingText } from '../../ui/AdminLayout'
 import { Button } from '../../ui/Button'
 import { Card, Field, RupeeInput, TextArea, TextInput } from '../../ui/Form'
 import { ErrorText } from '../../ui/Screen'
+import { useDoneToast } from '../../ui/toast-context'
+import { PanelCard } from './panels'
 
 /** The PT tab's Packages view: what the desk sells, with price and validity. */
 export function PtPackagesView() {
@@ -34,11 +36,8 @@ export function PtPackagesView() {
       <ul className="flex flex-col gap-3">
         {packages.data?.map((pkg) => (
           <li key={pkg.id}>
-            {editing === pkg.id ? (
-              <PackageForm pkg={pkg} onDone={() => setEditing(null)} />
-            ) : (
-              <PackageCard pkg={pkg} onEdit={() => setEditing(pkg.id)} />
-            )}
+            <PackageCard pkg={pkg} onEdit={() => setEditing(pkg.id)} />
+            {editing === pkg.id && <PackageForm pkg={pkg} onDone={() => setEditing(null)} />}
           </li>
         ))}
       </ul>
@@ -78,6 +77,7 @@ function PackageCard({ pkg, onEdit }: { pkg: PtPackage; onEdit: () => void }) {
 
 function PackageForm({ pkg, onDone }: { pkg?: PtPackage; onDone: () => void }) {
   const save = useSavePtPackage()
+  const done = useDoneToast(onDone)
   const [name, setName] = useState(pkg?.name ?? '')
   const [sessions, setSessions] = useState(String(pkg?.sessionCount ?? 12))
   const [validity, setValidity] = useState(String(pkg?.validityDays ?? 60))
@@ -99,14 +99,13 @@ function PackageForm({ pkg, onDone }: { pkg?: PtPackage; onDone: () => void }) {
     setProblem(null)
     save.mutate(
       { id: pkg?.id, name: name.trim(), sessionCount, validityDays, pricePaise, description },
-      { onSuccess: onDone },
+      { onSuccess: done(pkg ? 'Package saved' : 'Package added') },
     )
   }
 
   return (
-    <Card>
+    <PanelCard title={pkg ? `Edit ${pkg.name}` : 'New PT package'} onClose={onDone}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
-        <h2 className="text-lg font-bold">{pkg ? `Edit ${pkg.name}` : 'New PT package'}</h2>
         <Field label="Package name">
           {(id) => (
             <TextInput id={id} value={name} onChange={(e) => setName(e.target.value)} placeholder="12 sessions" />
@@ -157,6 +156,6 @@ function PackageForm({ pkg, onDone }: { pkg?: PtPackage; onDone: () => void }) {
           </Button>
         </div>
       </form>
-    </Card>
+    </PanelCard>
   )
 }

@@ -314,14 +314,14 @@ Phase 8 is complete.
 
 - **Tests**: numbers on fixed data, India midnight boundaries, isolation, revenue hidden from admins, lead statuses and conversion; screens.
 
-### Design refresh (plan approved 2 Nov 2026; D1–D3 done)
+### Design refresh (plan approved 2 Nov 2026; done 2 Nov 2026)
 
 Approved: theme follows the phone's light/dark setting with the Onthec brand colours (olive #4a5141, cream #efe9dd, from the logo); bottom tabs per role, sidebar for the desk on laptops; Inter + Lucide; app name **Onthec Fitness Club** with the club logo as the app icon. Same features, server and data — screens only.
 
 - **D1 (done)**: brand theme (`index.css` tokens, light + dark), Inter, Lucide, logo and PWA icons from `public/logo.png`, app name. Shell pieces in `ui/`: `AppShell` (bottom tab bar, `PageHeader`, `SectionTitle`, `Avatar`), `Sheet` (bottom sheet), `Toast` (+ `useToast`), `Segmented` (+ `lib/use-view`, view kept in `?view=`). Member app: **Home** (membership hero card, today's workout, next PT session, items to confirm), **Workout** (Today · My week · Full plan), **PT** (Upcoming · Book · History), **Profile** (account, membership details, renew online, payments and invoices, install, log out).
 - **D2 (done)**: trainer app in `pages/trainer/TrainerApp.tsx` — **Today** (greeting, counts, sessions to mark, today's sessions), **Clients** (list; client page with call / WhatsApp and Plan · Tracking · PT), **Schedule** (next two weeks), **Profile** (account, availability and time off, install, log out). Session actions (mark, dispute, resolve, reschedule, cancel) open in bottom sheets and confirm with a toast; shared `AccountCard` / `LogOutButton` / `LinkRow` in `pages/AccountBits.tsx`.
 - **D3 (done)**: desk (owner/admin) — **Today** (greeting, Add member, count tiles, then Follow up · Money (owner) · Training views), **Members** (list; member page with call / WhatsApp and Overview · Payments · PT · Workout; renew, freeze, cancel, edit, record payment, sell / book / adjust / extend PT all open in bottom sheets with a toast), **PT** (`/admin/pt`: Sessions by trainer · To resolve · Packages; old `/admin/pt-packages` and `/admin/pt-disputes` redirect), **More** (leads, plans, workouts, staff, gym details, account, log out). Laptops (≥1024px) get a sidebar with every screen instead of the tab bar. Tab lists live in `lib/nav.ts`; `AdminLayout` (`DeskShell`) puts every staff screen in the frame.
-- **D4**: polish pass at 360px in light and dark, and update `docs/QA_TEST_CASES.md` for the new screens.
+- **D4 (done)**: polish pass at 360px in light and dark — the remaining desk add/edit forms (plans, PT packages, staff, leads, exercises) open in bottom sheets with a toast; `Button` no longer forces full width when a page asks for `w-auto` (Tailwind v4 ordering made `w-full` win); icon-only "Add member" on small phones; Lucide call/WhatsApp icons on leads. `docs/QA_TEST_CASES.md` updated for the new navigation, with a new section 17 for the design.
 
 ### Phase 9 — QR check-in
 - Member: full-screen QR pass that rotates every 30s with a countdown; brightness hint.
