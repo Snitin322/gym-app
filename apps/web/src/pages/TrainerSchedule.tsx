@@ -15,7 +15,7 @@ export function TrainerSchedule({ trainerId }: { trainerId: string }) {
 
   return (
     <section aria-labelledby="schedule-heading" className="flex flex-col gap-3">
-      <h2 id="schedule-heading" className="text-xl font-bold">
+      <h2 id="schedule-heading" className="sr-only">
         My schedule
       </h2>
       {query.isPending && (

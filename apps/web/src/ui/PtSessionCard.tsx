@@ -23,7 +23,9 @@ import { Button } from './Button'
 import { Field, TextArea, TextInput } from './Form'
 import { ErrorText } from './Screen'
 import { SlotPicker } from './SlotPicker'
+import { Sheet } from './Sheet'
 import { Badge } from './StatusBadge'
+import { useToast } from './toast-context'
 
 const CONFIRMATION_TONES: Record<PtConfirmation, BadgeTone> = {
   pending: 'warn',
@@ -111,11 +113,21 @@ export function PtSessionCard({
       {panel === null && (
         <SessionActions session={s} viewer={viewer} desk={desk} now={now} canMove={canMove} onOpen={setPanel} />
       )}
-      {panel === 'move' && <MovePanel session={s} viewer={viewer} onDone={close} />}
-      {panel === 'cancel' && <CancelPanel session={s} viewer={viewer} free={free} onDone={close} />}
-      {panel === 'mark' && <MarkPanel session={s} onDone={close} />}
-      {panel === 'dispute' && <DisputePanel session={s} onDone={close} />}
-      {panel === 'resolve' && <ResolvePanel session={s} onDone={close} />}
+      <Sheet open={panel === 'move'} title="Move to another time" onClose={close}>
+        <MovePanel session={s} viewer={viewer} onDone={close} />
+      </Sheet>
+      <Sheet open={panel === 'cancel'} title="Cancel this session?" onClose={close}>
+        <CancelPanel session={s} viewer={viewer} free={free} onDone={close} />
+      </Sheet>
+      <Sheet open={panel === 'mark'} title="How did it go?" onClose={close}>
+        <MarkPanel session={s} onDone={close} />
+      </Sheet>
+      <Sheet open={panel === 'dispute'} title="What’s not right?" onClose={close}>
+        <DisputePanel session={s} onDone={close} />
+      </Sheet>
+      <Sheet open={panel === 'resolve'} title="Resolve dispute" onClose={close}>
+        <ResolvePanel session={s} onDone={close} />
+      </Sheet>
     </article>
   )
 }
@@ -161,6 +173,7 @@ function SessionActions({
   onOpen: (panel: Panel) => void
 }) {
   const confirm = useConfirmSession()
+  const toast = useToast()
   const undo = useUndoMark()
   const started = Date.parse(s.startsAt) <= now
 
@@ -185,7 +198,10 @@ function SessionActions({
     return (
       <>
         <div className="flex gap-3">
-          <Button loading={confirm.isPending} onClick={() => confirm.mutate({ sessionId: s.id })}>
+          <Button
+            loading={confirm.isPending}
+            onClick={() => confirm.mutate({ sessionId: s.id }, { onSuccess: () => toast('Confirmed') })}
+          >
             Confirm
           </Button>
           <Button variant="secondary" onClick={() => onOpen('dispute')}>
@@ -205,7 +221,11 @@ function SessionActions({
       <>
         <div className="flex gap-3">
           {canUndo && (
-            <Button variant="secondary" loading={undo.isPending} onClick={() => undo.mutate({ sessionId: s.id })}>
+            <Button
+              variant="secondary"
+              loading={undo.isPending}
+              onClick={() => undo.mutate({ sessionId: s.id }, { onSuccess: () => toast('Mark undone') })}
+            >
               Undo mark
             </Button>
           )}
@@ -276,6 +296,11 @@ function PanelFooter({
 }
 
 function MarkPanel({ session, onDone }: { session: PtSessionView; onDone: () => void }) {
+  const toast = useToast()
+  const done = (message: string) => {
+    toast(message)
+    onDone()
+  }
   const mark = useMarkSession()
   const [outcome, setOutcome] = useState<PtMarkOutcome | null>(null)
   const [note, setNote] = useState('')
@@ -285,12 +310,14 @@ function MarkPanel({ session, onDone }: { session: PtSessionView; onDone: () => 
     event.preventDefault()
     if (!outcome) return setProblem('Choose Completed or No-show')
     setProblem(null)
-    mark.mutate({ sessionId: session.id, outcome, note: note.trim() || undefined }, { onSuccess: onDone })
+    mark.mutate(
+      { sessionId: session.id, outcome, note: note.trim() || undefined },
+      { onSuccess: () => done('Session marked') },
+    )
   }
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-3 border-t border-line pt-3">
-      <h3 className="font-semibold">How did it go?</h3>
+    <form onSubmit={submit} noValidate className="flex flex-col gap-3">
       <ChoiceChips
         label="Outcome"
         value={outcome}
@@ -325,6 +352,11 @@ function MarkPanel({ session, onDone }: { session: PtSessionView; onDone: () => 
 }
 
 function DisputePanel({ session, onDone }: { session: PtSessionView; onDone: () => void }) {
+  const toast = useToast()
+  const done = (message: string) => {
+    toast(message)
+    onDone()
+  }
   const dispute = useDisputeSession()
   const [reason, setReason] = useState('')
   const [problem, setProblem] = useState<string | null>(null)
@@ -333,12 +365,14 @@ function DisputePanel({ session, onDone }: { session: PtSessionView; onDone: () 
     event.preventDefault()
     if (reason.trim().length < 3) return setProblem('Tell the gym what went wrong')
     setProblem(null)
-    dispute.mutate({ sessionId: session.id, reason: reason.trim() }, { onSuccess: onDone })
+    dispute.mutate(
+      { sessionId: session.id, reason: reason.trim() },
+      { onSuccess: () => done('Sent to the front desk') },
+    )
   }
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-3 border-t border-line pt-3">
-      <h3 className="font-semibold">What’s not right?</h3>
+    <form onSubmit={submit} noValidate className="flex flex-col gap-3">
       <p className="text-sm text-muted">The front desk will look into it and can give the session back.</p>
       <Field label="What happened?">
         {(id) => (
@@ -362,6 +396,11 @@ function DisputePanel({ session, onDone }: { session: PtSessionView; onDone: () 
 }
 
 function ResolvePanel({ session, onDone }: { session: PtSessionView; onDone: () => void }) {
+  const toast = useToast()
+  const done = (message: string) => {
+    toast(message)
+    onDone()
+  }
   const resolve = useResolveDispute()
   const [resolution, setResolution] = useState<'upheld' | 'rejected' | null>(null)
   const [note, setNote] = useState('')
@@ -372,12 +411,14 @@ function ResolvePanel({ session, onDone }: { session: PtSessionView; onDone: () 
     if (!resolution) return setProblem('Choose what to do')
     if (note.trim().length < 3) return setProblem('Add a short note for the member')
     setProblem(null)
-    resolve.mutate({ sessionId: session.id, resolution, note: note.trim() }, { onSuccess: onDone })
+    resolve.mutate(
+      { sessionId: session.id, resolution, note: note.trim() },
+      { onSuccess: () => done('Dispute resolved') },
+    )
   }
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-3 border-t border-line pt-3">
-      <h3 className="font-semibold">Resolve dispute</h3>
+    <form onSubmit={submit} noValidate className="flex flex-col gap-3">
       <ChoiceChips
         label="Decision"
         value={resolution}
@@ -417,17 +458,23 @@ function MovePanel({
   viewer: 'member' | 'staff'
   onDone: () => void
 }) {
+  const toast = useToast()
+  const done = (message: string) => {
+    toast(message)
+    onDone()
+  }
   const move = useRescheduleSession()
   return (
-    <div className="flex flex-col gap-3 border-t border-line pt-3">
-      <h3 className="font-semibold">Move to another time</h3>
+    <div className="flex flex-col gap-3">
       <SlotPicker
         purchaseId={session.purchaseId}
         confirmLabel="Move session"
         pending={move.isPending}
         error={move.error}
         note={viewer === 'member' ? freeCancelNote : undefined}
-        onConfirm={(startsAt) => move.mutate({ sessionId: session.id, startsAt }, { onSuccess: onDone })}
+        onConfirm={(startsAt) =>
+          move.mutate({ sessionId: session.id, startsAt }, { onSuccess: () => done('Session moved') })
+        }
         onCancel={onDone}
       />
     </div>
@@ -445,17 +492,24 @@ function CancelPanel({
   free: boolean
   onDone: () => void
 }) {
+  const toast = useToast()
+  const done = (message: string) => {
+    toast(message)
+    onDone()
+  }
   const cancel = useCancelSession()
   const [reason, setReason] = useState('')
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    cancel.mutate({ sessionId: session.id, reason: reason.trim() || undefined }, { onSuccess: onDone })
+    cancel.mutate(
+      { sessionId: session.id, reason: reason.trim() || undefined },
+      { onSuccess: () => done('Session cancelled') },
+    )
   }
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-3 border-t border-line pt-3">
-      <h3 className="font-semibold">Cancel this session?</h3>
+    <form onSubmit={submit} noValidate className="flex flex-col gap-3">
       {viewer === 'staff' ? (
         <p className="text-sm text-muted">{session.member.name} keeps the session (it is not used up).</p>
       ) : free ? (

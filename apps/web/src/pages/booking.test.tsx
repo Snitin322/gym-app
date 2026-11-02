@@ -222,7 +222,7 @@ describe('trainer availability', () => {
     await vi.waitFor(() => expect(callsTo('DELETE /trainers/trainer-1/time-off/off-1')).toHaveLength(1))
   })
 
-  it('the trainer home shows upcoming sessions by day with client name and phone', async () => {
+  it('the trainer schedule shows upcoming sessions by day with client name and phone', async () => {
     mockApi({
       'POST /auth/refresh': trainer,
       'GET /trainer/clients': ok([]),
@@ -231,13 +231,13 @@ describe('trainer availability', () => {
         ptSession({ id: 'ses-old', startsAt: at(tomorrow, 360), status: 'cancelled' }),
       ]),
     })
-    renderAt('/home')
+    renderAt('/trainer/schedule')
 
-    expect(await screen.findByRole('heading', { name: 'My schedule' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Schedule' })).toBeTruthy()
+    expect(screen.getByRole('region', { name: 'My schedule' })).toBeTruthy()
     expect(await screen.findByText('Tomorrow · 1 session')).toBeTruthy()
     expect(screen.getByText('7:00 am – 8:00 am')).toBeTruthy()
     expect(screen.getByText('+91 98765 00001')).toBeTruthy()
-    expect(screen.getByRole('link', { name: /My availability/ }).getAttribute('href')).toBe('/trainer/availability')
   })
 })
 
@@ -323,14 +323,16 @@ describe('member booking', () => {
     expect(within(soonCard!).getByText('Cancelling now uses up this session.')).toBeTruthy()
     expect(within(soonCard!).queryByRole('button', { name: 'Reschedule' })).toBeNull()
     await user.click(within(soonCard!).getByRole('button', { name: 'Cancel' }))
-    expect(within(soonCard!).getByRole('alert').textContent).toMatch(/cancelling now uses up this session/)
-    await user.click(within(soonCard!).getByRole('button', { name: 'Cancel session' }))
+    expect(within(screen.getByRole('dialog')).getByRole('alert').textContent).toMatch(
+      /cancelling now uses up this session/,
+    )
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel session' }))
     await vi.waitFor(() => expect(callsTo('POST /pt-sessions/ses-soon/cancel')).toHaveLength(1))
     expect(callsTo('POST /pt-sessions/ses-soon/cancel')[0]?.body).toEqual({})
 
     await user.click(within(laterCard!).getByRole('button', { name: 'Cancel' }))
-    expect(within(laterCard!).getByText(/It's free/)).toBeTruthy()
-    await user.click(within(laterCard!).getByRole('button', { name: 'Cancel session' }))
+    expect(within(screen.getByRole('dialog')).getByText(/It's free/)).toBeTruthy()
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel session' }))
     await vi.waitFor(() => expect(callsTo('POST /pt-sessions/ses-later/cancel')).toHaveLength(1))
   })
 
@@ -347,9 +349,9 @@ describe('member booking', () => {
 
     const card = (await screen.findAllByRole('article'))[0]!
     await user.click(within(card).getByRole('button', { name: 'Reschedule' }))
-    await user.click(await within(card).findByRole('radio', { name: formatDay(dayAfter) }))
-    await user.click(within(card).getByRole('radio', { name: '6:00 pm' }))
-    await user.click(within(card).getByRole('button', { name: 'Move session' }))
+    await user.click(await within(screen.getByRole('dialog')).findByRole('radio', { name: formatDay(dayAfter) }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('radio', { name: '6:00 pm' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Move session' }))
 
     await vi.waitFor(() => expect(callsTo('POST /pt-sessions/ses-later/reschedule')).toHaveLength(1))
     expect(callsTo('POST /pt-sessions/ses-later/reschedule')[0]?.body).toEqual({ startsAt: at(dayAfter, 1080) })
@@ -398,9 +400,9 @@ describe('desk booking', () => {
     const card = (await screen.findAllByRole('article'))[0]!
     expect(within(card).getByRole('button', { name: 'Reschedule' })).toBeTruthy()
     await user.click(within(card).getByRole('button', { name: 'Cancel' }))
-    expect(within(card).getByText(/keeps the session/)).toBeTruthy()
-    await user.type(within(card).getByLabelText('Reason (optional)'), 'Trainer unwell')
-    await user.click(within(card).getByRole('button', { name: 'Cancel session' }))
+    expect(within(screen.getByRole('dialog')).getByText(/keeps the session/)).toBeTruthy()
+    await user.type(within(screen.getByRole('dialog')).getByLabelText('Reason (optional)'), 'Trainer unwell')
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel session' }))
     await vi.waitFor(() => expect(callsTo('POST /pt-sessions/ses-1/cancel')).toHaveLength(1))
     expect(callsTo('POST /pt-sessions/ses-1/cancel')[0]?.body).toEqual({ reason: 'Trainer unwell' })
   })
@@ -531,7 +533,7 @@ describe('completing sessions', () => {
     const unmarked = await screen.findByRole('region', { name: 'Not marked yet' })
     expect(within(unmarked).getByRole('button', { name: 'Mark session' })).toBeTruthy()
 
-    const schedule = screen.getByRole('region', { name: 'My schedule' })
+    const schedule = screen.getByRole('region', { name: 'Today’s sessions' })
     expect(await within(schedule).findByText('Completed')).toBeTruthy()
     expect(within(schedule).getByText('Trainer’s note: Leg day, squats 60 kg')).toBeTruthy()
     expect(within(schedule).getByText('Waiting for the member')).toBeTruthy()
@@ -561,10 +563,15 @@ describe('completing sessions', () => {
     await vi.waitFor(() => expect(callsTo('POST /pt-sessions/ses-1/confirm')).toHaveLength(1))
 
     await user.click(within(second).getByRole('button', { name: 'Not right?' }))
-    await user.click(within(second).getByRole('button', { name: 'Send to front desk' }))
-    expect((await within(second).findByRole('alert')).textContent).toBe('Tell the gym what went wrong')
-    await user.type(within(second).getByLabelText('What happened?'), 'I was there, the trainer was late')
-    await user.click(within(second).getByRole('button', { name: 'Send to front desk' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Send to front desk' }))
+    expect((await within(screen.getByRole('dialog')).findByRole('alert')).textContent).toBe(
+      'Tell the gym what went wrong',
+    )
+    await user.type(
+      within(screen.getByRole('dialog')).getByLabelText('What happened?'),
+      'I was there, the trainer was late',
+    )
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Send to front desk' }))
     await vi.waitFor(() => expect(callsTo('POST /pt-sessions/ses-2/dispute')).toHaveLength(1))
     expect(callsTo('POST /pt-sessions/ses-2/dispute')[0]?.body).toEqual({ reason: 'I was there, the trainer was late' })
   })

@@ -150,8 +150,8 @@ describe('logging in', () => {
     await user.click(await screen.findByRole('button', { name: 'Beta Gym' }))
 
     expect(callsTo('POST /auth/select-gym')[0]?.body).toEqual({ selectionToken: 'select-1', gymId: 'gym-2' })
-    expect(await screen.findByRole('heading', { name: 'Hi Asha' })).toBeTruthy()
-    expect(screen.getByText(/trainer at Beta Gym/)).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Asha' })).toBeTruthy()
+    expect(screen.getByText('Trainer · Beta Gym')).toBeTruthy()
   })
 })
 

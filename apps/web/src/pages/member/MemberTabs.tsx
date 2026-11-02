@@ -1,13 +1,9 @@
-import { useState } from 'react'
-import { LogOut } from 'lucide-react'
 import { isoWeekday, todayInIndia, workoutDayFor } from '@onthec/shared'
 import { useMyPt } from '../../api/admin'
 import { useMyWorkoutPlan } from '../../api/workouts'
-import { useAuth, useSignedInUser } from '../../auth/AuthContext'
 import { InstallHint } from '../../InstallHint'
-import { errorMessage, formatPhone } from '../../lib/format'
-import { Avatar, PageHeader } from '../../ui/AppShell'
-import { Button } from '../../ui/Button'
+import { errorMessage } from '../../lib/format'
+import { PageHeader } from '../../ui/AppShell'
 import { Card } from '../../ui/Form'
 import { useView } from '../../lib/use-view'
 import { Segmented } from '../../ui/Segmented'
@@ -17,6 +13,7 @@ import { WorkoutDayView, WorkoutWeekView } from '../../ui/WorkoutWeekView'
 import { MyMembershipCard } from '../MyMembershipCard'
 import { MyPtCard } from '../MyPtCard'
 import { MyPtSessions } from '../MyPtSessions'
+import { AccountCard, LogOutButton } from '../AccountBits'
 import { MemberShell } from './MemberShell'
 
 const WORKOUT_VIEWS = ['today', 'week', 'plan'] as const
@@ -108,34 +105,13 @@ export function MemberPtPage() {
 
 /** Profile tab: membership details, renew, payments and invoices, account, install and log out. */
 export function MemberProfilePage() {
-  const user = useSignedInUser()
-  const { signOut } = useAuth()
-  const [signingOut, setSigningOut] = useState(false)
   return (
     <MemberShell>
       <PageHeader title="Profile" />
-      <Card className="flex items-center gap-3">
-        <Avatar name={user.name} size={48} />
-        <div className="min-w-0">
-          <p className="truncate font-semibold">{user.name}</p>
-          <p className="text-sm text-muted">{formatPhone(user.phone)}</p>
-          <p className="text-sm text-muted">{user.gym.name}</p>
-        </div>
-      </Card>
+      <AccountCard />
       <MyMembershipCard />
       <InstallHint />
-      <Button
-        variant="secondary"
-        loading={signingOut}
-        onClick={() => {
-          setSigningOut(true)
-          void signOut()
-        }}
-      >
-        <span className="flex items-center justify-center gap-2">
-          <LogOut aria-hidden="true" size={18} /> Log out
-        </span>
-      </Button>
+      <LogOutButton />
     </MemberShell>
   )
 }

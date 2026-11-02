@@ -23,7 +23,13 @@ import { ErrorText } from '../ui/Screen'
 /** Trainer's own hours ("My availability"). */
 export function MyAvailabilityPage() {
   const user = useSignedInUser()
-  return <AvailabilityScreen trainerId={user.id} title="My availability" back={{ to: '/home', label: 'Home' }} />
+  return (
+    <AvailabilityScreen
+      trainerId={user.id}
+      title="My availability"
+      back={{ to: '/trainer/profile', label: 'Profile' }}
+    />
+  )
 }
 
 /** The desk viewing or editing a trainer's hours (from Staff). */

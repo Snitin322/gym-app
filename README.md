@@ -17,7 +17,7 @@ Multi-tenant gym management platform (members, trainers, owner/admin) delivered 
 - **Phase 6 — Workout plans:** done. Exercise library, weekly plan templates (sets, weights, rests, cardio), each member gets their own copy that the desk or their PT trainer can update any time (versions kept), and members see Today's workout.
 - **Phase 7 — Workout tracking:** done. Members tick each day in a weekly calendar (done as planned, or updated reps/weights), see "last time", and their trainer and the desk can look back.
 - **Phase 8 — Admin dashboard and leads:** done. Owner/admin dashboard (members to call with WhatsApp links, money taken for the owner, dues, PT, workouts) and leads with follow-ups and convert-to-member.
-- **Design refresh:** in progress. D1 done: Onthec Fitness Club branding (logo, olive/cream, light and dark), app-style tab navigation for members (Home · Workout · PT · Profile). Next: trainer and desk screens.
+- **Design refresh:** in progress. D1 done: Onthec Fitness Club branding (logo, olive/cream, light and dark), app-style tab navigation for members (Home · Workout · PT · Profile). D2 done: trainer tabs (Today · Clients · Schedule · Profile), session actions in bottom sheets. Next: desk screens.
 
 Login codes are sent on WhatsApp when `OTP_PROVIDER=whatsapp` — set it up with [docs/WHATSAPP_SETUP.md](docs/WHATSAPP_SETUP.md). With `OTP_PROVIDER=console` they appear in the API log (`pnpm dev` terminal) instead.
 

@@ -7,9 +7,7 @@ import { Button } from '../ui/Button'
 import { Logo, Screen } from '../ui/Screen'
 import { Dashboard } from './admin/Dashboard'
 import { MemberHome } from './member/MemberHome'
-import { TrainerClients } from './TrainerClients'
-import { TrainerSchedule } from './TrainerSchedule'
-import { UnmarkedSessions } from './UnmarkedSessions'
+import { TrainerToday } from './trainer/TrainerApp'
 import { usePtDisputes } from '../api/pt-booking'
 import { plural } from '../lib/format'
 
@@ -17,6 +15,7 @@ export function HomePage() {
   const user = useSignedInUser()
   // Members get the app with tabs; staff screens move to it in the next steps of the redesign.
   if (user.role === 'member') return <MemberHome />
+  if (user.role === 'trainer') return <TrainerToday />
   return <StaffHome />
 }
 
@@ -40,7 +39,7 @@ function StaffHome() {
         You're logged in as the {ROLE_LABELS[user.role].toLowerCase()} at {user.gym.name}.
       </p>
 
-      {MANAGER_ROLES.includes(user.role) ? (
+      {MANAGER_ROLES.includes(user.role) && (
         <>
           <Dashboard />
           <nav aria-label="Manage the gym" className="grid grid-cols-2 gap-3">
@@ -53,19 +52,6 @@ function StaffHome() {
             <HomeLink to="/admin/staff" title="Staff" text="Add trainers and admins" />
             {user.role === 'owner' && <HomeLink to="/admin/gym" title="Gym details" text="Address, GSTIN, invoices" />}
           </nav>
-        </>
-      ) : (
-        <>
-          <nav aria-label="Your work" className="grid grid-cols-1">
-            <HomeLink
-              to="/trainer/availability"
-              title="My availability"
-              text="Weekly hours, session length, time off"
-            />
-          </nav>
-          <UnmarkedSessions />
-          <TrainerSchedule trainerId={user.id} />
-          <TrainerClients />
         </>
       )}
 

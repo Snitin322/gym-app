@@ -255,6 +255,15 @@ describe('members’ plans', () => {
     const trainer = ok(session(sessionUser({ id: 'trainer-1', role: 'trainer', name: 'Ravi Kumar' })))
     const { callsTo } = mockApi({
       'POST /auth/refresh': trainer,
+      // Asha has an active PT package with this trainer, so her plan is shared with him.
+      'GET /trainer/clients': ok([
+        {
+          memberId: 'mem-1',
+          name: 'Asha Patel',
+          phone: '+919876500001',
+          purchases: [{ id: 'ptp-1', status: 'active', sessionsLeft: 9, sessionCount: 12, ledger: [] }],
+        },
+      ]),
       'GET /members/mem-1/workout-plan': ok({ member: { id: 'mem-1', name: 'Asha Patel' }, plan: null }),
       'GET /workout-templates': ok([
         { id: 'tpl-1', name: 'Beginner split', trainingDays: 6, version: 1, updatedAt: '', updatedByName: 'Nitin' },
@@ -267,9 +276,11 @@ describe('members’ plans', () => {
       }),
     })
     const user = userEvent.setup()
-    renderAt('/trainer/clients/mem-1/workout')
+    renderAt('/trainer/clients/mem-1')
 
-    expect(await screen.findByRole('heading', { name: 'Asha Patel’s workout' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Asha Patel' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Plan', selected: true })).toBeTruthy()
+    await screen.findByRole('option', { name: /Beginner split/ })
     await user.selectOptions(await screen.findByLabelText('Start from'), 'tpl-1')
     await user.click(screen.getByRole('button', { name: 'Give plan' }))
     await vi.waitFor(() => expect(callsTo('POST /members/mem-1/workout-plan')).toHaveLength(1))

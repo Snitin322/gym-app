@@ -177,6 +177,8 @@ describe('selling PT at the desk', () => {
     const { callsTo } = mockApi({
       'POST /auth/refresh': owner,
       'GET /members/mem-1': ok(memberDetail({ ptPurchases: [purchase()] })),
+      'GET /members/mem-1/pt-sessions': ok([]),
+      'GET /members/mem-1/workout-plan': ok({ member: { id: 'mem-1', name: 'Asha Patel' }, plan: null }),
       'POST /pt-purchases/ptp-1/adjust': ok(purchase({ sessionsLeft: 7 })),
     })
     const user = userEvent.setup()
@@ -281,11 +283,11 @@ describe('what members and trainers see', () => {
       'GET /trainer/clients': ok(clients),
       'GET /trainers/user-1/sessions': ok([]),
     })
-    renderAt('/home')
+    renderAt('/trainer/clients')
 
     expect(await screen.findByRole('heading', { name: 'My clients' })).toBeTruthy()
-    expect(await screen.findByText('Asha Patel')).toBeTruthy()
-    expect(screen.getByText('+91 98765 00001')).toBeTruthy()
+    const row = await screen.findByRole('link', { name: 'Asha Patel' })
+    expect(row.getAttribute('href')).toBe('/trainer/clients/mem-1')
     expect(screen.getByText('9 of 12 sessions left')).toBeTruthy()
     // Use-by date within a week is highlighted.
     expect(screen.getByText(`Use by ${formatDate(addDays(today, 3))}`).className).toMatch(/text-warn/)

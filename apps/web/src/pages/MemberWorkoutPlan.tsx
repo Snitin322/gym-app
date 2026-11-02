@@ -24,7 +24,7 @@ type Mode = 'view' | 'edit' | 'start'
  * A member's own workout plan, for the desk and their trainer: give them one (a template copy or
  * blank), edit it (each save is a new version), see the week and earlier versions.
  */
-export function MemberWorkoutPlan({ memberId }: { memberId: string }) {
+export function MemberWorkoutPlan({ memberId, showTracking = true }: { memberId: string; showTracking?: boolean }) {
   const query = useMemberPlan(memberId)
   const [mode, setMode] = useState<Mode>('view')
   const plan = query.data?.plan ?? null
@@ -43,17 +43,27 @@ export function MemberWorkoutPlan({ memberId }: { memberId: string }) {
     )
   }
   if (mode === 'edit') return <EditPlan memberId={memberId} plan={plan} onDone={() => setMode('view')} />
-  return <PlanSummary memberId={memberId} plan={plan} onEdit={() => setMode('edit')} onStart={() => setMode('start')} />
+  return (
+    <PlanSummary
+      memberId={memberId}
+      plan={plan}
+      showTracking={showTracking}
+      onEdit={() => setMode('edit')}
+      onStart={() => setMode('start')}
+    />
+  )
 }
 
 function PlanSummary({
   memberId,
   plan,
+  showTracking,
   onEdit,
   onStart,
 }: {
   memberId: string
   plan: WorkoutPlanView
+  showTracking: boolean
   onEdit: () => void
   onStart: () => void
 }) {
@@ -79,7 +89,7 @@ function PlanSummary({
       </Card>
       {showWeek && <WorkoutWeekView week={plan.week} exercises={plan.exercises} />}
       <PlanHistory memberId={memberId} exercises={plan.exercises} />
-      <MemberWorkoutCalendar memberId={memberId} />
+      {showTracking && <MemberWorkoutCalendar memberId={memberId} />}
     </div>
   )
 }
