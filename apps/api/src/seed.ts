@@ -13,7 +13,7 @@ export async function seedDatabase(db: Db, options: SeedOptions = {}) {
   const gym = await db.gym.upsert({
     where: { slug: ONTHEC_GYM_SLUG },
     update: {},
-    create: { slug: ONTHEC_GYM_SLUG, name: 'Onthec Gym' },
+    create: { slug: ONTHEC_GYM_SLUG, name: 'Onthec Fitness Club' },
   })
 
   const owner = options.owner

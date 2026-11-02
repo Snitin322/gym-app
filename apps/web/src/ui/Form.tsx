@@ -1,4 +1,10 @@
-import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import {
+  useId,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from 'react'
 
 const control =
   'min-h-12 w-full rounded-xl border border-line bg-surface px-4 text-base text-ink outline-none placeholder:text-muted/60 focus:border-accent disabled:opacity-60'
@@ -19,7 +25,11 @@ export function Field({ label, hint, error, children }: FieldProps) {
         {label}
       </label>
       {children(id)}
-      {error ? <p className="text-sm text-danger">{error}</p> : hint ? <p className="text-sm text-muted">{hint}</p> : null}
+      {error ? (
+        <p className="text-sm text-danger">{error}</p>
+      ) : hint ? (
+        <p className="text-sm text-muted">{hint}</p>
+      ) : null}
     </div>
   )
 }
@@ -41,7 +51,11 @@ export function RupeeInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div className="flex min-h-12 items-center rounded-xl border border-line bg-surface focus-within:border-accent">
       <span className="pr-1 pl-4 text-muted">₹</span>
-      <input inputMode="decimal" className="min-w-0 flex-1 bg-transparent py-3 pr-4 text-base outline-none" {...props} />
+      <input
+        inputMode="decimal"
+        className="min-w-0 flex-1 bg-transparent py-3 pr-4 text-base outline-none"
+        {...props}
+      />
     </div>
   )
 }
@@ -65,5 +79,5 @@ export function PhoneInput(props: InputHTMLAttributes<HTMLInputElement>) {
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`rounded-2xl bg-surface p-5 ${className}`}>{children}</section>
+  return <section className={`rounded-2xl bg-surface p-5 ring-1 ring-line/70 ${className}`}>{children}</section>
 }

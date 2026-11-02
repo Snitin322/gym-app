@@ -246,7 +246,7 @@ describe('member booking', () => {
     const booked = ptSession({ startsAt: at(tomorrow, 420) })
     const { callsTo } = mockApi(memberRoutes({ 'POST /pt-purchases/ptp-1/sessions': { status: 201, body: booked } }))
     const user = userEvent.setup()
-    renderAt('/home')
+    renderAt('/pt?view=book')
 
     expect(await screen.findByText('9 sessions left · 1 booked')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Book a session' }))
@@ -278,7 +278,7 @@ describe('member booking', () => {
 
   it('cannot book when every session left is already booked', async () => {
     mockApi(memberRoutes({ 'GET /me/pt': ok([purchase({ sessionsLeft: 2, sessionsBooked: 2 })]) }))
-    renderAt('/home')
+    renderAt('/pt?view=book')
 
     expect(await screen.findByText(/All your sessions are already booked/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Book a session' }).hasAttribute('disabled')).toBe(true)
@@ -291,7 +291,7 @@ describe('member booking', () => {
         'GET /me/workout-plan': ok({ plan: null }),
       }),
     )
-    renderAt('/home')
+    renderAt('/pt?view=book')
 
     expect(await screen.findByText(/This package has expired/)).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Book a session' }).hasAttribute('disabled')).toBe(true)
@@ -312,7 +312,7 @@ describe('member booking', () => {
       }),
     )
     const user = userEvent.setup()
-    renderAt('/home')
+    renderAt('/pt')
 
     await screen.findByRole('heading', { name: 'Upcoming sessions' })
     const [soonCard, laterCard] = screen.getAllByRole('article')
@@ -343,7 +343,7 @@ describe('member booking', () => {
       }),
     )
     const user = userEvent.setup()
-    renderAt('/home')
+    renderAt('/pt')
 
     const card = (await screen.findAllByRole('article'))[0]!
     await user.click(within(card).getByRole('button', { name: 'Reschedule' }))
@@ -551,7 +551,7 @@ describe('completing sessions', () => {
       }),
     )
     const user = userEvent.setup()
-    renderAt('/home')
+    renderAt('/pt')
 
     const toAnswer = await screen.findByRole('region', { name: 'Please confirm' })
     expect(within(toAnswer).getAllByText(/Is this right\? Please confirm or tell us by/)).toHaveLength(2)

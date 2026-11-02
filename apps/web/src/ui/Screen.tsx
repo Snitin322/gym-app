@@ -12,15 +12,7 @@ export function Screen({ children, centered = false }: { children: ReactNode; ce
 }
 
 export function Logo({ size = 72 }: { size?: number }) {
-  return (
-    <img
-      src="/logo.svg"
-      alt=""
-      width={size}
-      height={size}
-      className="rounded-3xl shadow-[0_12px_40px_rgb(163_230_53/0.15)]"
-    />
-  )
+  return <img src="/logo.png" alt="" width={size} height={size} className="rounded-2xl" />
 }
 
 export function ErrorText({ children }: { children: ReactNode }) {

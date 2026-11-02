@@ -3,7 +3,7 @@
 ## What we're building
 
 A gym management platform with three user roles: **members**, **trainers** and **owner/admin**.
-Phase 1 runs at one gym ("Onthec Gym"), but the system must be **multi-tenant from day one** so other gyms can be onboarded later as paying customers (SaaS).
+Phase 1 runs at one gym ("Onthec Fitness Club"), but the system must be **multi-tenant from day one** so other gyms can be onboarded later as paying customers (SaaS).
 
 The member and trainer experience ships as a **PWA** (installable web app). The admin panel is the same web app, with desktop-optimised routes. Native store apps (React Native / Capacitor) may come later, so keep business logic in the API and shared packages, not in UI components.
 
@@ -103,6 +103,7 @@ Work one phase at a time, adding features one by one. At the end of each phase: 
 6. **Workout plans** — per-gym exercise library (strength/cardio, description, video link), weekly plan templates, each member gets their own copy (sets with reps/time and weight, rest between sets and exercises, cardio), version history; edited by owner/admin, and by the trainer for their PT clients; member sees "Today's workout"
 7. **Workout tracking** — weekly calendar on the member home: tap a date to see that day's plan pre-filled, then "Mark done" or update reps/weights/skips; one log per member per date (today and the past 7 days, editable within that window), a snapshot independent of later plan changes, "last time" per exercise; read-only for their PT trainer and owner/admin
 8. **Admin dashboard and leads** — owner/admin home: active, expiring (7 days) and recently expired members with call/WhatsApp links, collections today/this month by method (owner only), pending dues, PT this week, disputes/unmarked, PT packages running out, workout engagement; leads (enquiries) with follow-ups and convert-to-member
+- **Design refresh (between 8 and 9)** — native-app feel: bottom tab bar per role (member: Home · Workout · PT · Profile; trainer: Today · Clients · Schedule · Profile; desk: Today · Members · PT · More; sidebar on laptops), segmented views instead of long pages, actions in bottom sheets with toasts, Onthec olive/cream theme following the phone's light/dark setting, Inter font, Lucide icons. Delivered as D1 (shell + member), D2 (trainer), D3 (desk), D4 (polish + QA doc).
 9. **QR check-in** — member QR pass (signed, rotating token), front-desk scanner screen, attendance history
 10. **Notifications** — web push + WhatsApp reminders: expiry (7/3/0 days), PT session reminder, payment receipt
 11. **PWA polish and production** — offline app shell for data screens, update prompt, branding, production hardening (backups, Sentry, live keys)

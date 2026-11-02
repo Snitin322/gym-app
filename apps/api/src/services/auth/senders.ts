@@ -11,7 +11,7 @@ export interface OtpSender {
 /** Development sender: writes the code to the server log instead of sending it. */
 export const consoleOtpSender: OtpSender = {
   async send(phone, code, log) {
-    log.warn(`[console OTP] Onthec Gym login code for ${maskPhone(phone)}: ${code}`)
+    log.warn(`[console OTP] Onthec login code for ${maskPhone(phone)}: ${code}`)
   },
 }
 

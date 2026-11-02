@@ -97,7 +97,7 @@ describe('access', () => {
   it('members cannot open admin screens', async () => {
     mockApi({ 'POST /auth/refresh': ok(session(sessionUser({ role: 'member', name: 'Asha Patel' }))) })
     renderAt('/admin/members')
-    expect(await screen.findByRole('heading', { name: 'Hi Asha' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Asha' })).toBeTruthy()
     expect(screen.queryByRole('link', { name: /Members/ })).toBeNull()
   })
 
@@ -152,7 +152,15 @@ describe('plans', () => {
 
 describe('members', () => {
   const list: MemberSummary[] = [
-    { id: 'mem-1', userId: 'u1', name: 'Asha Patel', phone: '+919876500001', status: 'active', current: membership(), duePaise: 0 },
+    {
+      id: 'mem-1',
+      userId: 'u1',
+      name: 'Asha Patel',
+      phone: '+919876500001',
+      status: 'active',
+      current: membership(),
+      duePaise: 0,
+    },
     {
       id: 'mem-2',
       userId: 'u2',
@@ -284,7 +292,9 @@ describe('staff', () => {
     renderAt('/admin/staff')
 
     await user.click(await screen.findByRole('button', { name: 'Add staff' }))
-    const options = within(screen.getByLabelText('Role')).getAllByRole('option').map((o) => o.textContent)
+    const options = within(screen.getByLabelText('Role'))
+      .getAllByRole('option')
+      .map((o) => o.textContent)
     expect(options).toEqual(['Trainer'])
   })
 })
@@ -441,7 +451,9 @@ describe('invoices', () => {
   it('downloads the invoice PDF with the login token', async () => {
     const { callsTo } = mockApi({
       'POST /auth/refresh': ok(owner),
-      'GET /members/mem-1': ok(memberDetail({ payments: [{ ...paid, invoice: { id: 'inv-1', number: 'OG/26-27/0001' } }] })),
+      'GET /members/mem-1': ok(
+        memberDetail({ payments: [{ ...paid, invoice: { id: 'inv-1', number: 'OG/26-27/0001' } }] }),
+      ),
       'GET /invoices/inv-1/pdf': { status: 200, file: { content: '%PDF-1.3 test', type: 'application/pdf' } },
     })
     const createObjectURL = vi.fn(() => 'blob:invoice')

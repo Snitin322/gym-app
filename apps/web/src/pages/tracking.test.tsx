@@ -135,7 +135,7 @@ describe('workout tracking calendar', () => {
   it('shows the week; today is pre-filled from the plan with last time, and Mark done saves it as planned', async () => {
     const { callsTo } = memberHome(calendar())
     const user = userEvent.setup()
-    renderAt('/home')
+    renderAt('/workout?view=week')
 
     const week = await screen.findByRole('region', { name: 'My week' })
     expect(await within(week).findAllByRole('tab')).toHaveLength(7)
@@ -158,7 +158,7 @@ describe('workout tracking calendar', () => {
   it('Update what I did: heavier weight, an extra set, skip cardio, add a note', async () => {
     const { callsTo } = memberHome(calendar())
     const user = userEvent.setup()
-    renderAt('/home')
+    renderAt('/workout?view=week')
 
     const week = await screen.findByRole('region', { name: 'My week' })
     await user.click(await within(week).findByRole('button', { name: 'Update what I did' }))

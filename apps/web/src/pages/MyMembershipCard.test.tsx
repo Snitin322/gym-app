@@ -43,7 +43,7 @@ function renderHome(partial: Pick<MyMembership, 'current' | 'history'> & Partial
     'GET /me/workout-plan': ok({ plan: null }),
   })
   render(
-    <MemoryRouter initialEntries={['/home']}>
+    <MemoryRouter initialEntries={['/profile']}>
       <AppProviders>
         <App />
       </AppProviders>

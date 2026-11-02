@@ -38,7 +38,7 @@ describe('signed out', () => {
     mockApi({ 'POST /auth/refresh': unauthenticated })
     renderApp('/')
 
-    expect(await screen.findByRole('heading', { name: /Welcome to Onthec Gym/ })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: /Welcome to Onthec Fitness Club/ })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Log in' }).getAttribute('href')).toBe('/login')
   })
 
@@ -77,7 +77,7 @@ describe('logging in', () => {
     await user.click(screen.getByRole('checkbox'))
     await user.click(agree)
 
-    expect(await screen.findByRole('heading', { name: 'Hi Asha' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Asha' })).toBeTruthy()
     expect(callsTo('POST /me/consent')[0]?.headers.get('authorization')).toBe('Bearer access-1')
   })
 

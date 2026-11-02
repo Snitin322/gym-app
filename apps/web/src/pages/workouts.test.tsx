@@ -297,7 +297,7 @@ describe('members’ plans', () => {
       'GET /me/workout-plan': ok({ plan: memberPlan() }),
     })
     const user = userEvent.setup()
-    renderAt('/home')
+    renderAt('/workout')
 
     const today = await screen.findByRole('region', { name: 'Today’s workout' })
     expect(within(today).getByText('1. Barbell Bench Press')).toBeTruthy()
@@ -306,8 +306,8 @@ describe('members’ plans', () => {
     expect(within(today).getByText('Rest 1 min 30 s between sets · 2 min before the next exercise')).toBeTruthy()
     expect(within(today).getByText('Slow on the way down')).toBeTruthy()
 
-    await user.click(within(today).getByRole('button', { name: 'See the whole week' }))
-    expect(within(today).getAllByText('1. Barbell Bench Press')).toHaveLength(8) // today + 7 days
+    await user.click(screen.getByRole('tab', { name: 'Full plan' }))
+    expect(screen.getAllByText('1. Barbell Bench Press')).toHaveLength(7) // every day of the week
   })
 
   it('members without a plan are told who to ask', async () => {
@@ -319,7 +319,7 @@ describe('members’ plans', () => {
       'GET /me/pt': ok([]),
       'GET /me/workout-plan': ok({ plan: null }),
     })
-    renderAt('/home')
+    renderAt('/workout')
     expect(await screen.findByText('Ask the front desk or your trainer for a plan.')).toBeTruthy()
   })
 })

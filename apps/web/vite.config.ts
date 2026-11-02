@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-const themeColor = '#0b0f19'
+/** Onthec olive: status bar and splash screen. */
+const themeColor = '#4a5141'
 
 // The app calls the API at /api on its own origin, so the refresh cookie is first-party
 // (Safari blocks third-party cookies). In dev Vite forwards /api to the local API; in
@@ -18,16 +19,16 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'logo.svg', 'apple-touch-icon-180x180.png'],
+      includeAssets: ['favicon.ico', 'logo.png', 'apple-touch-icon-180x180.png'],
       workbox: {
         // Never answer API requests from the offline cache or with the SPA shell.
         navigateFallbackDenylist: [/^\/api\//],
       },
       manifest: {
         id: '/',
-        name: 'Onthec Gym',
-        short_name: 'Onthec Gym',
-        description: 'Your membership, PT sessions and check-ins at Onthec Gym.',
+        name: 'Onthec Fitness Club',
+        short_name: 'Onthec',
+        description: 'Your membership, PT sessions and check-ins at Onthec Fitness Club.',
         start_url: '/',
         scope: '/',
         display: 'standalone',

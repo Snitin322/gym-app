@@ -7,6 +7,7 @@ import { ConsentPage } from './pages/ConsentPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { TrainerClientWorkoutPage } from './pages/TrainerClientWorkoutPage'
+import { MemberProfilePage, MemberPtPage, MemberWorkoutPage } from './pages/member/MemberTabs'
 import { WelcomePage } from './pages/WelcomePage'
 import { GymDetailsPage } from './pages/admin/GymDetailsPage'
 import { MemberPage } from './pages/admin/MemberPage'
@@ -29,6 +30,11 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route path="/consent" element={<ConsentPage />} />
         <Route path="/home" element={<HomePage />} />
+        <Route element={<RequireRole roles={['member']} />}>
+          <Route path="/workout" element={<MemberWorkoutPage />} />
+          <Route path="/pt" element={<MemberPtPage />} />
+          <Route path="/profile" element={<MemberProfilePage />} />
+        </Route>
         <Route path="/trainer" element={<RequireRole roles={['trainer']} />}>
           <Route path="availability" element={<MyAvailabilityPage />} />
           <Route path="clients/:memberId/workout" element={<TrainerClientWorkoutPage />} />

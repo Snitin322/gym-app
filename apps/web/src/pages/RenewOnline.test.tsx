@@ -57,7 +57,7 @@ function fakeCheckout(behaviour: 'pay' | 'close') {
 
 function renderHome() {
   render(
-    <MemoryRouter initialEntries={['/home']}>
+    <MemoryRouter initialEntries={['/profile']}>
       <AppProviders>
         <App />
       </AppProviders>

@@ -259,7 +259,7 @@ describe('what members and trainers see', () => {
       'GET /me/renewal-options': ok({ onlinePayments: false, startDate: today, plans: [] }),
       'GET /me/pt-sessions': ok([]),
     })
-    renderAt('/home')
+    renderAt('/pt?view=book')
 
     expect(await screen.findByText('PT · 12 Sessions')).toBeTruthy()
     expect(screen.getByText('9 of 12 sessions left')).toBeTruthy()

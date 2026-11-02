@@ -314,6 +314,15 @@ Phase 8 is complete.
 
 - **Tests**: numbers on fixed data, India midnight boundaries, isolation, revenue hidden from admins, lead statuses and conversion; screens.
 
+### Design refresh (plan approved 2 Nov 2026; D1 done)
+
+Approved: theme follows the phone's light/dark setting with the Onthec brand colours (olive #4a5141, cream #efe9dd, from the logo); bottom tabs per role, sidebar for the desk on laptops; Inter + Lucide; app name **Onthec Fitness Club** with the club logo as the app icon. Same features, server and data — screens only.
+
+- **D1 (done)**: brand theme (`index.css` tokens, light + dark), Inter, Lucide, logo and PWA icons from `public/logo.png`, app name. Shell pieces in `ui/`: `AppShell` (bottom tab bar, `PageHeader`, `SectionTitle`, `Avatar`), `Sheet` (bottom sheet), `Toast` (+ `useToast`), `Segmented` (+ `lib/use-view`, view kept in `?view=`). Member app: **Home** (membership hero card, today's workout, next PT session, items to confirm), **Workout** (Today · My week · Full plan), **PT** (Upcoming · Book · History), **Profile** (account, membership details, renew online, payments and invoices, install, log out).
+- **D2**: trainer — Today (sessions today, to mark), Clients (client page with plan / tracking / PT), Schedule (week), Profile (availability, time off).
+- **D3**: desk — Today (dashboard), Members (list; member profile tabs Overview · Payments · PT · Workout; actions in sheets), PT (sessions, disputes, packages), More (plans, workouts, leads, staff, gym details); laptop sidebar.
+- **D4**: polish pass at 360px in light and dark, and update `docs/QA_TEST_CASES.md` for the new screens.
+
 ### Phase 9 — QR check-in
 - Member: full-screen QR pass that rotates every 30s with a countdown; brightness hint.
 - Front desk: scanner screen (`@zxing/browser` or `html5-qrcode`, camera on a tablet/phone) → big green/red result with member photo, name, plan, days left; manual check-in by search.

@@ -39,7 +39,7 @@ export function InstallHint() {
         <Button variant="secondary" onClick={promptInstall}>
           Install app
         </Button>
-        <p className="mt-2 text-center text-sm text-muted">Adds Onthec Gym to your Home Screen.</p>
+        <p className="mt-2 text-center text-sm text-muted">Adds Onthec to your Home Screen.</p>
       </section>
     )
   }

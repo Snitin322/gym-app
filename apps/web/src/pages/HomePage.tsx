@@ -6,11 +6,7 @@ import { ROLE_LABELS, formatPhone } from '../lib/format'
 import { Button } from '../ui/Button'
 import { Logo, Screen } from '../ui/Screen'
 import { Dashboard } from './admin/Dashboard'
-import { MyMembershipCard } from './MyMembershipCard'
-import { MyPtCard } from './MyPtCard'
-import { MyPtSessions } from './MyPtSessions'
-import { TodaysWorkout } from './TodaysWorkout'
-import { MyWorkoutCalendar } from '../ui/WorkoutCalendar'
+import { MemberHome } from './member/MemberHome'
 import { TrainerClients } from './TrainerClients'
 import { TrainerSchedule } from './TrainerSchedule'
 import { UnmarkedSessions } from './UnmarkedSessions'
@@ -18,6 +14,13 @@ import { usePtDisputes } from '../api/pt-booking'
 import { plural } from '../lib/format'
 
 export function HomePage() {
+  const user = useSignedInUser()
+  // Members get the app with tabs; staff screens move to it in the next steps of the redesign.
+  if (user.role === 'member') return <MemberHome />
+  return <StaffHome />
+}
+
+function StaffHome() {
   const user = useSignedInUser()
   const { signOut } = useAuth()
   const [signingOut, setSigningOut] = useState(false)
@@ -50,15 +53,6 @@ export function HomePage() {
             <HomeLink to="/admin/staff" title="Staff" text="Add trainers and admins" />
             {user.role === 'owner' && <HomeLink to="/admin/gym" title="Gym details" text="Address, GSTIN, invoices" />}
           </nav>
-        </>
-      ) : user.role === 'member' ? (
-        <>
-          <MyMembershipCard />
-          <TodaysWorkout />
-          <MyWorkoutCalendar />
-          <MyPtCard />
-          <MyPtSessions />
-          <p className="text-center text-sm text-muted">Coming soon: your QR check-in pass.</p>
         </>
       ) : (
         <>

@@ -15,14 +15,14 @@ describe.skipIf(!testDatabaseUrl)('with the test database', () => {
     expect(res.json()).toMatchObject({ status: 'ok', db: 'ok' })
   })
 
-  it('seed creates Onthec Gym and its owner once, however many times it runs', async () => {
+  it('seed creates Onthec Fitness Club and its owner once, however many times it runs', async () => {
     const owner = { phone: '+919876500000', name: 'Gym Owner' }
     await seedDatabase(ctx.db, { owner })
     await seedDatabase(ctx.db, { owner })
 
     const gyms = await ctx.db.gym.findMany()
     expect(gyms).toHaveLength(1)
-    expect(gyms[0]).toMatchObject({ slug: ONTHEC_GYM_SLUG, name: 'Onthec Gym', gstin: null, settings: {} })
+    expect(gyms[0]).toMatchObject({ slug: ONTHEC_GYM_SLUG, name: 'Onthec Fitness Club', gstin: null, settings: {} })
 
     const users = await ctx.db.user.findMany()
     expect(users).toHaveLength(1)

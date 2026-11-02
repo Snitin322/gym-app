@@ -1,25 +1,44 @@
 @import 'tailwindcss';
+@import '@fontsource-variable/inter';
 
 /* Brand tokens: use as bg-bg, bg-surface, text-ink, text-muted, bg-accent, text-accent-ink, text-danger, ... */
 @theme {
-  --color-bg: #0b0f19;
-  --color-surface: #151b2b;
-  --color-surface-2: #1e2638;
-  --color-line: #2a3348;
-  --color-ink: #f8fafc;
-  --color-muted: #94a3b8;
-  --color-accent: #a3e635;
-  --color-accent-ink: #0b0f19;
-  --color-danger: #f87171;
-  --color-warn: #fbbf24;
-  --color-info: #60a5fa;
+  /* Light (default). Brand: olive #4a5141 and cream #efe9dd from the Onthec logo. */
+  --color-bg: #f5f2ea;
+  --color-surface: #ffffff;
+  --color-surface-2: #ece8dd;
+  --color-line: #ddd7c8;
+  --color-ink: #1d2117;
+  --color-muted: #676b5d;
+  --color-accent: #4a5141;
+  --color-accent-ink: #efe9dd;
+  --color-danger: #b42318;
+  --color-warn: #a15c07;
+  --color-info: #175cd3;
 
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Dark: deep olive surfaces, cream text, sage accent. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #131510;
+    --color-surface: #1c1f17;
+    --color-surface-2: #262a20;
+    --color-line: #353a2c;
+    --color-ink: #efe9dd;
+    --color-muted: #a3a695;
+    --color-accent: #bac59a;
+    --color-accent-ink: #1d2117;
+    --color-danger: #f97066;
+    --color-warn: #fdb022;
+    --color-info: #84adff;
+  }
 }
 
 @layer base {
   :root {
-    color-scheme: dark;
+    color-scheme: light dark;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -34,5 +53,22 @@
     /* Keep content clear of the notch and home indicator when opened from the Home Screen */
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Motion for sheets and toasts (kept short; turned off for people who prefer less motion). */
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
   }
 }

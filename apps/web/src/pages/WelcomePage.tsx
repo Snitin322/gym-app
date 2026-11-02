@@ -15,7 +15,7 @@ export function WelcomePage() {
       <div className="flex flex-col items-center gap-4 text-center">
         <Logo size={112} />
         <h1 className="mt-2 text-[clamp(1.75rem,8vw,2.25rem)] leading-tight font-extrabold tracking-tight">
-          Welcome to <span className="block text-accent">Onthec Gym</span>
+          Welcome to <span className="block text-accent">Onthec Fitness Club</span>
         </h1>
         <p className="text-muted">Your membership, PT sessions and check-ins in one place.</p>
         <Link
