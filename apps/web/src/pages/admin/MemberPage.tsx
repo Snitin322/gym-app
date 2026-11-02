@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useParams } from 'react-router'
+import { MessageCircle, Phone } from 'lucide-react'
 import {
   addDays,
   formatPaise,
@@ -7,6 +8,7 @@ import {
   membershipEndDate,
   normalizePhone,
   todayInIndia,
+  whatsappLink,
   type MemberDetail,
   type MembershipView,
 } from '@onthec/shared'
@@ -24,12 +26,16 @@ import {
 import { errorMessage, formatDate, formatPhone, plural } from '../../lib/format'
 import { membershipRange, membershipSummary, monthsLabel, planOptionLabel } from '../../lib/membership'
 import { initialSale, saleToInput, type SaleState } from '../../lib/sale'
+import { useView } from '../../lib/use-view'
 import { AdminLayout, LoadingText } from '../../ui/AdminLayout'
+import { Avatar } from '../../ui/AppShell'
 import { Button } from '../../ui/Button'
 import { Card, Field, PhoneInput, SelectInput, TextArea, TextInput } from '../../ui/Form'
 import { PaymentRow } from '../../ui/PaymentRow'
 import { ErrorText } from '../../ui/Screen'
+import { Segmented } from '../../ui/Segmented'
 import { StatusBadge } from '../../ui/StatusBadge'
+import { useDoneToast, useToast } from '../../ui/toast-context'
 import { PanelButtons, PanelCard, RecordPaymentPanel } from './panels'
 import { MemberWorkoutPlan } from '../MemberWorkoutPlan'
 import { PtSection } from './PtSection'
@@ -37,10 +43,14 @@ import { SaleFields } from './SaleFields'
 
 type Panel = 'renew' | 'freeze' | 'cancel' | 'edit' | { pay: MembershipView } | null
 
+const MEMBER_VIEWS = ['overview', 'payments', 'pt', 'workout'] as const
+
+/** A member at the desk: Overview · Payments · PT · Workout, with every action in a bottom sheet. */
 export function MemberPage() {
   const { id = '' } = useParams()
   const member = useMember(id)
   const [panel, setPanel] = useState<Panel>(null)
+  const [view, setView] = useView(MEMBER_VIEWS, 'overview')
   const createInvoice = useCreateInvoice(id)
   const today = todayInIndia()
   const back = { to: '/admin/members', label: 'Members' }
@@ -67,15 +77,35 @@ export function MemberPage() {
   const close = () => setPanel(null)
   // "Record payment" buttons only while no other panel is open.
   const onPay = panel === null ? (ms: MembershipView) => setPanel({ pay: ms }) : undefined
+  const past = m.memberships.filter((ms) => ms.id !== current?.id)
 
   return (
-    <AdminLayout title={m.name} back={back} action={<StatusBadge status={m.status} />}>
-      <p className="-mt-3 text-muted">
-        <a href={`tel:${m.phone}`} className="hover:text-ink">
-          {formatPhone(m.phone)}
-        </a>{' '}
-        · Joined {formatDate(m.joinedOn)}
-      </p>
+    <AdminLayout
+      title={m.name}
+      subtitle={`Joined ${formatDate(m.joinedOn)}`}
+      back={back}
+      action={<StatusBadge status={m.status} />}
+    >
+      <div className="flex items-center gap-3">
+        <Avatar name={m.name} size={48} />
+        <p className="min-w-0 flex-1 text-sm text-muted">{formatPhone(m.phone)}</p>
+        <a
+          href={`tel:${m.phone}`}
+          aria-label={`Call ${m.name}`}
+          className="flex size-11 items-center justify-center rounded-xl bg-surface ring-1 ring-line/70"
+        >
+          <Phone aria-hidden="true" size={20} />
+        </a>
+        <a
+          href={whatsappLink(m.phone, `Hi ${m.name.split(' ')[0]}, `)}
+          target="_blank"
+          rel="noreferrer"
+          aria-label={`WhatsApp ${m.name}`}
+          className="flex size-11 items-center justify-center rounded-xl bg-surface ring-1 ring-line/70"
+        >
+          <MessageCircle aria-hidden="true" size={20} />
+        </a>
+      </div>
 
       {m.duePaise > 0 && (
         <p role="status" className="rounded-xl bg-warn/10 px-4 py-3 font-semibold text-warn">
@@ -83,88 +113,103 @@ export function MemberPage() {
         </p>
       )}
 
-      {current ? (
-        <MembershipCard membership={current} today={today} highlight onPay={onPay} />
-      ) : (
-        <Card>
-          <p className="text-muted">No membership yet.</p>
-        </Card>
+      <Segmented
+        label="Member view"
+        value={view}
+        onChange={setView}
+        options={[
+          { value: 'overview', label: 'Overview' },
+          { value: 'payments', label: 'Payments' },
+          { value: 'pt', label: 'PT' },
+          { value: 'workout', label: 'Workout' },
+        ]}
+      />
+
+      {view === 'overview' && (
+        <>
+          {current ? (
+            <MembershipCard membership={current} today={today} highlight onPay={onPay} />
+          ) : (
+            <Card>
+              <p className="text-muted">No membership yet.</p>
+            </Card>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <Button onClick={() => setPanel('renew')}>{current ? 'Renew' : 'Add membership'}</Button>
+            {canFreeze && (
+              <Button variant="secondary" onClick={() => setPanel('freeze')}>
+                Freeze
+              </Button>
+            )}
+            {canUnfreeze && <UnfreezeButton member={m} membership={current} />}
+            {live && (
+              <Button variant="secondary" onClick={() => setPanel('cancel')}>
+                Cancel membership
+              </Button>
+            )}
+            <Button variant="secondary" onClick={() => setPanel('edit')}>
+              Edit details
+            </Button>
+          </div>
+
+          {(m.emergencyContactName || m.emergencyContactPhone || m.notes) && (
+            <Card className="text-sm">
+              {(m.emergencyContactName || m.emergencyContactPhone) && (
+                <p>
+                  <span className="text-muted">Emergency contact: </span>
+                  {[m.emergencyContactName, m.emergencyContactPhone && formatPhone(m.emergencyContactPhone)]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+              )}
+              {m.notes && <p className="mt-2 whitespace-pre-line text-muted">{m.notes}</p>}
+            </Card>
+          )}
+        </>
       )}
 
-      {panel === null && (
-        <div className="grid grid-cols-2 gap-3">
-          <Button onClick={() => setPanel('renew')}>{current ? 'Renew' : 'Add membership'}</Button>
-          {canFreeze && (
-            <Button variant="secondary" onClick={() => setPanel('freeze')}>
-              Freeze
-            </Button>
+      {view === 'payments' && (
+        <>
+          <section aria-labelledby="payments-heading" className="flex flex-col gap-2">
+            <h2 id="payments-heading" className="font-semibold">
+              Payments
+            </h2>
+            {m.payments.length === 0 && <p className="text-sm text-muted">No payments yet.</p>}
+            <ul className="flex flex-col gap-2">
+              {m.payments.map((p) => (
+                <li key={p.id}>
+                  <PaymentRow
+                    payment={p}
+                    onCreateInvoice={(paymentId) => createInvoice.mutate(paymentId)}
+                    creating={createInvoice.isPending && createInvoice.variables === p.id}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+          {past.length > 0 && (
+            <section aria-labelledby="memberships-heading" className="flex flex-col gap-2">
+              <h2 id="memberships-heading" className="mt-2 font-semibold">
+                Other memberships
+              </h2>
+              {past.map((ms) => (
+                <MembershipCard key={ms.id} membership={ms} today={today} onPay={onPay} />
+              ))}
+            </section>
           )}
-          {canUnfreeze && <UnfreezeButton member={m} membership={current} />}
-          {live && (
-            <Button variant="secondary" onClick={() => setPanel('cancel')}>
-              Cancel membership
-            </Button>
-          )}
-          <Button variant="secondary" onClick={() => setPanel('edit')}>
-            Edit details
-          </Button>
-        </div>
+        </>
       )}
+
+      {view === 'pt' && <PtSection member={m} today={today} />}
+
+      {view === 'workout' && <MemberWorkoutPlan memberId={m.id} />}
 
       {panel === 'renew' && <RenewPanel member={m} today={today} onDone={close} />}
       {panel === 'freeze' && current && <FreezePanel member={m} membership={current} today={today} onDone={close} />}
       {panel === 'cancel' && current && <CancelPanel member={m} membership={current} onDone={close} />}
       {panel === 'edit' && <EditPanel member={m} onDone={close} />}
       {typeof panel === 'object' && panel !== null && <PayPanel member={m} membership={panel.pay} onDone={close} />}
-
-      <PtSection member={m} today={today} />
-
-      <section aria-labelledby="workout-plan-heading" className="flex flex-col gap-3">
-        <h2 id="workout-plan-heading" className="mt-2 font-semibold">
-          Workout plan
-        </h2>
-        <MemberWorkoutPlan memberId={m.id} />
-      </section>
-
-      {(m.emergencyContactName || m.emergencyContactPhone || m.notes) && (
-        <Card className="text-sm">
-          {(m.emergencyContactName || m.emergencyContactPhone) && (
-            <p>
-              <span className="text-muted">Emergency contact: </span>
-              {[m.emergencyContactName, m.emergencyContactPhone && formatPhone(m.emergencyContactPhone)]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
-          )}
-          {m.notes && <p className="mt-2 whitespace-pre-line text-muted">{m.notes}</p>}
-        </Card>
-      )}
-
-      {m.memberships.length > 1 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="mt-2 font-semibold">All memberships</h2>
-          {m.memberships.map((ms) => (
-            <MembershipCard key={ms.id} membership={ms} today={today} onPay={onPay} />
-          ))}
-        </section>
-      )}
-
-      {m.payments.length > 0 && (
-        <section className="flex flex-col gap-2">
-          <h2 className="mt-2 font-semibold">Payments</h2>
-          <ul className="flex flex-col gap-2">
-            {m.payments.map((p) => (
-              <li key={p.id}>
-                <PaymentRow
-                  payment={p}
-                  onCreateInvoice={(paymentId) => createInvoice.mutate(paymentId)}
-                  creating={createInvoice.isPending && createInvoice.variables === p.id}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </AdminLayout>
   )
 }
@@ -179,13 +224,16 @@ function PayPanel({
   onDone: () => void
 }) {
   const record = useRecordPayment(member.id)
+  const done = useDoneToast(onDone)
   return (
     <RecordPaymentPanel
       label={membership.planName}
       duePaise={membership.duePaise}
       pending={record.isPending}
       error={record.error}
-      onSubmit={(values) => record.mutate({ membershipId: membership.id, ...values }, { onSuccess: onDone })}
+      onSubmit={(values) =>
+        record.mutate({ membershipId: membership.id, ...values }, { onSuccess: done('Payment recorded') })
+      }
       onCancel={onDone}
     />
   )
@@ -258,6 +306,7 @@ function defaultStart(member: MemberDetail, today: string) {
 function RenewPanel({ member, today, onDone }: { member: MemberDetail; today: string; onDone: () => void }) {
   const plans = usePlans()
   const add = useAddMembership(member.id)
+  const done = useDoneToast(onDone)
   const activePlans = plans.data?.filter((p) => p.active) ?? []
   const [planId, setPlanId] = useState('')
   const [startDate, setStartDate] = useState(defaultStart(member, today))
@@ -278,11 +327,11 @@ function RenewPanel({ member, today, onDone }: { member: MemberDetail; today: st
     const checked = saleToInput(plan, currentSale)
     if ('error' in checked) return setProblem(checked.error)
     setProblem(null)
-    add.mutate({ planId: plan.id, startDate, ...checked.input }, { onSuccess: onDone })
+    add.mutate({ planId: plan.id, startDate, ...checked.input }, { onSuccess: done('Membership added') })
   }
 
   return (
-    <PanelCard title={member.current ? 'Renew membership' : 'Add membership'}>
+    <PanelCard title={member.current ? 'Renew membership' : 'Add membership'} onClose={onDone}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         {plans.data && activePlans.length === 0 && <p className="text-muted">Add a plan first on the Plans screen.</p>}
         <Field label="Plan">
@@ -324,6 +373,7 @@ function FreezePanel({
   onDone: () => void
 }) {
   const freeze = useFreeze(member.id)
+  const done = useDoneToast(onDone)
   const firstDay = membership.startDate > today ? membership.startDate : today
   const remaining = membership.maxFreezeDays - membership.freezeDaysUsed
   const [fromDate, setFromDate] = useState(firstDay)
@@ -337,13 +387,13 @@ function FreezePanel({
     if (days > 0 && !tooLong) {
       freeze.mutate(
         { membershipId: membership.id, fromDate, toDate, reason: reason || undefined },
-        { onSuccess: onDone },
+        { onSuccess: done('Membership frozen') },
       )
     }
   }
 
   return (
-    <PanelCard title="Freeze membership">
+    <PanelCard title="Freeze membership" onClose={onDone}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         <p className="text-sm text-muted">
           {plural(remaining, 'freeze day')} left. Frozen days are added to the end date.
@@ -377,9 +427,14 @@ function FreezePanel({
 
 function UnfreezeButton({ member, membership }: { member: MemberDetail; membership: MembershipView }) {
   const unfreeze = useUnfreeze(member.id)
+  const toast = useToast()
   return (
     <div className="contents">
-      <Button variant="secondary" loading={unfreeze.isPending} onClick={() => unfreeze.mutate(membership.id)}>
+      <Button
+        variant="secondary"
+        loading={unfreeze.isPending}
+        onClick={() => unfreeze.mutate(membership.id, { onSuccess: () => toast('Membership unfrozen') })}
+      >
         Unfreeze
       </Button>
       {unfreeze.error && (
@@ -401,15 +456,19 @@ function CancelPanel({
   onDone: () => void
 }) {
   const cancel = useCancelMembership(member.id)
+  const done = useDoneToast(onDone)
   const [reason, setReason] = useState('')
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    cancel.mutate({ membershipId: membership.id, reason: reason || undefined }, { onSuccess: onDone })
+    cancel.mutate(
+      { membershipId: membership.id, reason: reason || undefined },
+      { onSuccess: done('Membership cancelled') },
+    )
   }
 
   return (
-    <PanelCard title="Cancel membership?">
+    <PanelCard title="Cancel membership?" onClose={onDone}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         <p className="text-muted">
           {membership.planName} ({membershipRange(membership)}) will stop immediately. This can't be undone.
@@ -426,6 +485,7 @@ function CancelPanel({
 
 function EditPanel({ member, onDone }: { member: MemberDetail; onDone: () => void }) {
   const update = useUpdateMember(member.id)
+  const done = useDoneToast(onDone)
   const [name, setName] = useState(member.name)
   const [phone, setPhone] = useState(formatPhone(member.phone).replace('+91 ', ''))
   const [joinedOn, setJoinedOn] = useState(member.joinedOn)
@@ -452,12 +512,12 @@ function EditPanel({ member, onDone }: { member: MemberDetail; onDone: () => voi
         emergencyContactPhone: emergencyPhone,
         notes,
       },
-      { onSuccess: onDone },
+      { onSuccess: done('Details saved') },
     )
   }
 
   return (
-    <PanelCard title="Edit details">
+    <PanelCard title="Edit details" onClose={onDone}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         <Field label="Full name">
           {(id) => <TextInput id={id} value={name} onChange={(e) => setName(e.target.value)} />}

@@ -1,15 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router'
-import {
-  CalendarDays,
-  CalendarCheck,
-  ChevronRight,
-  Clock,
-  MessageCircle,
-  Phone,
-  UsersRound,
-  UserRound,
-} from 'lucide-react'
+import { ChevronRight, Clock, MessageCircle, Phone } from 'lucide-react'
 import { todayInIndia, whatsappLink, type TrainerClient } from '@onthec/shared'
 import { useTrainerClients } from '../../api/admin'
 import { useTrainerSessions } from '../../api/pt-booking'
@@ -17,9 +8,10 @@ import { useSignedInUser } from '../../auth/AuthContext'
 import { InstallHint } from '../../InstallHint'
 import { errorMessage, formatPhone, plural } from '../../lib/format'
 import { ptSessionsLabel, ptUseByLabel, ptExpiringSoon, scheduleSessions } from '../../lib/pt'
-import { indiaDateOf } from '../../lib/time'
+import { TRAINER_TABS } from '../../lib/nav'
+import { greeting, indiaDateOf } from '../../lib/time'
 import { useView } from '../../lib/use-view'
-import { AppShell, Avatar, PageHeader, SectionTitle, type TabItem } from '../../ui/AppShell'
+import { AppShell, Avatar, PageHeader, SectionTitle } from '../../ui/AppShell'
 import { Card, TextInput } from '../../ui/Form'
 import { PtPurchaseCard } from '../../ui/PtPurchaseCard'
 import { PtSessionCard } from '../../ui/PtSessionCard'
@@ -31,23 +23,8 @@ import { MemberWorkoutPlan } from '../MemberWorkoutPlan'
 import { TrainerSchedule } from '../TrainerSchedule'
 import { UnmarkedSessions } from '../UnmarkedSessions'
 
-const TRAINER_TABS: TabItem[] = [
-  { to: '/home', label: 'Today', icon: CalendarCheck },
-  { to: '/trainer/clients', label: 'Clients', icon: UsersRound },
-  { to: '/trainer/schedule', label: 'Schedule', icon: CalendarDays },
-  { to: '/trainer/profile', label: 'Profile', icon: UserRound },
-]
-
 export function TrainerShell({ children }: { children: ReactNode }) {
   return <AppShell tabs={TRAINER_TABS}>{children}</AppShell>
-}
-
-/** "Good morning" by the time in India. */
-function greeting(now = new Date()) {
-  const hour = Number(
-    new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Kolkata' }).format(now),
-  )
-  return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
 }
 
 /** Today tab: sessions to mark, then today's sessions. */

@@ -150,7 +150,7 @@ describe('selling PT at the desk', () => {
       'POST /members/mem-1/pt-purchases': { status: 201, body: purchase() },
     })
     const user = userEvent.setup()
-    renderAt('/admin/members/mem-1')
+    renderAt('/admin/members/mem-1?view=pt')
 
     expect(await screen.findByText('No PT packages yet.')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Sell PT package' }))
@@ -182,7 +182,7 @@ describe('selling PT at the desk', () => {
       'POST /pt-purchases/ptp-1/adjust': ok(purchase({ sessionsLeft: 7 })),
     })
     const user = userEvent.setup()
-    renderAt('/admin/members/mem-1')
+    renderAt('/admin/members/mem-1?view=pt')
 
     expect(await screen.findByText('9 of 12 sessions left')).toBeTruthy()
     expect(screen.getByText('with Ravi Kumar')).toBeTruthy()
@@ -218,7 +218,7 @@ describe('selling PT at the desk', () => {
       'POST /pt-purchases/ptp-1/payments': { status: 201, body: purchase() },
     })
     const user = userEvent.setup()
-    renderAt('/admin/members/mem-1')
+    renderAt('/admin/members/mem-1?view=pt')
 
     await user.click(await screen.findByRole('button', { name: 'Record payment' }))
     expect(screen.getByText('12 Sessions (PT) · ₹12,000 due')).toBeTruthy()
@@ -238,7 +238,7 @@ describe('selling PT at the desk', () => {
       'POST /pt-purchases/ptp-1/extend': ok(purchase({ expiresOn: addDays(today, 63) })),
     })
     const user = userEvent.setup()
-    renderAt('/admin/members/mem-1')
+    renderAt('/admin/members/mem-1?view=pt')
 
     await user.click(await screen.findByRole('button', { name: 'Extend' }))
     const date = screen.getByLabelText('New use-by date') as HTMLInputElement

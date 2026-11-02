@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import App from './App'
@@ -164,10 +164,12 @@ describe('signed in', () => {
     const user = userEvent.setup()
     renderApp('/')
 
-    expect(await screen.findByRole('heading', { name: 'Hi Nitin' })).toBeTruthy()
-    expect(screen.getByText(/owner at Onthec Gym/)).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Nitin' })).toBeTruthy()
+    expect(screen.getByText('Owner · Onthec Gym')).toBeTruthy()
 
-    await user.click(screen.getByRole('button', { name: 'Log out' }))
+    // Log out lives on the More tab.
+    await user.click(within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'More' }))
+    await user.click(await screen.findByRole('button', { name: 'Log out' }))
 
     // Signed-out users on a signed-in page land on the login screen.
     expect(await screen.findByLabelText('Mobile number')).toBeTruthy()

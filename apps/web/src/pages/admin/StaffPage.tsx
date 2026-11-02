@@ -23,7 +23,7 @@ export function StaffPage() {
   return (
     <AdminLayout
       title="Staff"
-      back={{ to: '/home', label: 'Home' }}
+      back={{ to: '/admin/more', label: 'More' }}
       action={
         !adding && (
           <Button className="w-auto" onClick={() => setAdding(true)}>

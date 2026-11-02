@@ -23,8 +23,7 @@ import { ExerciseLibraryPage } from './pages/admin/ExerciseLibraryPage'
 import { WorkoutTemplatePage } from './pages/admin/WorkoutTemplatePage'
 import { WorkoutsPage } from './pages/admin/WorkoutsPage'
 import { LeadsPage } from './pages/admin/LeadsPage'
-import { PtDisputesPage } from './pages/admin/PtDisputesPage'
-import { PtPackagesPage } from './pages/admin/PtPackagesPage'
+import { DeskMorePage, DeskPtPage } from './pages/desk/DeskApp'
 import { StaffPage } from './pages/admin/StaffPage'
 
 export default function App() {
@@ -53,8 +52,10 @@ export default function App() {
           <Route path="members/new" element={<NewMemberPage />} />
           <Route path="members/:id" element={<MemberPage />} />
           <Route path="plans" element={<PlansPage />} />
-          <Route path="pt-packages" element={<PtPackagesPage />} />
-          <Route path="pt-disputes" element={<PtDisputesPage />} />
+          <Route path="pt" element={<DeskPtPage />} />
+          <Route path="pt-packages" element={<Navigate to="/admin/pt?view=packages" replace />} />
+          <Route path="pt-disputes" element={<Navigate to="/admin/pt?view=resolve" replace />} />
+          <Route path="more" element={<DeskMorePage />} />
           <Route path="leads" element={<LeadsPage />} />
           <Route path="workouts" element={<WorkoutsPage />} />
           <Route path="workouts/exercises" element={<ExerciseLibraryPage />} />

@@ -1,17 +1,17 @@
 import { usePtDisputes } from '../../api/pt-booking'
 import { errorMessage } from '../../lib/format'
-import { AdminLayout, LoadingText } from '../../ui/AdminLayout'
+import { LoadingText } from '../../ui/AdminLayout'
 import { Card } from '../../ui/Form'
 import { PtSessionCard } from '../../ui/PtSessionCard'
 import { ErrorText } from '../../ui/Screen'
 import { UnmarkedSessions } from '../UnmarkedSessions'
 
 /** Desk: PT sessions members disputed (give the session back or keep it as used), and sessions nobody marked. */
-export function PtDisputesPage() {
+export function PtToResolve() {
   const disputes = usePtDisputes()
 
   return (
-    <AdminLayout title="PT disputes" back={{ to: '/home', label: 'Home' }}>
+    <>
       <section aria-labelledby="disputes-heading" className="flex flex-col gap-3">
         <h2 id="disputes-heading" className="sr-only">
           Open disputes
@@ -34,6 +34,6 @@ export function PtDisputesPage() {
         </ul>
       </section>
       <UnmarkedSessions desk />
-    </AdminLayout>
+    </>
   )
 }

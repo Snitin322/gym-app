@@ -3,17 +3,17 @@ import { formatPaise, rupeesToPaise, type DeskPaymentMethod } from '@onthec/shar
 import { errorMessage, paiseToRupeesInput } from '../../lib/format'
 import type { PayChoice } from '../../lib/sale'
 import { Button } from '../../ui/Button'
-import { Card, Field, RupeeInput, TextInput } from '../../ui/Form'
+import { Field, RupeeInput, TextInput } from '../../ui/Form'
 import { ErrorText } from '../../ui/Screen'
+import { Sheet } from '../../ui/Sheet'
 import { PaymentMethodPicker, ReferenceField } from './SaleFields'
 
-/** An inline action panel on the member page (Renew, Freeze, Record payment…). */
-export function PanelCard({ title, children }: { title: string; children: ReactNode }) {
+/** An action on the member page (Renew, Freeze, Record payment…), in a bottom sheet. */
+export function PanelCard({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
-    <Card className="flex flex-col gap-4 border border-accent/40">
-      <h2 className="text-lg font-bold">{title}</h2>
-      {children}
-    </Card>
+    <Sheet open title={title} onClose={onClose}>
+      <div className="flex flex-col gap-4">{children}</div>
+    </Sheet>
   )
 }
 
@@ -80,7 +80,7 @@ export function RecordPaymentPanel({
   }
 
   return (
-    <PanelCard title="Record payment">
+    <PanelCard title="Record payment" onClose={onCancel}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         <p className="text-muted">
           {label} · {formatPaise(duePaise)} due

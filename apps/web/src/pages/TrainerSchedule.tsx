@@ -8,7 +8,16 @@ import { PtSessionCard } from '../ui/PtSessionCard'
 import { ErrorText } from '../ui/Screen'
 
 /** The trainer's booked sessions for the next two weeks, by day, with client name and phone. */
-export function TrainerSchedule({ trainerId }: { trainerId: string }) {
+export function TrainerSchedule({
+  trainerId,
+  desk = false,
+  label = 'My schedule',
+}: {
+  trainerId: string
+  desk?: boolean
+  /** Heading for screen readers (the desk names the trainer). */
+  label?: string
+}) {
   const query = useTrainerSessions(trainerId)
   const today = todayInIndia()
   const days = groupByDay(scheduleSessions(query.data ?? []), (s) => s.startsAt)
@@ -16,7 +25,7 @@ export function TrainerSchedule({ trainerId }: { trainerId: string }) {
   return (
     <section aria-labelledby="schedule-heading" className="flex flex-col gap-3">
       <h2 id="schedule-heading" className="sr-only">
-        My schedule
+        {label}
       </h2>
       {query.isPending && (
         <Card>
@@ -41,7 +50,7 @@ export function TrainerSchedule({ trainerId }: { trainerId: string }) {
           <ul className="flex flex-col gap-2">
             {day.items.map((s) => (
               <li key={s.id}>
-                <PtSessionCard session={s} viewer="staff" showMember showDay={false} />
+                <PtSessionCard session={s} viewer="staff" desk={desk} showMember showDay={false} />
               </li>
             ))}
           </ul>

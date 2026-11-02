@@ -2,27 +2,23 @@ import { useState, type FormEvent } from 'react'
 import { formatPaise, rupeesToPaise, type PtPackage } from '@onthec/shared'
 import { usePtPackages, useSavePtPackage } from '../../api/admin'
 import { errorMessage, paiseToRupeesInput, plural } from '../../lib/format'
-import { AdminLayout, LoadingText } from '../../ui/AdminLayout'
+import { LoadingText } from '../../ui/AdminLayout'
 import { Button } from '../../ui/Button'
 import { Card, Field, RupeeInput, TextArea, TextInput } from '../../ui/Form'
 import { ErrorText } from '../../ui/Screen'
 
-export function PtPackagesPage() {
+/** The PT tab's Packages view: what the desk sells, with price and validity. */
+export function PtPackagesView() {
   const packages = usePtPackages()
   const [editing, setEditing] = useState<'new' | string | null>(null)
 
   return (
-    <AdminLayout
-      title="PT packages"
-      back={{ to: '/home', label: 'Home' }}
-      action={
-        editing === null && (
-          <Button className="w-auto" onClick={() => setEditing('new')}>
-            Add package
-          </Button>
-        )
-      }
-    >
+    <>
+      {editing === null && (
+        <Button variant="secondary" onClick={() => setEditing('new')}>
+          Add package
+        </Button>
+      )}
       {editing === 'new' && <PackageForm onDone={() => setEditing(null)} />}
 
       {packages.isPending && <LoadingText />}
@@ -46,7 +42,7 @@ export function PtPackagesPage() {
           </li>
         ))}
       </ul>
-    </AdminLayout>
+    </>
   )
 }
 
@@ -67,7 +63,11 @@ function PackageCard({ pkg, onEdit }: { pkg: PtPackage; onEdit: () => void }) {
         <Button variant="secondary" onClick={onEdit}>
           Edit
         </Button>
-        <Button variant="secondary" loading={save.isPending} onClick={() => save.mutate({ id: pkg.id, active: !pkg.active })}>
+        <Button
+          variant="secondary"
+          loading={save.isPending}
+          onClick={() => save.mutate({ id: pkg.id, active: !pkg.active })}
+        >
           {pkg.active ? 'Deactivate' : 'Activate'}
         </Button>
       </div>
@@ -91,8 +91,10 @@ function PackageForm({ pkg, onDone }: { pkg?: PtPackage; onDone: () => void }) {
     const validityDays = Number(validity)
     const pricePaise = rupeesToPaise(price)
     if (name.trim().length < 2) return setProblem('Enter a package name')
-    if (!Number.isInteger(sessionCount) || sessionCount < 1 || sessionCount > 200) return setProblem('Sessions must be 1 to 200')
-    if (!Number.isInteger(validityDays) || validityDays < 1 || validityDays > 730) return setProblem('Valid for 1 to 730 days')
+    if (!Number.isInteger(sessionCount) || sessionCount < 1 || sessionCount > 200)
+      return setProblem('Sessions must be 1 to 200')
+    if (!Number.isInteger(validityDays) || validityDays < 1 || validityDays > 730)
+      return setProblem('Valid for 1 to 730 days')
     if (!pricePaise) return setProblem('Enter a valid price, e.g. 12000')
     setProblem(null)
     save.mutate(
@@ -106,17 +108,35 @@ function PackageForm({ pkg, onDone }: { pkg?: PtPackage; onDone: () => void }) {
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         <h2 className="text-lg font-bold">{pkg ? `Edit ${pkg.name}` : 'New PT package'}</h2>
         <Field label="Package name">
-          {(id) => <TextInput id={id} value={name} onChange={(e) => setName(e.target.value)} placeholder="12 sessions" />}
+          {(id) => (
+            <TextInput id={id} value={name} onChange={(e) => setName(e.target.value)} placeholder="12 sessions" />
+          )}
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Sessions">
             {(id) => (
-              <TextInput id={id} type="number" inputMode="numeric" min={1} max={200} value={sessions} onChange={(e) => setSessions(e.target.value)} />
+              <TextInput
+                id={id}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={200}
+                value={sessions}
+                onChange={(e) => setSessions(e.target.value)}
+              />
             )}
           </Field>
           <Field label="Valid for (days)">
             {(id) => (
-              <TextInput id={id} type="number" inputMode="numeric" min={1} max={730} value={validity} onChange={(e) => setValidity(e.target.value)} />
+              <TextInput
+                id={id}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={730}
+                value={validity}
+                onChange={(e) => setValidity(e.target.value)}
+              />
             )}
           </Field>
         </div>

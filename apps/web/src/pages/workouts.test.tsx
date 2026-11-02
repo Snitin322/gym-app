@@ -101,72 +101,77 @@ describe('exercise library', () => {
 })
 
 describe('plan templates', () => {
-  it('builds a week: day title, sets with weights, cardio and a rest day; mistakes are named', async () => {
-    const saved = plan(emptyWeek())
-    const { callsTo } = mockApi({
-      'POST /auth/refresh': owner,
-      'GET /workout-exercises?all=1': ok([bench, treadmill]),
-      'POST /workout-templates': { status: 201, body: saved },
-      'GET /workout-templates/tpl-1': ok(saved),
-      'GET /workout-templates/tpl-1/versions': ok([]),
-    })
-    const user = userEvent.setup()
-    renderAt('/admin/workouts/templates/new')
+  // Lots of typing: allow for a busy machine when the whole suite runs in parallel.
+  it(
+    'builds a week: day title, sets with weights, cardio and a rest day; mistakes are named',
+    { timeout: 15_000 },
+    async () => {
+      const saved = plan(emptyWeek())
+      const { callsTo } = mockApi({
+        'POST /auth/refresh': owner,
+        'GET /workout-exercises?all=1': ok([bench, treadmill]),
+        'POST /workout-templates': { status: 201, body: saved },
+        'GET /workout-templates/tpl-1': ok(saved),
+        'GET /workout-templates/tpl-1/versions': ok([]),
+      })
+      const user = userEvent.setup()
+      renderAt('/admin/workouts/templates/new')
 
-    await user.type(await screen.findByLabelText('Plan name'), 'Beginner split')
-    // Monday: chest, three sets of 10 by default.
-    await user.type(screen.getByLabelText('Mon title'), 'Chest + Triceps')
-    await user.selectOptions(screen.getByLabelText('Add exercise'), bench.id)
-    const item = screen.getByRole('article', { name: 'Barbell Bench Press' })
-    await user.type(within(item).getByLabelText('Barbell Bench Press set 1 weight (kg)'), '20')
-    await user.type(within(item).getByLabelText('Barbell Bench Press set 2 weight (kg)'), '22.3')
-    await user.click(within(item).getByRole('button', { name: 'Remove Barbell Bench Press set 3' }))
-    await user.selectOptions(within(item).getByLabelText('Rest between sets'), '90')
+      await user.type(await screen.findByLabelText('Plan name'), 'Beginner split')
+      // Monday: chest, three sets of 10 by default.
+      await user.type(screen.getByLabelText('Mon title'), 'Chest + Triceps')
+      await user.selectOptions(screen.getByLabelText('Add exercise'), bench.id)
+      const item = screen.getByRole('article', { name: 'Barbell Bench Press' })
+      await user.type(within(item).getByLabelText('Barbell Bench Press set 1 weight (kg)'), '20')
+      await user.type(within(item).getByLabelText('Barbell Bench Press set 2 weight (kg)'), '22.3')
+      await user.click(within(item).getByRole('button', { name: 'Remove Barbell Bench Press set 3' }))
+      await user.selectOptions(within(item).getByLabelText('Rest between sets'), '90')
 
-    // Tuesday: 25 minutes on the treadmill. Sunday: rest.
-    await user.click(screen.getByRole('tab', { name: /Tue/ }))
-    await user.selectOptions(screen.getByLabelText('Add exercise'), treadmill.id)
-    const minutes = screen.getByLabelText('Minutes')
-    await user.clear(minutes)
-    await user.type(minutes, '25')
-    await user.click(screen.getByRole('tab', { name: /Sun/ }))
-    await user.click(screen.getByLabelText('Rest day'))
+      // Tuesday: 25 minutes on the treadmill. Sunday: rest.
+      await user.click(screen.getByRole('tab', { name: /Tue/ }))
+      await user.selectOptions(screen.getByLabelText('Add exercise'), treadmill.id)
+      const minutes = screen.getByLabelText('Minutes')
+      await user.clear(minutes)
+      await user.type(minutes, '25')
+      await user.click(screen.getByRole('tab', { name: /Sun/ }))
+      await user.click(screen.getByLabelText('Rest day'))
 
-    await user.click(screen.getByRole('button', { name: 'Create template' }))
-    expect((await screen.findByRole('alert')).textContent).toBe(
-      'Monday, Barbell Bench Press: Weight must be in steps of 0.25 kg',
-    )
-    expect(callsTo('POST /workout-templates')).toHaveLength(0)
+      await user.click(screen.getByRole('button', { name: 'Create template' }))
+      expect((await screen.findByRole('alert')).textContent).toBe(
+        'Monday, Barbell Bench Press: Weight must be in steps of 0.25 kg',
+      )
+      expect(callsTo('POST /workout-templates')).toHaveLength(0)
 
-    await user.click(screen.getByRole('tab', { name: /Mon/ }))
-    const weight = screen.getByLabelText('Barbell Bench Press set 2 weight (kg)')
-    await user.clear(weight)
-    await user.type(weight, '22.5')
-    await user.click(screen.getByRole('button', { name: 'Create template' }))
+      await user.click(screen.getByRole('tab', { name: /Mon/ }))
+      const weight = screen.getByLabelText('Barbell Bench Press set 2 weight (kg)')
+      await user.clear(weight)
+      await user.type(weight, '22.5')
+      await user.click(screen.getByRole('button', { name: 'Create template' }))
 
-    await vi.waitFor(() => expect(callsTo('POST /workout-templates')).toHaveLength(1))
-    const body = callsTo('POST /workout-templates')[0]?.body as { name: string; week: WorkoutWeek }
-    expect(body.name).toBe('Beginner split')
-    expect(body.week.days[0]).toMatchObject({
-      title: 'Chest + Triceps',
-      rest: false,
-      items: [
-        {
-          kind: 'strength',
-          exerciseId: bench.id,
-          sets: [
-            { reps: 10, weightKg: 20 },
-            { reps: 10, weightKg: 22.5 },
-          ],
-          restBetweenSetsSec: 90,
-        },
-      ],
-    })
-    expect(body.week.days[1]?.items[0]).toMatchObject({ kind: 'cardio', exerciseId: treadmill.id, minutes: 25 })
-    expect(body.week.days[6]).toMatchObject({ rest: true, items: [] })
-    // Opens the saved template.
-    expect(await screen.findByRole('button', { name: 'Save new version' })).toBeTruthy()
-  })
+      await vi.waitFor(() => expect(callsTo('POST /workout-templates')).toHaveLength(1))
+      const body = callsTo('POST /workout-templates')[0]?.body as { name: string; week: WorkoutWeek }
+      expect(body.name).toBe('Beginner split')
+      expect(body.week.days[0]).toMatchObject({
+        title: 'Chest + Triceps',
+        rest: false,
+        items: [
+          {
+            kind: 'strength',
+            exerciseId: bench.id,
+            sets: [
+              { reps: 10, weightKg: 20 },
+              { reps: 10, weightKg: 22.5 },
+            ],
+            restBetweenSetsSec: 90,
+          },
+        ],
+      })
+      expect(body.week.days[1]?.items[0]).toMatchObject({ kind: 'cardio', exerciseId: treadmill.id, minutes: 25 })
+      expect(body.week.days[6]).toMatchObject({ rest: true, items: [] })
+      // Opens the saved template.
+      expect(await screen.findByRole('button', { name: 'Save new version' })).toBeTruthy()
+    },
+  )
 
   it('saves a new version from the version it opened, and explains when someone else saved first', async () => {
     const week = emptyWeek()

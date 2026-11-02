@@ -30,12 +30,15 @@ export function MembersPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (search.trim() === q) return
-      setParams((current) => {
-        const next = new URLSearchParams(current)
-        if (search.trim()) next.set('q', search.trim())
-        else next.delete('q')
-        return next
-      }, { replace: true })
+      setParams(
+        (current) => {
+          const next = new URLSearchParams(current)
+          if (search.trim()) next.set('q', search.trim())
+          else next.delete('q')
+          return next
+        },
+        { replace: true },
+      )
     }, 300)
     return () => clearTimeout(timer)
   }, [search, q, setParams])
@@ -44,17 +47,19 @@ export function MembersPage() {
   const today = todayInIndia()
 
   const chooseFilter = (value: MemberFilter) =>
-    setParams((current) => {
-      const next = new URLSearchParams(current)
-      if (value === 'all') next.delete('filter')
-      else next.set('filter', value)
-      return next
-    }, { replace: true })
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        if (value === 'all') next.delete('filter')
+        else next.set('filter', value)
+        return next
+      },
+      { replace: true },
+    )
 
   return (
     <AdminLayout
       title="Members"
-      back={{ to: '/home', label: 'Home' }}
       action={
         <Link
           to="/admin/members/new"
@@ -72,7 +77,11 @@ export function MembersPage() {
         onChange={(event) => setSearch(event.target.value)}
       />
 
-      <div role="group" aria-label="Filter members" className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
+      <div
+        role="group"
+        aria-label="Filter members"
+        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]"
+      >
         {MEMBER_FILTERS.map((value) => (
           <button
             key={value}
@@ -92,7 +101,9 @@ export function MembersPage() {
       <ErrorText>{errorMessage(members.error)}</ErrorText>
       {members.data?.length === 0 && (
         <Card>
-          <p className="text-muted">{q || filter !== 'all' ? 'No members match.' : 'No members yet. Add your first member.'}</p>
+          <p className="text-muted">
+            {q || filter !== 'all' ? 'No members match.' : 'No members yet. Add your first member.'}
+          </p>
         </Card>
       )}
 

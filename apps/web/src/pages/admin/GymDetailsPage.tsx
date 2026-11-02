@@ -12,7 +12,7 @@ import { ErrorText } from '../../ui/Screen'
 export function GymDetailsPage() {
   const gym = useGymDetails()
   return (
-    <AdminLayout title="Gym details" back={{ to: '/home', label: 'Home' }}>
+    <AdminLayout title="Gym details" back={{ to: '/admin/more', label: 'More' }}>
       {gym.isPending && <LoadingText />}
       <ErrorText>{errorMessage(gym.error)}</ErrorText>
       {gym.data && <GymForm gym={gym.data} />}

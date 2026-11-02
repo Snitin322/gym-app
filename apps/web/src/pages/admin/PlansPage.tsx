@@ -10,7 +10,6 @@ import { ErrorText } from '../../ui/Screen'
 
 const MONTH_OPTIONS = [1, 2, 3, 4, 6, 9, 12, 18, 24]
 
-
 export function PlansPage() {
   const plans = usePlans()
   const [editing, setEditing] = useState<'new' | string | null>(null)
@@ -18,7 +17,7 @@ export function PlansPage() {
   return (
     <AdminLayout
       title="Plans"
-      back={{ to: '/home', label: 'Home' }}
+      back={{ to: '/admin/more', label: 'More' }}
       action={
         editing === null && (
           <Button className="w-auto" onClick={() => setEditing('new')}>

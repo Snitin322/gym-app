@@ -101,11 +101,82 @@ describe('access', () => {
     expect(screen.queryByRole('link', { name: /Members/ })).toBeNull()
   })
 
-  it('owners see Members and Plans on their home screen', async () => {
+  it('owners get the desk tabs, and every screen in the laptop sidebar', async () => {
     mockApi({ 'POST /auth/refresh': ok(owner) })
     renderAt('/home')
-    expect(await screen.findByRole('link', { name: /Members/ })).toBeTruthy()
-    expect(screen.getByRole('link', { name: /Plans/ })).toBeTruthy()
+    const tabs = await screen.findByRole('navigation', { name: 'Main' })
+    expect(
+      within(tabs)
+        .getAllByRole('link')
+        .map((l) => [l.textContent, l.getAttribute('href')]),
+    ).toEqual([
+      ['Today', '/home'],
+      ['Members', '/admin/members'],
+      ['PT', '/admin/pt'],
+      ['More', '/admin/more'],
+    ])
+    expect(within(tabs).getByRole('link', { name: 'Today' }).getAttribute('aria-current')).toBe('page')
+    const menu = screen.getByRole('navigation', { name: 'Menu' })
+    expect(
+      within(menu)
+        .getAllByRole('link')
+        .map((l) => l.textContent),
+    ).toEqual(['Today', 'Members', 'PT', 'Leads', 'Plans', 'Workouts', 'Staff', 'Gym details', 'Account'])
+  })
+
+  it('More lists the other screens; they keep the More tab highlighted', async () => {
+    mockApi({ 'POST /auth/refresh': ok(owner), 'GET /plans': ok([]) })
+    const user = userEvent.setup()
+    renderAt('/admin/more')
+    const more = await screen.findByRole('navigation', { name: 'More screens' })
+    expect(
+      within(more)
+        .getAllByRole('link')
+        .map((l) => l.getAttribute('href')),
+    ).toEqual(['/admin/leads', '/admin/plans', '/admin/workouts', '/admin/staff', '/admin/gym'])
+    expect(screen.getByRole('button', { name: 'Log out' })).toBeTruthy()
+
+    await user.click(within(more).getByRole('link', { name: /Plans/ }))
+    expect(await screen.findByRole('heading', { name: 'Plans' })).toBeTruthy()
+    const tabs = screen.getByRole('navigation', { name: 'Main' })
+    expect(within(tabs).getByRole('link', { name: 'More' }).getAttribute('aria-current')).toBe('page')
+    // The back link and the tab both go to More.
+    expect(screen.getAllByRole('link', { name: 'More' }).map((l) => l.getAttribute('href'))).toEqual([
+      '/admin/more',
+      '/admin/more',
+    ])
+  })
+})
+
+describe('PT tab', () => {
+  it('shows each trainer’s next two weeks, one trainer at a time', async () => {
+    const { callsTo } = mockApi({
+      'POST /auth/refresh': ok(owner),
+      'GET /users?kind=staff': ok([
+        { id: 'tr-1', name: 'Ravi', phone: '+919876500101', role: 'trainer' },
+        { id: 'ad-1', name: 'Meena', phone: '+919876500102', role: 'admin' },
+        { id: 'tr-2', name: 'Sunil', phone: '+919876500103', role: 'trainer' },
+      ]),
+      'GET /pt-disputes': ok([]),
+      'GET /pt-sessions/unmarked': ok([]),
+      'GET /trainers/tr-1/sessions': ok([]),
+      'GET /trainers/tr-2/sessions': ok([]),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/pt')
+
+    expect(await screen.findByRole('heading', { name: 'Personal training' })).toBeTruthy()
+    const picker = await screen.findByRole('group', { name: 'Trainer' })
+    expect(
+      within(picker)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['Ravi', 'Sunil'])
+    expect(await screen.findByText('No sessions booked in the next two weeks.')).toBeTruthy()
+
+    await user.click(within(picker).getByRole('button', { name: 'Sunil' }))
+    expect(screen.getByText('Sunil’s sessions in the next two weeks.')).toBeTruthy()
+    await vi.waitFor(() => expect(callsTo('GET /trainers/tr-2/sessions')).toHaveLength(1))
   })
 })
 
@@ -217,6 +288,29 @@ describe('members', () => {
 })
 
 describe('member page', () => {
+  it('splits the member into Overview, Payments, PT and Workout, with call and WhatsApp on top', async () => {
+    mockApi({
+      'POST /auth/refresh': ok(owner),
+      'GET /members/mem-1': ok(memberDetail()),
+      'GET /members/mem-1/workout-plan': ok({ member: { id: 'mem-1', name: 'Asha Patel' }, plan: null }),
+    })
+    const user = userEvent.setup()
+    renderAt('/admin/members/mem-1')
+
+    expect(await screen.findByRole('heading', { name: 'Asha Patel' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Call Asha Patel' }).getAttribute('href')).toBe('tel:+919876500001')
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Overview', 'Payments', 'PT', 'Workout'])
+    expect(screen.getByRole('button', { name: 'Renew' })).toBeTruthy()
+
+    await user.click(screen.getByRole('tab', { name: 'Payments' }))
+    expect(screen.getByText('No payments yet.')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Renew' })).toBeNull()
+    await user.click(screen.getByRole('tab', { name: 'PT' }))
+    expect(screen.getByText('No PT packages yet.')).toBeTruthy()
+    await user.click(screen.getByRole('tab', { name: 'Workout' }))
+    expect(await screen.findByText(/No workout plan yet/)).toBeTruthy()
+  })
+
   it('freezes the current membership for the chosen days', async () => {
     const { callsTo } = mockApi({
       'POST /auth/refresh': ok(owner),
@@ -228,8 +322,9 @@ describe('member page', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Freeze' }))
     expect(screen.getByText(/15 freeze days left/)).toBeTruthy()
-    await user.type(screen.getByLabelText('Reason (optional)'), 'Travel')
-    await user.click(screen.getByRole('button', { name: 'Freeze' }))
+    const sheet = screen.getByRole('dialog', { name: 'Freeze membership' })
+    await user.type(within(sheet).getByLabelText('Reason (optional)'), 'Travel')
+    await user.click(within(sheet).getByRole('button', { name: 'Freeze' }))
 
     await vi.waitFor(() => expect(callsTo('POST /memberships/ms-1/freeze')).toHaveLength(1))
     expect(callsTo('POST /memberships/ms-1/freeze')[0]?.body).toEqual({
@@ -237,6 +332,8 @@ describe('member page', () => {
       toDate: addDays(today, 6),
       reason: 'Travel',
     })
+    expect(await screen.findByText('Membership frozen')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('asks before cancelling a membership', async () => {
@@ -428,7 +525,7 @@ describe('gym details', () => {
   it('admins cannot open it', async () => {
     mockApi({ 'POST /auth/refresh': ok(session(sessionUser({ role: 'admin', name: 'Admin A' }))) })
     renderAt('/admin/gym')
-    expect(await screen.findByRole('heading', { name: 'Hi Admin' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Admin' })).toBeTruthy()
     expect(screen.queryByRole('link', { name: /Gym details/ })).toBeNull()
   })
 })
@@ -459,7 +556,7 @@ describe('invoices', () => {
     const createObjectURL = vi.fn(() => 'blob:invoice')
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }))
     const user = userEvent.setup()
-    renderAt('/admin/members/mem-1')
+    renderAt('/admin/members/mem-1?view=payments')
 
     await user.click(await screen.findByRole('button', { name: 'Invoice OG/26-27/0001 ↓' }))
 
@@ -474,7 +571,7 @@ describe('invoices', () => {
       'POST /payments/pay-1/invoice': { status: 201, body: { id: 'inv-9', number: 'OG/26-27/0009' } },
     })
     const user = userEvent.setup()
-    renderAt('/admin/members/mem-1')
+    renderAt('/admin/members/mem-1?view=payments')
 
     await user.click(await screen.findByRole('button', { name: 'Create invoice' }))
     await vi.waitFor(() => expect(callsTo('POST /payments/pay-1/invoice')).toHaveLength(1))

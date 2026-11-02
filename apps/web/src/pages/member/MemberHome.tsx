@@ -9,17 +9,9 @@ import { useSignedInUser } from '../../auth/AuthContext'
 import { STATUS_BADGES, membershipSummary } from '../../lib/membership'
 import { formatDate, plural } from '../../lib/format'
 import { sessionsToAnswer, upcomingSessions } from '../../lib/pt'
-import { formatWhen } from '../../lib/time'
+import { formatWhen, greeting } from '../../lib/time'
 import { Logo } from '../../ui/Screen'
 import { MemberShell } from './MemberShell'
-
-/** "Good morning" by the time in India. */
-function greeting(now = new Date()) {
-  const hour = Number(
-    new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Kolkata' }).format(now),
-  )
-  return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-}
 
 /** The member's home: membership at a glance, today's workout and the next PT session. Details live in the tabs. */
 export function MemberHome() {

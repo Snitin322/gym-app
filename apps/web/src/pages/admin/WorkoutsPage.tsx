@@ -12,7 +12,7 @@ export function WorkoutsPage() {
   return (
     <AdminLayout
       title="Workouts"
-      back={{ to: '/home', label: 'Home' }}
+      back={{ to: '/admin/more', label: 'More' }}
       action={
         <Link
           to="/admin/workouts/templates/new"

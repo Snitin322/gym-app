@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import type { DashboardView } from '@onthec/shared'
 import App from '../App'
@@ -101,18 +102,27 @@ describe('dashboard', () => {
         .getByRole('link', { name: /Ending in 7 days\s*1/ })
         .getAttribute('href'),
     ).toBe('/admin/members?filter=expiring')
+    const user = userEvent.setup()
+    // Follow up is the first view; Money (owner only) and Training are one tap away.
+    expect(
+      within(dash)
+        .getAllByRole('tab')
+        .map((t) => t.textContent),
+    ).toEqual(['Follow up', 'Money', 'Training'])
+    await user.click(within(dash).getByRole('tab', { name: 'Money' }))
     expect(within(dash).getByText('₹4,500')).toBeTruthy()
     expect(within(dash).getByText('₹98,000')).toBeTruthy()
     expect(within(dash).getByText('Last month: ₹87,000')).toBeTruthy()
     expect(within(dash).getByRole('list', { name: 'This month by payment method' }).textContent).toBe(
       'Cash: ₹50,000UPI: ₹48,000',
     )
+    await user.click(within(dash).getByRole('tab', { name: 'Training' }))
     expect(within(dash).getByText('14 of 20 members with a plan ticked a workout this week.')).toBeTruthy()
     expect(
       within(dash)
         .getByRole('link', { name: /1 open dispute · 2 sessions not marked/ })
         .getAttribute('href'),
-    ).toBe('/admin/pt-disputes')
+    ).toBe('/admin/pt?view=resolve')
   })
 
   it('who to call: phone and a pre-typed WhatsApp message', async () => {
@@ -130,6 +140,7 @@ describe('dashboard', () => {
     expect(
       decodeURIComponent(within(expired).getByRole('link', { name: 'WhatsApp Bina Rao' }).getAttribute('href') ?? ''),
     ).toMatch(/we miss you at Onthec Gym! Your membership ended on 10 Mar 2026/)
+    await userEvent.setup().click(screen.getByRole('tab', { name: 'Training' }))
     const pt = screen.getByRole('list', { name: 'PT packages running out' })
     expect(within(pt).getByText('3 sessions left · use by 29 Mar · Ravi')).toBeTruthy()
   })
@@ -137,9 +148,12 @@ describe('dashboard', () => {
   it('admins don’t see money taken, but do see dues', async () => {
     renderHome('admin', dashboard({ revenue: null }))
     const dash = await screen.findByRole('region', { name: 'Dashboard' })
+    expect(
+      within(dash)
+        .getAllByRole('tab')
+        .map((t) => t.textContent),
+    ).toEqual(['Follow up', 'Training'])
     expect(within(dash).queryByText('Money taken')).toBeNull()
     expect(within(dash).getByRole('heading', { name: 'Dues · ₹2,500' })).toBeTruthy()
-    // The usual tiles are still below.
-    expect(screen.getByRole('link', { name: /Members →/ })).toBeTruthy()
   })
 })

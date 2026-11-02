@@ -227,7 +227,7 @@ describe('workout tracking calendar', () => {
         days: done.days.map((d) => ({ ...d, canLog: false })),
       }),
     })
-    renderAt('/admin/members/mem-1')
+    renderAt('/admin/members/mem-1?view=workout')
 
     const week = await screen.findByRole('region', { name: 'Workout tracking' })
     expect(await within(week).findByText('8 reps × 30 kg')).toBeTruthy()

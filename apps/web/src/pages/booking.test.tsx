@@ -387,7 +387,7 @@ describe('desk booking', () => {
       'POST /pt-sessions/ses-1/cancel': ok({ ...upcoming, status: 'cancelled' }),
     })
     const user = userEvent.setup()
-    renderAt('/admin/members/mem-1')
+    renderAt('/admin/members/mem-1?view=pt')
 
     expect(await screen.findByText('9 sessions left · 1 booked')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Book session' }))
@@ -576,7 +576,7 @@ describe('completing sessions', () => {
     expect(callsTo('POST /pt-sessions/ses-2/dispute')[0]?.body).toEqual({ reason: 'I was there, the trainer was late' })
   })
 
-  it('the desk sees open disputes on home and resolves them', async () => {
+  it('the desk sees open disputes on the PT tab and resolves them', async () => {
     const disputed = marked({
       confirmation: 'disputed',
       disputeReason: 'Trainer was late',
@@ -586,20 +586,23 @@ describe('completing sessions', () => {
       'POST /auth/refresh': owner,
       'GET /pt-disputes': ok([disputed]),
       'GET /pt-sessions/unmarked': ok([]),
+      'GET /users?kind=staff': ok([]),
       'POST /pt-sessions/ses-1/resolve': ok({ ...disputed, confirmation: 'upheld' }),
     })
     const user = userEvent.setup()
     renderAt('/home')
 
-    await user.click(await screen.findByRole('link', { name: /1 open dispute to resolve/ }))
+    await user.click(within(await screen.findByRole('navigation', { name: 'Main' })).getByRole('link', { name: 'PT' }))
+    await user.click(await screen.findByRole('tab', { name: 'To resolve · 1' }))
     expect(await screen.findByText('Asha Patel says: Trainer was late')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Resolve dispute' }))
-    await user.click(screen.getByRole('radio', { name: 'Give session back' }))
-    await user.click(screen.getByRole('button', { name: 'Save decision' }))
-    expect((await screen.findByRole('alert')).textContent).toBe('Add a short note for the member')
+    const sheet = screen.getByRole('dialog', { name: 'Resolve dispute' })
+    await user.click(within(sheet).getByRole('radio', { name: 'Give session back' }))
+    await user.click(within(sheet).getByRole('button', { name: 'Save decision' }))
+    expect((await within(sheet).findByRole('alert')).textContent).toBe('Add a short note for the member')
 
-    await user.type(screen.getByLabelText('Note for the member'), 'Checked with Ravi')
-    await user.click(screen.getByRole('button', { name: 'Save decision' }))
+    await user.type(within(sheet).getByLabelText('Note for the member'), 'Checked with Ravi')
+    await user.click(within(sheet).getByRole('button', { name: 'Save decision' }))
     await vi.waitFor(() => expect(callsTo('POST /pt-sessions/ses-1/resolve')).toHaveLength(1))
     expect(callsTo('POST /pt-sessions/ses-1/resolve')[0]?.body).toEqual({
       resolution: 'upheld',

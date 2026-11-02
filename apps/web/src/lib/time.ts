@@ -47,3 +47,11 @@ export function groupByDay<T>(items: T[], instantOf: (item: T) => string): { dat
   }
   return days
 }
+
+/** "Good morning" by the time in India. */
+export function greeting(now = new Date()) {
+  const hour = Number(
+    new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Kolkata' }).format(now),
+  )
+  return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+}

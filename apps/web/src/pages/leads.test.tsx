@@ -163,6 +163,10 @@ describe('leads', () => {
     expect(
       decodeURIComponent(within(list).getByRole('link', { name: 'WhatsApp Riya Shah' }).getAttribute('href') ?? ''),
     ).toMatch(/Hi Riya, this is Onthec Gym\. Thanks for your interest!/)
-    expect(screen.getByRole('link', { name: /Leads →/ }).getAttribute('href')).toBe('/admin/leads')
+    expect(
+      within(screen.getByRole('navigation', { name: 'Menu' }))
+        .getByRole('link', { name: 'Leads' })
+        .getAttribute('href'),
+    ).toBe('/admin/leads')
   })
 })

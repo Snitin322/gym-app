@@ -1,31 +1,52 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router'
+import { useSignedInUser } from '../auth/AuthContext'
+import { ROLE_LABELS } from '../lib/format'
+import { DESK_TABS, TRAINER_TABS, deskSidebar } from '../lib/nav'
+import { AppShell, PageHeader } from './AppShell'
+import { Logo } from './Screen'
 
-/** Page shell for staff screens: back link, title, optional action, wider on desktop. */
+/**
+ * The frame for staff screens. The front desk gets Today · Members · PT · More (a sidebar on laptops);
+ * trainers (on their availability screen) keep their own tabs.
+ */
+export function DeskShell({ children }: { children: ReactNode }) {
+  const user = useSignedInUser()
+  if (user.role === 'trainer') return <AppShell tabs={TRAINER_TABS}>{children}</AppShell>
+  const header = (
+    <div className="flex items-center gap-3">
+      <Logo size={40} />
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold">{user.gym.name}</p>
+        <p className="text-xs text-muted">{ROLE_LABELS[user.role]}</p>
+      </div>
+    </div>
+  )
+  return (
+    <AppShell tabs={DESK_TABS} sidebar={{ header, items: deskSidebar(user.role) }}>
+      {children}
+    </AppShell>
+  )
+}
+
+/** A staff screen: title (with optional back link, line under it and action), inside the desk frame. */
 export function AdminLayout({
   title,
+  subtitle,
   back,
   action,
   children,
 }: {
-  title: string
+  title: ReactNode
+  subtitle?: ReactNode
   back?: { to: string; label: string }
   action?: ReactNode
   children: ReactNode
 }) {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-4 px-5 py-6">
-      {back && (
-        <Link to={back.to} className="-mb-2 self-start text-sm text-muted hover:text-ink">
-          ← {back.label}
-        </Link>
-      )}
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-extrabold tracking-tight">{title}</h1>
-        {action}
-      </header>
+    <DeskShell>
+      <PageHeader title={title} subtitle={subtitle} back={back} action={action} />
       {children}
-    </main>
+    </DeskShell>
   )
 }
 

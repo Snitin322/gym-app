@@ -12,6 +12,7 @@ import { PtPurchaseCard } from '../../ui/PtPurchaseCard'
 import { PtSessionCard } from '../../ui/PtSessionCard'
 import { ErrorText } from '../../ui/Screen'
 import { SlotPicker } from '../../ui/SlotPicker'
+import { useDoneToast } from '../../ui/toast-context'
 import { PanelButtons, PanelCard, RecordPaymentPanel } from './panels'
 import { SaleFields } from './SaleFields'
 
@@ -105,6 +106,7 @@ function SellPtPanel({ member, today, onDone }: { member: MemberDetail; today: I
   const packages = usePtPackages()
   const staff = useStaff()
   const sell = useSellPt(member.id)
+  const done = useDoneToast(onDone)
   const activePackages = packages.data?.filter((p) => p.active) ?? []
   const trainers = staff.data?.filter((u) => u.role === 'trainer') ?? []
   const [packageId, setPackageId] = useState('')
@@ -122,16 +124,16 @@ function SellPtPanel({ member, today, onDone }: { member: MemberDetail; today: I
     const checked = saleToInput(pkg, currentSale)
     if ('error' in checked) return setProblem(checked.error.replace('plan price', 'package price'))
     setProblem(null)
-    sell.mutate({ packageId: pkg.id, trainerId: trainer.id, ...checked.input }, { onSuccess: onDone })
+    sell.mutate({ packageId: pkg.id, trainerId: trainer.id, ...checked.input }, { onSuccess: done('Package sold') })
   }
 
   return (
-    <PanelCard title="Sell PT package">
+    <PanelCard title="Sell PT package" onClose={onDone}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         {packages.data && activePackages.length === 0 && (
           <p className="text-muted">
             Add a package first on the{' '}
-            <Link to="/admin/pt-packages" className="text-accent underline">
+            <Link to="/admin/pt?view=packages" className="text-accent underline">
               PT packages
             </Link>{' '}
             screen.
@@ -188,14 +190,17 @@ function SellPtPanel({ member, today, onDone }: { member: MemberDetail; today: I
 
 function BookPanel({ purchase, onDone }: { purchase: PtPurchaseView; onDone: () => void }) {
   const book = useBookSession()
+  const done = useDoneToast(onDone)
   return (
-    <PanelCard title={`Book a session · ${purchase.packageName}`}>
+    <PanelCard title={`Book a session · ${purchase.packageName}`} onClose={onDone}>
       <SlotPicker
         purchaseId={purchase.id}
         confirmLabel="Book session"
         pending={book.isPending}
         error={book.error}
-        onConfirm={(startsAt) => book.mutate({ purchaseId: purchase.id, startsAt }, { onSuccess: onDone })}
+        onConfirm={(startsAt) =>
+          book.mutate({ purchaseId: purchase.id, startsAt }, { onSuccess: done('Session booked') })
+        }
         onCancel={onDone}
       />
     </PanelCard>
@@ -249,13 +254,16 @@ function PtPayPanel({
   onDone: () => void
 }) {
   const record = useRecordPtPayment(member.id)
+  const done = useDoneToast(onDone)
   return (
     <RecordPaymentPanel
       label={`${purchase.packageName} (PT)`}
       duePaise={purchase.duePaise}
       pending={record.isPending}
       error={record.error}
-      onSubmit={(values) => record.mutate({ purchaseId: purchase.id, ...values }, { onSuccess: onDone })}
+      onSubmit={(values) =>
+        record.mutate({ purchaseId: purchase.id, ...values }, { onSuccess: done('Payment recorded') })
+      }
       onCancel={onDone}
     />
   )
@@ -271,6 +279,7 @@ function AdjustPanel({
   onDone: () => void
 }) {
   const adjust = useAdjustPt(member.id)
+  const done = useDoneToast(onDone)
   const [direction, setDirection] = useState<'remove' | 'add'>('remove')
   const [count, setCount] = useState('1')
   const [note, setNote] = useState('')
@@ -287,12 +296,12 @@ function AdjustPanel({
     setProblem(null)
     adjust.mutate(
       { purchaseId: purchase.id, change: direction === 'remove' ? -n : n, note: note.trim() },
-      { onSuccess: onDone },
+      { onSuccess: done('Sessions updated') },
     )
   }
 
   return (
-    <PanelCard title="Adjust sessions">
+    <PanelCard title="Adjust sessions" onClose={onDone}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         <p className="text-muted">
           {purchase.packageName} · {plural(purchase.sessionsLeft, 'session')} left. Use this to correct the balance,
@@ -356,6 +365,7 @@ function ExtendPanel({
   onDone: () => void
 }) {
   const extend = useExtendPt(member.id)
+  const done = useDoneToast(onDone)
   // Suggest two more weeks from the later of the current use-by date and today.
   const [expiresOn, setExpiresOn] = useState(addDays(purchase.expiresOn > today ? purchase.expiresOn : today, 14))
   const [problem, setProblem] = useState<string | null>(null)
@@ -365,11 +375,11 @@ function ExtendPanel({
     if (!expiresOn) return setProblem('Pick a date')
     if (expiresOn <= purchase.expiresOn) return setProblem(`Pick a date after ${formatDate(purchase.expiresOn)}`)
     setProblem(null)
-    extend.mutate({ purchaseId: purchase.id, expiresOn }, { onSuccess: onDone })
+    extend.mutate({ purchaseId: purchase.id, expiresOn }, { onSuccess: done('Validity extended') })
   }
 
   return (
-    <PanelCard title="Extend validity">
+    <PanelCard title="Extend validity" onClose={onDone}>
       <form onSubmit={submit} noValidate className="flex flex-col gap-4">
         <p className="text-muted">
           {purchase.packageName} · currently {purchase.status === 'expired' ? 'expired on' : 'valid till'}{' '}
