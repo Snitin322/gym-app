@@ -145,14 +145,15 @@ export function MemberPage() {
               </Button>
             )}
             {canUnfreeze && <UnfreezeButton member={m} membership={current} />}
-            {live && (
-              <Button variant="secondary" onClick={() => setPanel('cancel')}>
-                Cancel membership
-              </Button>
-            )}
             <Button variant="secondary" onClick={() => setPanel('edit')}>
               Edit details
             </Button>
+            {/* Last, on its own row: it can't be undone, and the label needs the full width on small phones. */}
+            {live && (
+              <Button variant="secondary" className="col-span-2 w-full" onClick={() => setPanel('cancel')}>
+                Cancel membership
+              </Button>
+            )}
           </div>
 
           {(m.emergencyContactName || m.emergencyContactPhone || m.notes) && (

@@ -237,7 +237,7 @@ function DayDetail({
                   Update what I did
                 </Button>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-[2fr_3fr] gap-3">
                   <Button
                     loading={save.isPending}
                     disabled={shown.length === 0}

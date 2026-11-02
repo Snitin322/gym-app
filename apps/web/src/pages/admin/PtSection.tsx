@@ -79,7 +79,7 @@ export function PtSection({ member, today }: { member: MemberDetail; today: IsoD
                 </div>
               )}
               {idle && (
-                <div className="mt-3 flex gap-3">
+                <div className="mt-3 grid grid-cols-[3fr_2fr] gap-3">
                   <Button variant="secondary" onClick={() => open('adjust', p)}>
                     Adjust sessions
                   </Button>
