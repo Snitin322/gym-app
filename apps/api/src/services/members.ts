@@ -29,6 +29,7 @@ import { phoneTaken } from './users'
 
 const memberInclude = {
   user: { select: { id: true, name: true, phone: true } },
+  coach: { select: { id: true, name: true } },
   memberships: { include: membershipInclude, orderBy: { startDate: 'desc' } },
   ptPurchases: { include: purchaseInclude },
 } as const satisfies Prisma.MemberInclude
@@ -64,6 +65,7 @@ function toSummary(row: MemberRow, today: IsoDate): MemberSummary {
     duePaise:
       views.reduce((sum, v) => sum + v.duePaise, 0) +
       row.ptPurchases.reduce((sum, p) => sum + toPurchaseView(p, today).duePaise, 0),
+    coach: row.coach,
   }
 }
 
@@ -105,6 +107,8 @@ const FILTERS: Record<MemberFilter, (member: MemberSummary) => boolean> = {
   expired: ({ status }) => status === 'expired',
   none: ({ status }) => status === 'none',
   dues: ({ duePaise }) => duePaise > 0,
+  // Narrowed by coach in the query.
+  my_clients: () => true,
 }
 
 /**
@@ -113,7 +117,7 @@ const FILTERS: Record<MemberFilter, (member: MemberSummary) => boolean> = {
  */
 export async function listMembers(
   db: TenantDb,
-  { filter, q }: { filter: MemberFilter; q?: string },
+  { filter, q, viewerId }: { filter: MemberFilter; q?: string; viewerId?: string },
   today: IsoDate,
 ): Promise<MemberSummary[]> {
   const digits = q?.replace(/\D/g, '') ?? ''
@@ -129,7 +133,12 @@ export async function listMembers(
     : {}
 
   const rows = await db.member.findMany({
-    where: { ...where, user: { ...(where.user as object), deletedAt: null } },
+    where: {
+      ...where,
+      // Never undefined here: Prisma would drop the filter and return everyone.
+      ...(filter === 'my_clients' ? { coachId: viewerId ?? null } : {}),
+      user: { ...(where.user as object), deletedAt: null },
+    },
     include: memberInclude,
     orderBy: { user: { name: 'asc' } },
   })

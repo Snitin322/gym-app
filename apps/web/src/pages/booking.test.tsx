@@ -364,6 +364,7 @@ describe('desk booking', () => {
     userId: 'user-9',
     name: 'Asha Patel',
     phone: '+919876500001',
+    coach: null,
     status: 'none',
     current: null,
     joinedOn: today,

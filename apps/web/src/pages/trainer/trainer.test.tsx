@@ -69,11 +69,12 @@ function ptSession(startsAt: string, overrides: Partial<PtSessionView> = {}): Pt
 }
 
 const clients: TrainerClient[] = [
-  { memberId: 'mem-1', name: 'Asha Patel', phone: '+919876500001', purchases: [purchase()] },
+  { memberId: 'mem-1', name: 'Asha Patel', phone: '+919876500001', coached: false, purchases: [purchase()] },
   {
     memberId: 'mem-2',
     name: 'Bina Rao',
     phone: '+919876500002',
+    coached: false,
     purchases: [purchase({ id: 'ptp-2', memberId: 'mem-2', status: 'expired', expiresOn: addDays(today, -3) })],
   },
 ]

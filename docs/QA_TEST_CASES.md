@@ -817,6 +817,57 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 
 ---
 
+## 18. Coaching: coach and health details (C1)
+
+**CO-01 — Set a coach** · owner or admin
+1. Members → open Member A → Overview → **Coach** card → **Set coach**.
+2. Pick the trainer and save.
+
+**Expected:** A "Coach saved" message; the card shows the trainer's name. The list offers trainers and the owner only (not admins). An admin sees no "Health details" link.
+- [ ] Pass / [ ] Fail
+
+**CO-02 — Trainer's clients** · trainer
+1. Clients tab.
+
+**Expected:** Member A is listed with "Coaching" (even without a PT package). Opening them shows Profile · Plan · Tracking (PT only if they have a package). The trainer can give and edit their workout plan.
+- [ ] Pass / [ ] Fail
+
+**CO-03 — Coach fills in details** · trainer
+1. Member A → Profile → **Add details**. Fill height, weight, goal, a medical condition and a food allergy. Save.
+
+**Expected:** "Details saved". Body facts show in tiles; the medical condition and allergy show under **Keep in mind**. A line says Member A hasn't agreed in the app yet.
+- [ ] Pass / [ ] Fail
+
+**CO-04 — Member agrees and updates** · Member A
+1. Home shows **Tell (coach) about you** → tap it (or Profile → **Health details**).
+2. **Update my details** → change the goal → Save without ticking the box.
+3. Tick **I agree to share these health details…** → Save.
+
+**Expected:** Step 2 is refused with "Agree to share these details with your coach to save them." Step 3 saves. The trainer's Profile view now says Member A agreed, with the date. The Home card is gone once details exist.
+- [ ] Pass / [ ] Fail
+
+**CO-05 — Who can see health details** · admin, another trainer, owner
+1. As admin: open Member A → no "Health details" link.
+2. As a trainer who isn't Member A's coach: Member A isn't in Clients (unless they have PT with them, and then there's no Profile view).
+3. As owner: Member A → Coach card → **Health details**.
+
+**Expected:** Only the coach, the owner and the member see the details.
+- [ ] Pass / [ ] Fail
+
+**CO-06 — Owner as coach** · owner
+1. Set yourself as Member B's coach. Members → **My clients**.
+
+**Expected:** Only the members you coach are listed. Admins don't have this filter.
+- [ ] Pass / [ ] Fail
+
+**CO-07 — Delete health details** · Member A
+1. Profile → Health details → **Delete my health details** → Delete.
+
+**Expected:** "Health details deleted"; the details are gone for the coach too, and the next save asks for agreement again. Membership and workout plan are unchanged.
+- [ ] Pass / [ ] Fail
+
+---
+
 ## Reporting a failure
 
 Copy this for each ❌ and send it to me (a screenshot helps a lot):

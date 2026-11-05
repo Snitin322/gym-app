@@ -277,17 +277,18 @@ export interface Viewer extends Actor {
 }
 
 /**
- * Owners and admins can manage any member's plan; a trainer only their PT clients' (an active PT
- * package with them: not expired, sessions left). Anyone else gets "not found".
+ * Owners and admins can manage any member's plan; a trainer only their coaching clients' and PT
+ * clients' (an active PT package with them: not expired, sessions left). Anyone else gets "not found".
  */
 export async function loadMemberFor(db: TenantDb | TenantTx, viewer: Viewer, memberId: string, today: IsoDate) {
   const member = await db.member.findUnique({
     where: { id: memberId },
-    select: { id: true, user: { select: { name: true } } },
+    select: { id: true, coachId: true, user: { select: { name: true } } },
   })
   if (!member) throw notFound('Member')
   if (viewer.role === 'owner' || viewer.role === 'admin') return member
   if (viewer.role === 'trainer') {
+    if (member.coachId === viewer.userId) return member
     const purchases = await db.ptPurchase.findMany({
       where: { memberId, trainerId: viewer.userId, expiresOn: { gte: toDbDate(today) } },
       select: { ledger: { select: { change: true } } },

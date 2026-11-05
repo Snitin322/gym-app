@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { useParams } from 'react-router'
-import { MessageCircle, Phone } from 'lucide-react'
+import { Link, useParams } from 'react-router'
+import { ChevronRight, HeartPulse, MessageCircle, Phone } from 'lucide-react'
 import {
   addDays,
   formatPaise,
@@ -22,7 +22,10 @@ import {
   useRecordPayment,
   useUnfreeze,
   useUpdateMember,
+  useStaff,
 } from '../../api/admin'
+import { useSetCoach } from '../../api/coaching'
+import { useSignedInUser } from '../../auth/AuthContext'
 import { errorMessage, formatDate, formatPhone, plural } from '../../lib/format'
 import { membershipRange, membershipSummary, monthsLabel, planOptionLabel } from '../../lib/membership'
 import { initialSale, saleToInput, type SaleState } from '../../lib/sale'
@@ -41,7 +44,7 @@ import { MemberWorkoutPlan } from '../MemberWorkoutPlan'
 import { PtSection } from './PtSection'
 import { SaleFields } from './SaleFields'
 
-type Panel = 'renew' | 'freeze' | 'cancel' | 'edit' | { pay: MembershipView } | null
+type Panel = 'renew' | 'freeze' | 'cancel' | 'edit' | 'coach' | { pay: MembershipView } | null
 
 const MEMBER_VIEWS = ['overview', 'payments', 'pt', 'workout'] as const
 
@@ -49,6 +52,7 @@ const MEMBER_VIEWS = ['overview', 'payments', 'pt', 'workout'] as const
 export function MemberPage() {
   const { id = '' } = useParams()
   const member = useMember(id)
+  const user = useSignedInUser()
   const [panel, setPanel] = useState<Panel>(null)
   const [view, setView] = useView(MEMBER_VIEWS, 'overview')
   const createInvoice = useCreateInvoice(id)
@@ -156,6 +160,13 @@ export function MemberPage() {
             )}
           </div>
 
+          <CoachCard
+            member={m}
+            // Health details: the owner, or the member's coach (never other desk staff).
+            canSeeHealth={user.role === 'owner' || m.coach?.id === user.id}
+            onChange={() => setPanel('coach')}
+          />
+
           {(m.emergencyContactName || m.emergencyContactPhone || m.notes) && (
             <Card className="text-sm">
               {(m.emergencyContactName || m.emergencyContactPhone) && (
@@ -212,8 +223,77 @@ export function MemberPage() {
       {panel === 'freeze' && current && <FreezePanel member={m} membership={current} today={today} onDone={close} />}
       {panel === 'cancel' && current && <CancelPanel member={m} membership={current} onDone={close} />}
       {panel === 'edit' && <EditPanel member={m} onDone={close} />}
+      {panel === 'coach' && <CoachPanel member={m} onDone={close} />}
       {typeof panel === 'object' && panel !== null && <PayPanel member={m} membership={panel.pay} onDone={close} />}
     </AdminLayout>
+  )
+}
+
+function CoachCard({
+  member: m,
+  canSeeHealth,
+  onChange,
+}: {
+  member: MemberDetail
+  canSeeHealth: boolean
+  onChange: () => void
+}) {
+  return (
+    <Card>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm text-muted">Coach</p>
+          <p className="truncate font-semibold">{m.coach?.name ?? 'No coach'}</p>
+        </div>
+        <Button variant="secondary" className="w-auto" onClick={onChange}>
+          {m.coach ? 'Change' : 'Set coach'}
+        </Button>
+      </div>
+      {m.coach && canSeeHealth && (
+        <Link
+          to={`/admin/members/${m.id}/health`}
+          className="mt-3 flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-3 font-semibold hover:bg-line/50"
+        >
+          <HeartPulse aria-hidden="true" size={20} className="text-accent" />
+          <span className="flex-1">Health details</span>
+          <ChevronRight aria-hidden="true" size={20} className="text-muted" />
+        </Link>
+      )}
+    </Card>
+  )
+}
+
+/** The coach is a trainer or the owner; they see the member's health details and manage their plans. */
+function CoachPanel({ member, onDone }: { member: MemberDetail; onDone: () => void }) {
+  const staff = useStaff()
+  const setCoach = useSetCoach(member.id)
+  const done = useDoneToast(onDone)
+  const [coachId, setCoachId] = useState(member.coach?.id ?? '')
+  const coaches = (staff.data ?? []).filter((u) => u.role === 'trainer' || u.role === 'owner')
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    setCoach.mutate(coachId || null, { onSuccess: done(coachId ? 'Coach saved' : 'Coach removed') })
+  }
+  return (
+    <PanelCard title="Coach" onClose={onDone}>
+      <form onSubmit={submit} className="flex flex-col gap-4">
+        <Field label="Coach" hint="They see this member’s health details and manage their workout plan.">
+          {(fieldId) => (
+            <SelectInput id={fieldId} value={coachId} onChange={(e) => setCoachId(e.target.value)}>
+              <option value="">No coach</option>
+              {coaches.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}
+                  {u.role === 'owner' ? ' (owner)' : ''}
+                </option>
+              ))}
+            </SelectInput>
+          )}
+        </Field>
+        <ErrorText>{errorMessage(setCoach.error ?? staff.error)}</ErrorText>
+        <PanelButtons onCancel={onDone} submitLabel="Save" loading={setCoach.isPending} />
+      </form>
+    </PanelCard>
   )
 }
 

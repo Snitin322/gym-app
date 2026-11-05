@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { MEMBER_FILTERS, formatPaise, todayInIndia, type MemberFilter, type MemberSummary } from '@onthec/shared'
 import { useMembers } from '../../api/admin'
+import { useSignedInUser } from '../../auth/AuthContext'
 import { errorMessage, formatPhone } from '../../lib/format'
 import { membershipSummary } from '../../lib/membership'
 import { AdminLayout, LoadingText } from '../../ui/AdminLayout'
@@ -16,10 +17,17 @@ const FILTER_LABELS: Record<MemberFilter, string> = {
   expired: 'Expired',
   none: 'No plan',
   dues: 'Dues',
+  my_clients: 'My clients',
 }
 
 export function MembersPage() {
   const [params, setParams] = useSearchParams()
+  const user = useSignedInUser()
+  // Only the owner coaches at the desk, so only they get "My clients" (second, after All).
+  const filters: MemberFilter[] =
+    user.role === 'owner'
+      ? ['all', 'my_clients', ...MEMBER_FILTERS.filter((f) => f !== 'all' && f !== 'my_clients')]
+      : MEMBER_FILTERS.filter((f) => f !== 'my_clients')
   const filter = (MEMBER_FILTERS as readonly string[]).includes(params.get('filter') ?? '')
     ? (params.get('filter') as MemberFilter)
     : 'all'
@@ -82,7 +90,7 @@ export function MembersPage() {
         aria-label="Filter members"
         className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]"
       >
-        {MEMBER_FILTERS.map((value) => (
+        {filters.map((value) => (
           <button
             key={value}
             type="button"

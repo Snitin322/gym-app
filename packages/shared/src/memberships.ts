@@ -55,7 +55,8 @@ export type MemberListStatus = 'active' | 'frozen' | 'expiring' | 'upcoming' | '
 
 export const EXPIRING_WITHIN_DAYS = 7
 
-export const MEMBER_FILTERS = ['all', 'active', 'expiring', 'expired', 'none', 'dues'] as const
+/** `my_clients`: members the signed-in staff member coaches. */
+export const MEMBER_FILTERS = ['all', 'active', 'expiring', 'expired', 'none', 'dues', 'my_clients'] as const
 export type MemberFilter = (typeof MEMBER_FILTERS)[number]
 
 // ---------------------------------------------------------------------------
@@ -110,6 +111,8 @@ export interface MemberSummary {
   current: MembershipView | null
   /** Total still owed across all memberships. */
   duePaise: number
+  /** Their coach, if they have one. */
+  coach: { id: string; name: string } | null
 }
 
 export interface MemberDetail extends MemberSummary {
@@ -181,9 +184,7 @@ export const memberInputSchema = z.object({
   phone: phoneSchema,
   joinedOn: isoDateSchema.optional(),
   emergencyContactName: optionalText(80),
-  emergencyContactPhone: z
-    .union([z.literal('').transform(() => undefined), phoneSchema])
-    .optional(),
+  emergencyContactPhone: z.union([z.literal('').transform(() => undefined), phoneSchema]).optional(),
   notes: optionalText(1000),
 })
 

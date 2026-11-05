@@ -46,7 +46,8 @@ export function membersRoutes({ authenticate, today }: Deps): FastifyPluginAsync
 
     app.get('/members', async (request) => {
       const { filter, q } = listQuery.parse(request.query)
-      return listMembers(getAuth(request).db, { filter, q: q || undefined }, today())
+      const auth = getAuth(request)
+      return listMembers(auth.db, { filter, q: q || undefined, viewerId: auth.userId }, today())
     })
 
     app.post('/members', async (request, reply) => {

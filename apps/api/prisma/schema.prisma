@@ -28,6 +28,8 @@ enum ConsentPurpose {
   privacy
   whatsapp
   marketing
+  /// Health details in the coaching profile (sensitive under the DPDP Act).
+  health
 
   @@map("consent_purpose")
 }
@@ -78,6 +80,7 @@ model Gym {
   workoutVersions   WorkoutPlanVersion[]
   workoutLogs       WorkoutLog[]
   leads             Lead[]
+  clientProfiles    ClientProfile[]
 
   @@map("gyms")
 }
@@ -98,7 +101,9 @@ model User {
   gym                  Gym                   @relation(fields: [gymId], references: [id], onDelete: Restrict)
   refreshTokens        RefreshToken[]
   consents             Consent[]
-  member               Member?
+  member               Member?               @relation("MemberUser")
+  coachingClients      Member[]              @relation("MemberCoach")
+  clientProfilesSaved  ClientProfile[]
   membershipsCreated   Membership[]          @relation("MembershipCreatedBy")
   freezesCreated       MembershipFreeze[]    @relation("FreezeCreatedBy")
   paymentsRecorded     Payment[]             @relation("PaymentRecordedBy")
@@ -213,21 +218,26 @@ model Member {
   emergencyContactName  String?  @map("emergency_contact_name")
   emergencyContactPhone String?  @map("emergency_contact_phone")
   notes                 String?
+  /// Their coach (a trainer or the owner), who sees their health profile and plans.
+  coachId               String?  @map("coach_id") @db.Uuid
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  gym         Gym          @relation(fields: [gymId], references: [id], onDelete: Restrict)
-  user        User         @relation(fields: [userId], references: [id], onDelete: Restrict)
-  memberships Membership[]
-  payments    Payment[]
-  invoices    Invoice[]
-  ptPurchases PtPurchase[]
-  ptSessions  PtSession[]
-  workoutPlan WorkoutPlan?
-  workoutLogs WorkoutLog[]
-  leads       Lead[]
+  gym           Gym            @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  user          User           @relation("MemberUser", fields: [userId], references: [id], onDelete: Restrict)
+  coach         User?          @relation("MemberCoach", fields: [coachId], references: [id], onDelete: SetNull)
+  clientProfile ClientProfile?
+  memberships   Membership[]
+  payments      Payment[]
+  invoices      Invoice[]
+  ptPurchases   PtPurchase[]
+  ptSessions    PtSession[]
+  workoutPlan   WorkoutPlan?
+  workoutLogs   WorkoutLog[]
+  leads         Lead[]
 
   @@index([gymId])
+  @@index([coachId])
   @@map("members")
 }
 
@@ -796,4 +806,56 @@ model Lead {
   @@index([gymId, status, followUpOn])
   @@index([gymId, phone])
   @@map("leads")
+}
+
+enum Sex {
+  female
+  male
+  other
+
+  @@map("sex")
+}
+
+enum DietPreference {
+  veg
+  eggetarian
+  non_veg
+  vegan
+
+  @@map("diet_preference")
+}
+
+/**
+ * What a coach needs to know before planning training and diet. Health details are sensitive: only the
+ * member, their coach and the owner can read them (checked in the service), and the member agrees in
+ * the app (a `health` consent). Weights in kg and body fat in % are not money, so floats are fine.
+ */
+model ClientProfile {
+  id                 String          @id @default(uuid()) @db.Uuid
+  gymId              String          @map("gym_id") @db.Uuid
+  memberId           String          @unique @map("member_id") @db.Uuid
+  dateOfBirth        DateTime?       @map("date_of_birth") @db.Date
+  sex                Sex?
+  heightCm           Int?            @map("height_cm")
+  startWeightKg      Float?          @map("start_weight_kg")
+  bodyFatPct         Float?          @map("body_fat_pct")
+  goal               String?
+  dietPreference     DietPreference? @map("diet_preference")
+  medicalConditions  String?         @map("medical_conditions")
+  injuries           String?
+  foodAllergies      String?         @map("food_allergies")
+  medicines          String?
+  /// Work, sleep, stress, daily activity.
+  lifestyle          String?
+  trainingExperience String?         @map("training_experience")
+  updatedById        String          @map("updated_by_id") @db.Uuid
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym       Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  member    Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  updatedBy User   @relation(fields: [updatedById], references: [id], onDelete: Restrict)
+
+  @@index([gymId])
+  @@map("client_profiles")
 }

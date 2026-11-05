@@ -19,6 +19,7 @@ import { ErrorText, Logo } from '../../ui/Screen'
 import { Segmented } from '../../ui/Segmented'
 import { MemberWorkoutCalendar } from '../../ui/WorkoutCalendar'
 import { AccountCard, LinkRow, LogOutButton } from '../AccountBits'
+import { ClientProfileSection } from '../ClientProfile'
 import { MemberWorkoutPlan } from '../MemberWorkoutPlan'
 import { TrainerSchedule } from '../TrainerSchedule'
 import { UnmarkedSessions } from '../UnmarkedSessions'
@@ -89,7 +90,7 @@ function Stat({ label, value }: { label: string; value: number }) {
   )
 }
 
-/** Clients tab: everyone with PT with this trainer, active first; tap for their plan, tracking and PT. */
+/** Clients tab: coaching clients and PT clients, current first; tap for their profile, plan, tracking and PT. */
 export function TrainerClientsPage() {
   const query = useTrainerClients()
   const [q, setQ] = useState('')
@@ -122,7 +123,7 @@ export function TrainerClientsPage() {
       {query.data?.length === 0 && (
         <Card>
           <p className="text-muted">
-            No PT clients yet. Members appear here when the desk sells them a package with you.
+            No clients yet. Members appear here when the desk makes you their coach or sells them a PT package with you.
           </p>
         </Card>
       )}
@@ -149,9 +150,14 @@ function ClientRow({ client, today }: { client: TrainerClient; today: string }) 
       <Avatar name={client.name} />
       <span className="min-w-0 flex-1">
         <span className="block truncate font-semibold">{client.name}</span>
-        {latest && (
+        {(client.coached || latest) && (
           <span className="block truncate text-sm text-muted">
-            {active ? ptSessionsLabel(active) : 'No active package'}
+            {[
+              client.coached && 'Coaching',
+              active ? ptSessionsLabel(active) : latest && !client.coached && 'No active package',
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </span>
         )}
         {active && (
@@ -165,15 +171,20 @@ function ClientRow({ client, today }: { client: TrainerClient; today: string }) 
   )
 }
 
-const CLIENT_VIEWS = ['plan', 'tracking', 'pt'] as const
+const CLIENT_VIEWS = ['profile', 'plan', 'tracking', 'pt'] as const
 
-/** A client: call or message them, and their plan, workout tracking and PT packages. */
+/**
+ * A client: call or message them, then their health profile (coaching clients), plan, workout tracking
+ * and PT packages. Plan and tracking are shared while they're a coaching client or have active PT.
+ */
 export function TrainerClientPage() {
   const { memberId = '' } = useParams()
   const clients = useTrainerClients()
   const client = clients.data?.find((c) => c.memberId === memberId)
-  const active = client?.purchases.some((p) => p.status === 'active') ?? false
-  const [view, setView] = useView(CLIENT_VIEWS, active ? 'plan' : 'pt')
+  const coached = client?.coached ?? false
+  const active = coached || (client?.purchases.some((p) => p.status === 'active') ?? false)
+  const hasPt = (client?.purchases.length ?? 0) > 0
+  const [view, setView] = useView(CLIENT_VIEWS, coached ? 'profile' : active ? 'plan' : 'pt')
   const today = todayInIndia()
 
   return (
@@ -182,7 +193,7 @@ export function TrainerClientPage() {
       {clients.isPending && (
         <div aria-busy="true" aria-label="Loading" className="h-24 animate-pulse rounded-2xl bg-surface-2" />
       )}
-      {clients.data && !client && <ErrorText>This member isn’t one of your PT clients.</ErrorText>}
+      {clients.data && !client && <ErrorText>This member isn’t one of your clients.</ErrorText>}
       {client && (
         <>
           <div className="flex items-center gap-3">
@@ -211,9 +222,10 @@ export function TrainerClientPage() {
               value={view}
               onChange={setView}
               options={[
+                ...(coached ? [{ value: 'profile' as const, label: 'Profile' }] : []),
                 { value: 'plan', label: 'Plan' },
                 { value: 'tracking', label: 'Tracking' },
-                { value: 'pt', label: 'PT' },
+                ...(hasPt ? [{ value: 'pt' as const, label: 'PT' }] : []),
               ]}
             />
           ) : (
@@ -223,6 +235,7 @@ export function TrainerClientPage() {
               </p>
             </Card>
           )}
+          {coached && view === 'profile' && <ClientProfileSection memberId={client.memberId} />}
           {active && view === 'plan' && <MemberWorkoutPlan memberId={client.memberId} showTracking={false} />}
           {active && view === 'tracking' && <MemberWorkoutCalendar memberId={client.memberId} />}
           {(view === 'pt' || !active) && (

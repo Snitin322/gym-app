@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { CalendarClock, ChevronRight, CircleAlert, Dumbbell, Moon } from 'lucide-react'
+import { CalendarClock, ChevronRight, CircleAlert, ClipboardList, Dumbbell, Moon } from 'lucide-react'
 import { formatPaise, inclusiveDays, todayInIndia, workoutDayFor } from '@onthec/shared'
 import { useMyMembership, useMyPt } from '../../api/admin'
+import { useMyProfile } from '../../api/coaching'
 import { useMySessions } from '../../api/pt-booking'
 import { useMyWorkoutPlan } from '../../api/workouts'
 import { useSignedInUser } from '../../auth/AuthContext'
@@ -26,6 +27,7 @@ export function MemberHome() {
         </div>
       </header>
       <MembershipGlance />
+      <CoachGlance />
       <WorkoutGlance />
       <PtGlance />
     </MemberShell>
@@ -48,6 +50,21 @@ function GlanceCard({ to, label, children }: { to: string; label: string; childr
 
 function Skeleton() {
   return <div aria-hidden="true" className="h-24 animate-pulse rounded-2xl bg-surface-2" />
+}
+
+/** A member with a coach but no health details yet: ask them to fill them in. */
+function CoachGlance() {
+  const query = useMyProfile()
+  const coach = query.data?.coach
+  if (!coach || query.data?.profile) return null
+  return (
+    <GlanceCard to="/profile/health" label="Health details">
+      <p className="flex items-center gap-2 font-semibold">
+        <ClipboardList aria-hidden="true" size={18} className="text-accent" /> Tell {coach.name.split(' ')[0]} about you
+      </p>
+      <p className="text-sm text-muted">Your body, goal, health and food, so your plan suits you.</p>
+    </GlanceCard>
+  )
 }
 
 function MembershipGlance() {

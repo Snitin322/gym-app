@@ -1,3 +1,4 @@
+import { HeartPulse } from 'lucide-react'
 import { isoWeekday, todayInIndia, workoutDayFor } from '@onthec/shared'
 import { useMyPt } from '../../api/admin'
 import { useMyWorkoutPlan } from '../../api/workouts'
@@ -13,7 +14,7 @@ import { WorkoutDayView, WorkoutWeekView } from '../../ui/WorkoutWeekView'
 import { MyMembershipCard } from '../MyMembershipCard'
 import { MyPtCard } from '../MyPtCard'
 import { MyPtSessions } from '../MyPtSessions'
-import { AccountCard, LogOutButton } from '../AccountBits'
+import { AccountCard, LinkRow, LogOutButton } from '../AccountBits'
 import { MemberShell } from './MemberShell'
 
 const WORKOUT_VIEWS = ['today', 'week', 'plan'] as const
@@ -109,6 +110,12 @@ export function MemberProfilePage() {
     <MemberShell>
       <PageHeader title="Profile" />
       <AccountCard />
+      <LinkRow
+        to="/profile/health"
+        title="Health details"
+        text="Body, goal, health and food, for your coach"
+        icon={<HeartPulse aria-hidden="true" size={20} />}
+      />
       <MyMembershipCard />
       <InstallHint />
       <LogOutButton />

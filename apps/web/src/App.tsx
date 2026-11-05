@@ -13,8 +13,10 @@ import {
   TrainerSchedulePage,
 } from './pages/trainer/TrainerApp'
 import { MemberProfilePage, MemberPtPage, MemberWorkoutPage } from './pages/member/MemberTabs'
+import { MyHealthPage } from './pages/member/MyHealthPage'
 import { WelcomePage } from './pages/WelcomePage'
 import { GymDetailsPage } from './pages/admin/GymDetailsPage'
+import { MemberHealthPage } from './pages/admin/MemberHealthPage'
 import { MemberPage } from './pages/admin/MemberPage'
 import { MembersPage } from './pages/admin/MembersPage'
 import { NewMemberPage } from './pages/admin/NewMemberPage'
@@ -38,6 +40,7 @@ export default function App() {
           <Route path="/workout" element={<MemberWorkoutPage />} />
           <Route path="/pt" element={<MemberPtPage />} />
           <Route path="/profile" element={<MemberProfilePage />} />
+          <Route path="/profile/health" element={<MyHealthPage />} />
         </Route>
         <Route path="/trainer" element={<RequireRole roles={['trainer']} />}>
           <Route path="availability" element={<MyAvailabilityPage />} />
@@ -51,6 +54,7 @@ export default function App() {
           <Route path="members" element={<MembersPage />} />
           <Route path="members/new" element={<NewMemberPage />} />
           <Route path="members/:id" element={<MemberPage />} />
+          <Route path="members/:id/health" element={<MemberHealthPage />} />
           <Route path="plans" element={<PlansPage />} />
           <Route path="pt" element={<DeskPtPage />} />
           <Route path="pt-packages" element={<Navigate to="/admin/pt?view=packages" replace />} />

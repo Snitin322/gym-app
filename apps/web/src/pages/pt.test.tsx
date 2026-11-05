@@ -80,6 +80,7 @@ function memberDetail(overrides: Partial<MemberDetail> = {}): MemberDetail {
     userId: 'user-9',
     name: 'Asha Patel',
     phone: '+919876500001',
+    coach: null,
     status: 'none',
     current: null,
     joinedOn: today,
@@ -275,6 +276,7 @@ describe('what members and trainers see', () => {
         memberId: 'mem-1',
         name: 'Asha Patel',
         phone: '+919876500001',
+        coached: false,
         purchases: [purchase({ expiresOn: addDays(today, 3) })],
       },
     ]

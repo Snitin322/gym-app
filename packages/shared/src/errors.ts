@@ -67,6 +67,10 @@ export const ErrorCode = {
   NO_WORKOUT_PLAN: 'NO_WORKOUT_PLAN',
   WORKOUT_DATE_LOCKED: 'WORKOUT_DATE_LOCKED',
   WORKOUT_REST_DAY: 'WORKOUT_REST_DAY',
+
+  // Coaching
+  NOT_A_COACH: 'NOT_A_COACH',
+  HEALTH_CONSENT_REQUIRED: 'HEALTH_CONSENT_REQUIRED',
 } as const
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode]

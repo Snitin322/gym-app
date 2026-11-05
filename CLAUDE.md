@@ -104,13 +104,14 @@ Work one phase at a time, adding features one by one. At the end of each phase: 
 7. **Workout tracking** — weekly calendar on the member home: tap a date to see that day's plan pre-filled, then "Mark done" or update reps/weights/skips; one log per member per date (today and the past 7 days, editable within that window), a snapshot independent of later plan changes, "last time" per exercise; read-only for their PT trainer and owner/admin
 8. **Admin dashboard and leads** — owner/admin home: active, expiring (7 days) and recently expired members with call/WhatsApp links, collections today/this month by method (owner only), pending dues, PT this week, disputes/unmarked, PT packages running out, workout engagement; leads (enquiries) with follow-ups and convert-to-member
 - **Design refresh (between 8 and 9)** — native-app feel: bottom tab bar per role (member: Home · Workout · PT · Profile; trainer: Today · Clients · Schedule · Profile; desk: Today · Members · PT · More; sidebar on laptops), segmented views instead of long pages, actions in bottom sheets with toasts, Onthec olive/cream theme following the phone's light/dark setting, Inter font, Lucide icons. Delivered as D1 (shell + member), D2 (trainer), D3 (desk), D4 (polish + QA doc).
+- **Coaching (between the design refresh and 9)** — the app as a personal coach tool: coach per client, health profile (DPDP `health` consent; client, coach and owner only), diet and supplement plans, weekly check-ins with photos (R2), and a progress-first client app (Progress · Plan · Check-in · Profile) with graphs. Delivered as C1 (coach + profile), C2 (diet + supplements), C3 (check-in + Progress home), C4 (strength + consistency graphs). See docs/PLAN.md.
 9. **QR check-in** — member QR pass (signed, rotating token), front-desk scanner screen, attendance history
 10. **Notifications** — web push + WhatsApp reminders: expiry (7/3/0 days), PT session reminder, payment receipt
 11. **PWA polish and production** — offline app shell for data screens, update prompt, branding, production hardening (backups, Sentry, live keys)
 
 ## Out of scope for MVP (do not build yet)
 
-Live set-by-set workout logging in the gym (rest timers etc.; members tick their day afterwards in Phase 7), diet plans, challenges/leaderboards, loyalty points, in-app store, biometric integration, multi-branch UI, SaaS billing for gyms. Keep the schema flexible enough to add these later.
+Live set-by-set workout logging in the gym (rest timers etc.; members tick their day afterwards in Phase 7), challenges/leaderboards, loyalty points, in-app store, biometric integration, multi-branch UI, SaaS billing for gyms. Keep the schema flexible enough to add these later.
 
 ## Coding conventions
 

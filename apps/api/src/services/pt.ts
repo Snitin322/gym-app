@@ -149,7 +149,10 @@ export async function sellPtPackage(
     const pkg = await tx.ptPackage.findUnique({ where: { id: input.packageId } })
     if (!pkg) throw notFound('PT package')
     if (!pkg.active) throw new AppError(409, ErrorCode.PLAN_INACTIVE, 'This PT package is no longer offered.')
-    const trainer = await tx.user.findUnique({ where: { id: input.trainerId }, select: { role: true, deletedAt: true } })
+    const trainer = await tx.user.findUnique({
+      where: { id: input.trainerId },
+      select: { role: true, deletedAt: true },
+    })
     if (!trainer || trainer.deletedAt || trainer.role !== 'trainer') {
       throw new AppError(400, ErrorCode.NOT_A_TRAINER, 'Choose one of the gym’s trainers.')
     }
@@ -304,9 +307,7 @@ export async function extendPtPurchase(
 /** Active packages first (most sessions left), then the rest, newest first. */
 export function sortPurchases(views: PtPurchaseView[]): PtPurchaseView[] {
   const rank = { active: 0, used_up: 1, expired: 2 } as const
-  return [...views].sort(
-    (a, b) => rank[a.status] - rank[b.status] || b.startDate.localeCompare(a.startDate),
-  )
+  return [...views].sort((a, b) => rank[a.status] - rank[b.status] || b.startDate.localeCompare(a.startDate))
 }
 
 export async function getMyPtPurchases(db: TenantDb, userId: string, today: IsoDate): Promise<PtPurchaseView[]> {
@@ -316,24 +317,33 @@ export async function getMyPtPurchases(db: TenantDb, userId: string, today: IsoD
   return sortPurchases(rows.map((r) => toPurchaseView(r, today)))
 }
 
-/** A trainer's clients: members with PT packages assigned to them, active clients first. */
+/** A trainer's clients: members they coach and members with PT packages with them, current clients first. */
 export async function getTrainerClients(db: TenantDb, trainerId: string, today: IsoDate): Promise<TrainerClient[]> {
   const rows = await db.ptPurchase.findMany({
     where: { trainerId },
     include: { ...purchaseInclude, member: { include: { user: { select: { name: true, phone: true } } } } },
   })
+  const coached = await db.member.findMany({
+    where: { coachId: trainerId, user: { deletedAt: null } },
+    select: { id: true, user: { select: { name: true, phone: true } } },
+  })
   const clients = new Map<string, TrainerClient>()
+  for (const m of coached) {
+    clients.set(m.id, { memberId: m.id, name: m.user.name, phone: m.user.phone, coached: true, purchases: [] })
+  }
   for (const row of rows) {
     const client = clients.get(row.memberId) ?? {
       memberId: row.memberId,
       name: row.member.user.name,
       phone: row.member.user.phone,
+      coached: false,
       purchases: [],
     }
     client.purchases.push(toPurchaseView(row, today))
     clients.set(row.memberId, client)
   }
-  const active = (c: TrainerClient) => c.purchases.some((p) => p.status === 'active')
+  // Coaching clients and active PT clients first.
+  const active = (c: TrainerClient) => c.coached || c.purchases.some((p) => p.status === 'active')
   return [...clients.values()]
     .map((c) => ({ ...c, purchases: sortPurchases(c.purchases) }))
     .sort((a, b) => Number(active(b)) - Number(active(a)) || a.name.localeCompare(b.name))

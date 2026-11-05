@@ -27,6 +27,7 @@ export const TENANT_MODELS = [
   'WorkoutPlanVersion',
   'WorkoutLog',
   'Lead',
+  'ClientProfile',
 ] as const
 
 const tenantModels = new Set<string>(TENANT_MODELS)

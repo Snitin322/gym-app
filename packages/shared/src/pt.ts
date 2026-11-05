@@ -89,6 +89,8 @@ export interface TrainerClient {
   memberId: string
   name: string
   phone: string
+  /** This trainer is their coach (they may also, or only, have PT packages). */
+  coached: boolean
   purchases: PtPurchaseView[]
 }
 
