@@ -6,7 +6,7 @@ import { MemoryRouter } from 'react-router'
 import {
   addDays,
   todayInIndia,
-  weekOf,
+  weekStart,
   type CheckInToReview,
   type CheckInView,
   type MemberCheckIns,
@@ -18,7 +18,7 @@ import { AppProviders } from '../AppProviders'
 import { setAccessToken } from '../api/client'
 import { mockApi, ok, session, sessionUser } from '../test/mockApi'
 
-const thisWeek = weekOf(todayInIndia())
+const thisWeek = weekStart(todayInIndia())
 const ravi = { id: 'trainer-1', name: 'Ravi Kumar' }
 
 function checkIn(overrides: Partial<CheckInView> = {}): CheckInView {
@@ -147,6 +147,21 @@ describe('check-ins: member', () => {
         profile: null,
         healthConsentAt: null,
       }),
+      'GET /me/training-progress': ok({
+        lifts: [
+          {
+            exerciseId: 'ex-squat',
+            name: 'Barbell Squat',
+            points: [
+              { date: addDays(thisWeek, -14), weightKg: 40, reps: 8 },
+              { date: addDays(thisWeek, -7), weightKg: 45, reps: 8 },
+              { date: thisWeek, weightKg: 50, reps: 5 },
+            ],
+          },
+        ],
+        weeks: [2, 3, 4, 2, 3, 4, 4, 3].map((done, i) => ({ weekOf: addDays(thisWeek, -7 * (7 - i)), done })),
+        plannedPerWeek: 4,
+      }),
       'GET /me/pt': ok([]),
     })
     const weight = await screen.findByRole('region', { name: 'Body weight' })
@@ -164,6 +179,13 @@ describe('check-ins: member', () => {
     await user.click(screen.getByRole('button', { name: 'Show waist graph' }))
     expect(within(await screen.findByRole('region', { name: 'Waist' })).getByText(/−2 cm since/)).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Your coach replied' }).textContent).toContain('Great week!')
+
+    // Strength (orange) and workouts per week sit with the body measurements.
+    expect(screen.getByRole('region', { name: 'Workouts' }).textContent).toContain('3 of 4')
+    await user.click(screen.getByRole('button', { name: 'Show barbell squat graph' }))
+    const squat = await screen.findByRole('region', { name: 'Barbell Squat' })
+    expect(squat.textContent).toContain('heaviest set')
+    expect(within(squat).getByText(/\+10 kg since/)).toBeTruthy()
   })
 
   it('invites a first check-in before there are any', async () => {

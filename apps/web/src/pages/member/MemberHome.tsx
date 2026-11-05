@@ -17,7 +17,7 @@ import { useMyCheckIns } from '../../api/check-ins'
 import { useMyProfile } from '../../api/coaching'
 import { useMyDietPlan } from '../../api/diet'
 import { useMySessions } from '../../api/pt-booking'
-import { useMyWorkoutPlan } from '../../api/workouts'
+import { useMyTrainingProgress, useMyWorkoutPlan } from '../../api/workouts'
 import { useSignedInUser } from '../../auth/AuthContext'
 import { useTodaysDietDay } from '../../lib/diet'
 import { STATUS_BADGES, membershipSummary } from '../../lib/membership'
@@ -75,10 +75,13 @@ function Skeleton() {
 /** Graphs once there are check-ins; before that, an invitation to send the first one. */
 function ProgressGlance() {
   const query = useMyCheckIns()
-  if (query.isPending) return <Skeleton />
+  const training = useMyTrainingProgress()
+  // Wait for the first try at the training data only; if it fails, show the rest without it.
+  if (query.isPending || (training.isPending && training.failureCount === 0)) return <Skeleton />
   const data = query.data
   if (!data) return null
-  if (data.history.length === 0) {
+  const lifts = training.data?.lifts.length ?? 0
+  if (data.history.length === 0 && lifts === 0) {
     return (
       <Card className="flex flex-col gap-3">
         <p className="text-lg font-bold">Your progress starts here</p>
@@ -98,7 +101,7 @@ function ProgressGlance() {
   const current = data.current
   return (
     <>
-      <ProgressCharts checkIns={data.history} />
+      <ProgressCharts checkIns={data.history} training={training.data} />
       {!current && (
         <GlanceCard to="/check-in" label="Weekly check-in">
           <p className="flex items-center gap-2 font-semibold">

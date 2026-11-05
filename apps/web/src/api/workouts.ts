@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  TrainingProgress,
   SaveWorkoutDayInput,
   WorkoutCalendarWeek,
   MemberWorkoutPlan,
@@ -149,6 +150,21 @@ export function useSaveMemberPlan(memberId: string) {
   })
 }
 
+/** Strength (heaviest set per week) and workouts per week, for the Progress graphs. */
+export function useMyTrainingProgress() {
+  return useQuery({
+    queryKey: ['me', 'training-progress'],
+    queryFn: () => api<TrainingProgress>('/me/training-progress'),
+  })
+}
+
+export function useMemberTrainingProgress(memberId: string) {
+  return useQuery({
+    queryKey: ['member-training-progress', memberId],
+    queryFn: () => api<TrainingProgress>(`/members/${memberId}/training-progress`),
+  })
+}
+
 export function useMyWorkoutPlan() {
   return useQuery({ queryKey: ['me', 'workout-plan'], queryFn: () => api<MyWorkoutPlan>('/me/workout-plan') })
 }
@@ -180,8 +196,11 @@ export function useSaveWorkoutDay() {
       api<WorkoutCalendarWeek>(`/me/workout-days/${date}`, { method: 'PUT', body: input }),
     onSuccess: async (week) => {
       client.setQueryData(myWeekKey(week.start), week)
-      // "Last time" in later weeks may change too.
-      await client.invalidateQueries({ queryKey: ['me', 'workout-week'] })
+      // "Last time" in later weeks may change too, and so do the strength graphs.
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['me', 'workout-week'] }),
+        client.invalidateQueries({ queryKey: ['me', 'training-progress'] }),
+      ])
     },
   })
 }

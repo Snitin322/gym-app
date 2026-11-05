@@ -951,6 +951,27 @@ Photos need R2 set up first (docs/R2_SETUP.md). Without it, the check-in has two
 
 ---
 
+## 21. Coaching: strength and consistency (C4)
+
+**ST-01 — Workouts this week** · Member A (with a workout plan)
+1. Plan → My week → tick a day as done.
+2. Open Progress.
+
+**Expected:** A **Workouts this week** card shows "1 of N" (N = training days in the plan) with bars for the last 8 weeks; this week's bar is the strongest colour.
+- [ ] Pass / [ ] Fail
+
+**ST-02 — Strength graphs** · Member A (after ticking weighted exercises on two or more weeks)
+
+**Expected:** Orange cards for up to 3 lifts (the ones trained most often with a weight) with their heaviest set. Tapping one makes it the large graph, titled "(lift) · heaviest set", with the change since the first week. Skipped exercises and sets without a weight don't count.
+- [ ] Pass / [ ] Fail
+
+**ST-03 — Coach sees the same** · Member A's coach, and the owner
+
+**Expected:** The client's Progress view (coach) and the desk Progress page (owner) show the same strength and workouts cards above the check-ins.
+- [ ] Pass / [ ] Fail
+
+---
+
 ## Reporting a failure
 
 Copy this for each ❌ and send it to me (a screenshot helps a lot):

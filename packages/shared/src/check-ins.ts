@@ -1,6 +1,5 @@
 import { z } from 'zod'
-import { addDays, type IsoDate } from './dates'
-import { isoWeekday } from './pt-booking'
+import type { IsoDate } from './dates'
 
 // ---------------------------------------------------------------------------
 // Weekly check-in: weight, optional measurements, three photos and a note
@@ -26,11 +25,7 @@ export const MEASUREMENT_LABELS: Record<Measurement, string> = {
 /** Photos are JPEG, PNG or WebP, resized in the browser; this is the most the API accepts. */
 export const MAX_PHOTO_BYTES = 3 * 1024 * 1024
 
-/** Check-ins are weekly, Monday to Sunday (India). */
-export function weekOf(date: IsoDate): IsoDate {
-  return addDays(date, 1 - isoWeekday(date))
-}
-
+/** Check-ins are weekly, Monday to Sunday (India): see `weekStart`. */
 export interface CheckInView {
   id: string
   memberId: string

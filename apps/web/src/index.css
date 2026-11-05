@@ -15,6 +15,8 @@
   --color-danger: #b42318;
   --color-warn: #a15c07;
   --color-info: #175cd3;
+  /* Strength graphs (body measurements use the accent). */
+  --color-strength: #b5541c;
 
   --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
@@ -33,6 +35,7 @@
     --color-danger: #f97066;
     --color-warn: #fdb022;
     --color-info: #84adff;
+    --color-strength: #f4a261;
   }
 }
 

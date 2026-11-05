@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { ChevronRight } from 'lucide-react'
 import type { CheckInView } from '@onthec/shared'
 import { useCheckInsToReview, useMemberCheckIns, useReviewCheckIn } from '../api/check-ins'
+import { useMemberTrainingProgress } from '../api/workouts'
 import { errorMessage, formatDate } from '../lib/format'
 import { Avatar, SectionTitle } from '../ui/AppShell'
 import { Button } from '../ui/Button'
@@ -15,11 +16,13 @@ import { useDoneToast } from '../ui/toast-context'
 /** A client's progress for their coach or the owner: graphs, then each week's check-in with a reply box. */
 export function MemberProgress({ memberId }: { memberId: string }) {
   const query = useMemberCheckIns(memberId)
-  if (query.isPending)
+  // Strength comes from workout tracking; if that isn't shared with this viewer, the graphs just skip it.
+  const training = useMemberTrainingProgress(memberId)
+  if (query.isPending || (training.isPending && training.failureCount === 0))
     return <div aria-busy="true" aria-label="Loading" className="h-40 animate-pulse rounded-2xl bg-surface-2" />
   if (!query.data) return <ErrorText>{errorMessage(query.error)}</ErrorText>
   const { checkIns, member } = query.data
-  if (checkIns.length === 0) {
+  if (checkIns.length === 0 && !training.data?.lifts.length) {
     return (
       <Card>
         <p className="text-muted">
@@ -31,8 +34,8 @@ export function MemberProgress({ memberId }: { memberId: string }) {
   }
   return (
     <div className="flex flex-col gap-3">
-      <ProgressCharts checkIns={checkIns} />
-      <SectionTitle>Check-ins</SectionTitle>
+      <ProgressCharts checkIns={checkIns} training={training.data} />
+      {checkIns.length > 0 && <SectionTitle>Check-ins</SectionTitle>}
       {checkIns.map((c, i) => (
         <CheckInCard key={c.id} checkIn={c} previous={checkIns[i + 1]}>
           <ReplyBox memberId={memberId} checkIn={c} />

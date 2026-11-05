@@ -29,6 +29,7 @@ import {
   updateExercise,
 } from '../services/workouts'
 import { getMemberWeek, getMyWeek, saveMyDay } from '../services/workout-logs'
+import { getMemberTrainingProgress, getMyTrainingProgress } from '../services/training-progress'
 
 const idParams = z.object({ id: z.uuid() })
 const listQuery = z.object({ all: z.enum(['0', '1']).optional() })
@@ -143,6 +144,17 @@ export function workoutRoutes({ authenticate, today }: Deps): FastifyPluginAsync
       const { id } = idParams.parse(request.params)
       const { db, actor } = actorOf(request)
       return getMemberWeek(db, actor, id, weekQuery.parse(request.query).start, today())
+    })
+
+    // Strength (heaviest set per week for the most-trained lifts) and workouts per week, for graphs.
+    app.get('/me/training-progress', async (request) => {
+      const auth = getAuth(request)
+      return getMyTrainingProgress(auth.db, auth.userId, today())
+    })
+    app.get('/members/:id/training-progress', { preHandler: staff }, async (request) => {
+      const { id } = idParams.parse(request.params)
+      const { db, actor } = actorOf(request)
+      return getMemberTrainingProgress(db, actor, id, today())
     })
   }
 }

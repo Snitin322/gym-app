@@ -5,7 +5,7 @@ import {
   CHECK_IN_POSES,
   ErrorCode,
   MAX_PHOTO_BYTES,
-  weekOf,
+  weekStart,
   type CheckInPose,
   type CheckInToReview,
   type CheckInView,
@@ -101,7 +101,7 @@ export async function getMyCheckIns(
 ): Promise<MyCheckIns> {
   const member = await ownMember(db, userId)
   const history = await listFor(db, member.id, store)
-  const week = weekOf(today)
+  const week = weekStart(today)
   return {
     weekOf: week,
     current: history.find((c) => c.weekOf === week) ?? null,
@@ -130,7 +130,7 @@ export async function saveMyCheckIn(
   today: IsoDate,
 ): Promise<CheckInView> {
   const member = await ownMember(db, viewer.userId)
-  const week = toDbDate(weekOf(today))
+  const week = toDbDate(weekStart(today))
   const data = {
     weightKg: input.weightKg,
     bodyFatPct: input.bodyFatPct ?? null,
@@ -178,7 +178,7 @@ export async function saveMyPhoto(
   const member = await ownMember(db, viewer.userId)
   const row = await db.checkIn.findFirst({ where: { id: checkInId, memberId: member.id } })
   if (!row) throw notFound('Check-in')
-  if (fromDbDate(row.weekOf) !== weekOf(today)) {
+  if (fromDbDate(row.weekOf) !== weekStart(today)) {
     throw new AppError(409, ErrorCode.CHECK_IN_REVIEWED, 'Only this week’s check-in can have new photos.')
   }
   lockedIfReviewed(row)
