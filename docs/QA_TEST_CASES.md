@@ -2,7 +2,7 @@
 
 Manual end-to-end tests for the live app: **https://gym-app.snitin322.workers.dev**
 
-Covers everything built up to Phase 8 (members, payments, invoices, PT booking, workout plans and tracking, dashboard, leads) and the design refresh: tabs at the bottom for each role, a sidebar on laptops, and actions in panels that slide up from the bottom.
+Covers everything built up to Phase 8 (members, payments, invoices, PT booking, workout plans and tracking, dashboard, leads), the design refresh (tabs at the bottom for each role, a sidebar on laptops, actions in panels that slide up from the bottom) and **coaching** (coach per client, health details, diet and supplements, weekly check-ins with photos, progress graphs; sections 18–21).
 
 Work through the cases in order. Later sections use data created earlier. Tick each one ✅ or ❌, and report every ❌ using the template at the end.
 
@@ -17,7 +17,7 @@ Work through the cases in order. Later sections use data created earlier. Tick e
 | **Owner** | You | Already exists |
 | **Admin** | "QA Desk" | Created in test ST-01 |
 | **Trainer** | "QA Trainer" | Created in test ST-02 |
-| **Member A** | "QA Asha" | Created in test MB-01 (gets a plan, PT, workouts) |
+| **Member A** | "QA Asha" | Created in test MB-01 (gets a plan, PT, workouts; QA Trainer becomes her coach in CO-01) |
 | **Member B** | "QA Bina" | Created in test MB-02 (pay later, no PT) |
 
 A different browser, or a private/incognito tab, counts as a separate "phone". You can be logged in as a different person in each.
@@ -34,16 +34,19 @@ Codes are not sent on WhatsApp yet. Use **one** of these:
 - The server sleeps after 15 minutes. The first tap after a break can take 30–60 seconds. That's expected, not a bug.
 - Cases marked ⏱ need you to wait (hours or a day) or to do them at a certain time.
 
-### Where things are now (design refresh)
+### Where things are now
 Every role has tabs at the bottom of the screen:
 
 | Role | Tabs |
 |---|---|
-| Member | **Home · Workout · PT · Profile** |
+| Member | **Progress · Plan · Check-in · Profile** |
 | Trainer | **Today · Clients · Schedule · Profile** |
 | Owner / admin ("desk") | **Today · Members · PT · More** |
 
-- Desk screens used less often (Leads, Plans, Workouts, Staff, Gym details) are under **More**. Log out is on **More** (desk) or **Profile** (member, trainer).
+- **Member:** **Progress** is the home screen (graphs, this week's check-in, today's workout and meals, membership). **Plan** has *Today · My week · Meals · Full plan*. **Personal training** (book, confirm, history) and **Health details** are under **Profile**.
+- **Trainer:** a client's page has *Progress · Workout · Diet · Profile* for coaching clients, plus *PT* when they have a package. A PT-only client shows *Workout · Diet · PT*. Workout tracking sits under the plan in the *Workout* view.
+- **Desk:** a member's *Overview* has a **Coach** card with *Progress and check-ins* and *Health details* (owner or the coach only) and *Diet plan*. **More** also has **Diet** (templates and the food list).
+- Desk screens used less often (Leads, Plans, Workouts, Diet, Staff, Gym details) are under **More**. Log out is on **More** (desk) or **Profile** (member, trainer).
 - Most actions (Renew, Freeze, Record payment, Book, Mark session, Add plan…) open a **panel that slides up from the bottom**. Close it with **✕** or by tapping the dimmed area. A short message (e.g. "Payment recorded") pops up at the bottom when something is saved.
 - Long screens are split into **views** you switch at the top (e.g. *Overview · Payments · PT · Workout* on a member page).
 
@@ -297,7 +300,7 @@ Every role has tabs at the bottom of the screen:
 1. Log in as QA Asha.
 
 **Expected:**
-- **Home**: greeting and first name, then an olive card with the plan, "N days left", a progress bar and the end date. Below it: today's workout and personal training.
+- **Progress** (the home screen): greeting and first name, then **Your progress starts here** with *Send your first check-in* (graphs appear after check-ins, section 20). Below: today's workout, today's meals (once there's a diet), personal training, and an olive card with the plan, "N days left", a progress bar and the end date.
 - **Profile**: the full membership card (date range, "Next: …" for the renewal from MB-08), Renew online, My payments, install help and Log out.
 - [ ] Pass / [ ] Fail
 
@@ -308,9 +311,10 @@ Every role has tabs at the bottom of the screen:
 - [ ] Pass / [ ] Fail
 
 **MH-04 — Member tabs**
-1. Tap **Home**, **Workout**, **PT** and **Profile** in turn.
+1. Tap **Progress**, **Plan**, **Check-in** and **Profile** in turn.
+2. On **Profile**, tap **Personal training** (shown once Member A has a PT package, section 8).
 
-**Expected:** Each tab opens its screen and is highlighted. **Workout** has *Today · My week · Full plan*. **PT** has *Upcoming · Book · History*. The phone's back button returns to the previous screen.
+**Expected:** Each tab opens its screen and is highlighted. **Plan** has *Today · My week · Meals · Full plan*. **Personal training** has *Upcoming · Book · History*, keeps the **Profile** tab highlighted, and "‹ Profile" goes back. The phone's back button returns to the previous screen.
 - [ ] Pass / [ ] Fail
 
 **MH-03 — Member can't open admin screens**
@@ -382,12 +386,12 @@ Every role has tabs at the bottom of the screen:
 
 **PT-06 — Member sees PT** · Member A
 
-**Expected:** **Home** shows a *Personal training* card ("with QA Trainer · N sessions left"). The **PT** tab shows the package with sessions left, trainer and use-by date.
+**Expected:** **Progress** shows a *Personal training* card ("with QA Trainer · N sessions left"). **Profile → Personal training → Book** shows the package with sessions left, trainer and use-by date.
 - [ ] Pass / [ ] Fail
 
 **PT-07 — Trainer sees client** · Trainer
 
-**Expected:** **Clients** tab shows QA Asha with sessions left and use-by date. Tapping her opens her page: Call and WhatsApp buttons, and views **Plan · Tracking · PT**.
+**Expected:** **Clients** tab shows QA Asha with sessions left and use-by date. Tapping her opens her page: Call and WhatsApp buttons, and views **Workout · Diet · PT** (after CO-01 makes QA Trainer her coach: **Progress · Workout · Diet · Profile · PT**).
 - [ ] Pass / [ ] Fail
 
 ---
@@ -402,10 +406,10 @@ Every role has tabs at the bottom of the screen:
 - [ ] Pass / [ ] Fail
 
 **BK-02 — Book a session** · Member A
-1. **PT** tab → **Book** → pick tomorrow → pick a time → **Book session**.
+1. **Profile → Personal training → Book** → pick tomorrow → pick a time → **Book session**.
 
 **Expected:**
-- **PT → Upcoming** shows it, with "Free to cancel until …" (12 hours before).
+- **Personal training → Upcoming** shows it, with "Free to cancel until …" (12 hours before).
 - The PT card says "… sessions left · 1 booked".
 - [ ] Pass / [ ] Fail
 
@@ -487,7 +491,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 - [ ] Pass / [ ] Fail
 
 **CS-03 — Member confirms** · Member A
-1. **Home** shows "1 session to confirm" → tap it (or **PT** tab → *Please confirm*) → **Confirm**.
+1. **Progress** shows "1 session to confirm" → tap it (or **Profile → Personal training** → *Please confirm*) → **Confirm**.
 
 **Expected:** Status "Confirmed". The trainer's Undo is gone.
 - [ ] Pass / [ ] Fail
@@ -572,9 +576,9 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 **WP-08 — Today's workout** · Member A
 
 **Expected:**
-- **Home** shows a *Today's workout* card; tapping it opens the **Workout** tab.
-- **Workout → Today** shows today's weekday with sets, weights, rest times and notes.
-- **Workout → Full plan** shows all 7 days, and Sunday is a rest day.
+- **Progress** shows a *Today's workout* card; tapping it opens the **Plan** tab.
+- **Plan → Today** shows today's weekday with sets, weights, rest times and notes.
+- **Plan → Full plan** shows all 7 days, and Sunday is a rest day.
 - [ ] Pass / [ ] Fail
 
 **WP-09 — No plan** · Member B
@@ -588,7 +592,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 
 **TR-01 — The week**
 
-**Expected:** **Workout → My week** shows Mon–Sun. Today is selected, past days show "To do" (•) or "Missed" (✕), Sunday shows Rest (–), and future days show nothing.
+**Expected:** **Plan → My week** shows Mon–Sun. Today is selected, past days show "To do" (•) or "Missed" (✕), Sunday shows Rest (–), and future days show nothing.
 - [ ] Pass / [ ] Fail
 
 **TR-02 — Mark done**
@@ -632,7 +636,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 - [ ] Pass / [ ] Fail
 
 **TR-08 — Trainer and desk can look, not tick**
-1. Trainer (**Clients** → QA Asha → **Tracking**) and admin (QA Asha → **Workout** view → *Workout tracking*).
+1. Trainer (**Clients** → QA Asha → **Workout** view → *Workout tracking* below the plan) and admin (QA Asha → **Workout** view → *Workout tracking*).
 
 **Expected:** Same week and ticks, with no *Mark done* or *Update* buttons.
 - [ ] Pass / [ ] Fail
@@ -733,7 +737,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 ## 15. Privacy and access
 
 **AC-01 — Trainer sees only their clients**
-1. As QA Trainer, try opening a member who has no PT with them (e.g. QA Bina's workout plan via a link from the admin).
+1. As QA Trainer, try opening a member who has no PT with them and isn't their coaching client (e.g. QA Bina's workout plan via a link from the admin).
 
 **Expected:** "Not found" (or an error). No data shown.
 - [ ] Pass / [ ] Fail
@@ -800,7 +804,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 **DS-05 — Trainer tabs** · Trainer
 1. Tap **Today**, **Clients**, **Schedule**, **Profile**.
 
-**Expected:** Today: greeting, "Sessions today" and "Later this fortnight" counts, today's sessions. Clients: list (search box appears when there are more than 5). Schedule: next two weeks. Profile: account, *My availability*, Log out.
+**Expected:** Today: greeting, "Sessions today" and "Later this fortnight" counts, **Check-ins to reply to** (when a coaching client has sent one), today's sessions. Clients: list (search box appears when there are more than 5). Schedule: next two weeks. Profile: account, *My availability*, Log out.
 - [ ] Pass / [ ] Fail
 
 **DS-06 — Light and dark** · any role
@@ -812,7 +816,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 **DS-07 — Laptop** · owner or admin
 1. Open the app link in a laptop browser (window wider than a tablet).
 
-**Expected:** A sidebar on the left lists Today, Members, PT, Leads, Plans, Workouts, Staff, Gym details (owner only) and Account. No tabs at the bottom. The four count tiles sit in one row. Making the window narrow switches back to bottom tabs.
+**Expected:** A sidebar on the left lists Today, Members, PT, Leads, Plans, Workouts, Diet, Staff, Gym details (owner only) and Account. No tabs at the bottom. The four count tiles sit in one row. Making the window narrow switches back to bottom tabs.
 - [ ] Pass / [ ] Fail
 
 ---
@@ -823,27 +827,27 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 1. Members → open Member A → Overview → **Coach** card → **Set coach**.
 2. Pick the trainer and save.
 
-**Expected:** A "Coach saved" message; the card shows the trainer's name. The list offers trainers and the owner only (not admins). An admin sees no "Health details" link.
+**Expected:** A "Coach saved" message; the card shows the trainer's name. The list offers trainers and the owner only (not admins). The card has **Diet plan** for everyone at the desk; **Progress and check-ins** and **Health details** only for the owner (an admin doesn't see them).
 - [ ] Pass / [ ] Fail
 
 **CO-02 — Trainer's clients** · trainer
 1. Clients tab.
 
-**Expected:** Member A is listed with "Coaching" (even without a PT package). Opening them shows Profile · Plan · Tracking (PT only if they have a package). The trainer can give and edit their workout plan.
+**Expected:** Member A is listed with "Coaching" (even without a PT package). Opening them shows **Progress · Workout · Diet · Profile** (and **PT** if they have a package), starting on Progress. The trainer can give and edit their workout plan and diet.
 - [ ] Pass / [ ] Fail
 
 **CO-03 — Coach fills in details** · trainer
-1. Member A → Profile → **Add details**. Fill height, weight, goal, a medical condition and a food allergy. Save.
+1. Member A → **Profile** view → **Add details**. Fill height, weight, goal, a medical condition and a food allergy. Save.
 
 **Expected:** "Details saved". Body facts show in tiles; the medical condition and allergy show under **Keep in mind**. A line says Member A hasn't agreed in the app yet.
 - [ ] Pass / [ ] Fail
 
 **CO-04 — Member agrees and updates** · Member A
-1. Home shows **Tell (coach) about you** → tap it (or Profile → **Health details**).
+1. **Progress** shows **Tell (coach) about you** → tap it (or **Profile → Health details**).
 2. **Update my details** → change the goal → Save without ticking the box.
 3. Tick **I agree to share these health details…** → Save.
 
-**Expected:** Step 2 is refused with "Agree to share these details with your coach to save them." Step 3 saves. The trainer's Profile view now says Member A agreed, with the date. The Home card is gone once details exist.
+**Expected:** Step 2 is refused with "Agree to share these details with your coach to save them." Step 3 saves. The trainer's Profile view now says Member A agreed, with the date. The Progress card is gone once details exist.
 - [ ] Pass / [ ] Fail
 
 **CO-05 — Who can see health details** · admin, another trainer, owner
@@ -864,6 +868,12 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 1. Profile → Health details → **Delete my health details** → Delete.
 
 **Expected:** "Health details deleted"; the details are gone for the coach too, and the next save asks for agreement again. Membership and workout plan are unchanged.
+- [ ] Pass / [ ] Fail
+
+**CO-08 — Health details in a sheet at 360 px** · trainer
+1. Member A → **Profile** → **Edit details** on the smallest phone you have.
+
+**Expected:** The form is grouped as Body, Goal and food, Health, Lifestyle. Fields sit two per row in Body; nothing is cut off; the sheet scrolls inside and **Save** is reachable.
 - [ ] Pass / [ ] Fail
 
 ---
@@ -894,7 +904,7 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 - [ ] Pass / [ ] Fail
 
 **DI-04 — Member sees meals** · Member A
-1. Home → **Today's meals** card → open it.
+1. **Progress** → **Today's meals** card (or **Plan → Meals**).
 
 **Expected:** Daily calories, protein, carbs and fat; each meal with time, foods and amounts ("2 rotis", "150 g"); supplements with dose and timing; water. On a rest day of their workout plan it opens on **Rest day**.
 - [ ] Pass / [ ] Fail
@@ -904,6 +914,19 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 2. As a trainer who isn't Member A's coach and has no PT with them: Member A isn't in Clients.
 
 **Expected:** The desk can edit; other trainers can't reach it.
+- [ ] Pass / [ ] Fail
+
+**DI-06 — Rest-day meals** · Member A (diet with a rest-day version, workout plan with a rest day)
+1. On a rest day of the workout plan, open **Plan → Meals**.
+
+**Expected:** It opens on **Rest day** with the lighter meals and their total; **Training day** switches back. On a training day it opens on **Training day**.
+- [ ] Pass / [ ] Fail
+
+**DI-07 — Food added while planning** · trainer
+1. Member A → **Diet** → **Edit diet** → **Add food** → search a food that isn't listed, e.g. "Sattu" → **Add "Sattu" to the food list**.
+2. Fill per 100 g: protein 20, carbs 60, fat 7 → **Add food**.
+
+**Expected:** The food is added to the meal at once (100 g) and appears in More → Diet → Food list for the desk.
 - [ ] Pass / [ ] Fail
 
 ---
@@ -949,25 +972,44 @@ Photos need R2 set up first (docs/R2_SETUP.md). Without it, the check-in has two
 **Expected:** When Member B sends a check-in, the desk Today shows **Check-ins to reply to**, opening Member B's progress page with the reply box.
 - [ ] Pass / [ ] Fail
 
+**CK-07 — Check-in without photos** · Member B (with a coach)
+1. **Check-in** → weight → **Next** → **Skip photos** → **Send check-in**.
+
+**Expected:** Sent without photos; the coach sees the weight and note only. Photos can still be added with **Update this week's check-in** until the coach replies.
+- [ ] Pass / [ ] Fail
+
+**CK-08 — One check-in a week** · Member A
+1. After sending this week's check-in, open **Check-in** again.
+
+**Expected:** It shows this week's check-in (not a new form). Next Monday, the form opens again for the new week, and last week moves to **Earlier weeks**.
+- [ ] Pass / [ ] Fail
+
 ---
 
 ## 21. Coaching: strength and consistency (C4)
 
-**ST-01 — Workouts this week** · Member A (with a workout plan)
+**SG-01 — Workouts this week** · Member A (with a workout plan)
 1. Plan → My week → tick a day as done.
 2. Open Progress.
 
 **Expected:** A **Workouts this week** card shows "1 of N" (N = training days in the plan) with bars for the last 8 weeks; this week's bar is the strongest colour.
 - [ ] Pass / [ ] Fail
 
-**ST-02 — Strength graphs** · Member A (after ticking weighted exercises on two or more weeks)
+**SG-02 — Strength graphs** · Member A (after ticking weighted exercises on two or more weeks)
 
 **Expected:** Orange cards for up to 3 lifts (the ones trained most often with a weight) with their heaviest set. Tapping one makes it the large graph, titled "(lift) · heaviest set", with the change since the first week. Skipped exercises and sets without a weight don't count.
 - [ ] Pass / [ ] Fail
 
-**ST-03 — Coach sees the same** · Member A's coach, and the owner
+**SG-03 — Coach sees the same** · Member A's coach, and the owner
 
 **Expected:** The client's Progress view (coach) and the desk Progress page (owner) show the same strength and workouts cards above the check-ins.
+- [ ] Pass / [ ] Fail
+
+**SG-04 — Graphs update after ticking a day** · Member A
+1. **Plan → My week** → today → **Update what I did** → raise the weight of a main lift → Save.
+2. Go back to **Progress**.
+
+**Expected:** That lift's card shows the new heaviest set for this week, and **Workouts this week** went up by one.
 - [ ] Pass / [ ] Fail
 
 ---

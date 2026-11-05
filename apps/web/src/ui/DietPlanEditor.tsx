@@ -139,7 +139,7 @@ export function DietPlanEditor({
             label={tab === 'rest' ? 'Rest day total' : 'Training day total'}
           />
           {(meals ?? []).map((meal, index) => (
-            <fieldset key={meal.key} className="flex flex-col gap-3 rounded-2xl bg-surface p-4 ring-1 ring-line/70">
+            <fieldset key={meal.key} className="flex min-w-0 flex-col gap-3 rounded-2xl bg-surface p-4 ring-1 ring-line/70">
               <legend className="sr-only">{meal.name || `Meal ${index + 1}`}</legend>
               <div className="grid grid-cols-[1fr_7.5rem] gap-2">
                 <TextInput
@@ -230,7 +230,7 @@ export function DietPlanEditor({
                 supplements: st.supplements.map((x) => (x.key === s.key ? { ...x, ...patch } : x)),
               }))
             return (
-              <fieldset key={s.key} className="flex flex-col gap-3 rounded-2xl bg-surface p-4 ring-1 ring-line/70">
+              <fieldset key={s.key} className="flex min-w-0 flex-col gap-3 rounded-2xl bg-surface p-4 ring-1 ring-line/70">
                 <legend className="sr-only">{s.name || 'Supplement'}</legend>
                 <div className="grid grid-cols-2 gap-2">
                   <Field label="Supplement">

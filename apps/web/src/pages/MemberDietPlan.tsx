@@ -49,7 +49,7 @@ export function MemberDietPlan({ memberId }: { memberId: string }) {
         <p className="text-sm text-muted">
           Version {plan.version} · saved {formatWhen(plan.updatedAt)} by {plan.updatedByName}
         </p>
-        <div className="mt-2 grid grid-cols-2 gap-3">
+        <div className="mt-2 grid grid-cols-[2fr_3fr] gap-3">
           <Button onClick={() => setMode('edit')}>Edit diet</Button>
           <Button variant="secondary" onClick={() => setMode('start')}>
             Use a template

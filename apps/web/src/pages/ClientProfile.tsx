@@ -323,7 +323,7 @@ export function ProfileForm({
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <fieldset className="flex flex-col gap-3">
+    <fieldset className="flex min-w-0 flex-col gap-3">
       <legend className="mb-1 text-sm font-semibold uppercase tracking-wide text-muted">{title}</legend>
       {children}
     </fieldset>
