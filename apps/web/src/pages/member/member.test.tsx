@@ -159,26 +159,30 @@ describe('member app', () => {
     expect(within(ptCard).getByText('with Ravi Kumar · 9 sessions left')).toBeTruthy()
   })
 
-  it('the tab bar moves between Home, Workout, PT and Profile', async () => {
+  it('the tab bar moves between Progress, Plan, Check-in and Profile; PT opens from Profile', async () => {
     renderAt('/home')
     const tabs = await screen.findByRole('navigation', { name: 'Main' })
     expect(
       within(tabs)
         .getAllByRole('link')
         .map((l) => l.textContent),
-    ).toEqual(['Home', 'Workout', 'PT', 'Profile'])
-    expect(within(tabs).getByRole('link', { name: 'Home' }).getAttribute('aria-current')).toBe('page')
+    ).toEqual(['Progress', 'Plan', 'Check-in', 'Profile'])
+    expect(within(tabs).getByRole('link', { name: 'Progress' }).getAttribute('aria-current')).toBe('page')
 
     const user = userEvent.setup()
     // Each screen draws its own tab bar, so look it up again after every move.
     const tab = (name: string) => within(screen.getByRole('navigation', { name: 'Main' })).getByRole('link', { name })
-    await user.click(tab('PT'))
-    expect(await screen.findByRole('heading', { name: 'Personal training' })).toBeTruthy()
     await user.click(tab('Profile'))
     expect(await screen.findByRole('heading', { name: 'Profile' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Log out' })).toBeTruthy()
-    await user.click(tab('Workout'))
-    expect(await screen.findByRole('heading', { name: 'Workout' })).toBeTruthy()
+    await user.click(await screen.findByRole('link', { name: /Personal training/ }))
+    expect(await screen.findByRole('heading', { name: 'Personal training' })).toBeTruthy()
+    // PT keeps the Profile tab highlighted.
+    expect(tab('Profile').getAttribute('aria-current')).toBe('page')
+    await user.click(tab('Plan'))
+    expect(await screen.findByRole('heading', { name: 'Plan' })).toBeTruthy()
+    await user.click(tab('Check-in'))
+    expect(await screen.findByRole('heading', { name: 'Check-in' })).toBeTruthy()
   })
 
   it('staff screens aren’t reachable from the member tabs', async () => {

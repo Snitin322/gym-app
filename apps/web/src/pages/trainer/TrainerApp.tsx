@@ -20,6 +20,7 @@ import { Segmented } from '../../ui/Segmented'
 import { AccountCard, LinkRow, LogOutButton } from '../AccountBits'
 import { ClientProfileSection } from '../ClientProfile'
 import { MemberDietPlan } from '../MemberDietPlan'
+import { CheckInsToReview, MemberProgress } from '../MemberProgress'
 import { MemberWorkoutPlan } from '../MemberWorkoutPlan'
 import { TrainerSchedule } from '../TrainerSchedule'
 import { UnmarkedSessions } from '../UnmarkedSessions'
@@ -53,6 +54,7 @@ export function TrainerToday() {
       </div>
 
       <UnmarkedSessions />
+      <CheckInsToReview linkTo={(id) => `/trainer/clients/${id}?view=progress`} />
 
       <section aria-labelledby="today-heading" className="flex flex-col gap-3">
         <SectionTitle>
@@ -171,11 +173,11 @@ function ClientRow({ client, today }: { client: TrainerClient; today: string }) 
   )
 }
 
-const CLIENT_VIEWS = ['profile', 'workout', 'diet', 'pt'] as const
+const CLIENT_VIEWS = ['progress', 'workout', 'diet', 'profile', 'pt'] as const
 
 /**
- * A client: call or message them, then their health profile (coaching clients), workout plan and
- * tracking, diet and PT packages. Plans are shared while they're a coaching client or have active PT.
+ * A client: call or message them, then (for coaching clients) their progress and check-ins, then their
+ * workout plan and tracking, diet, health profile (coaching clients) and PT packages. Plans are shared while they're a coaching client or have active PT.
  */
 export function TrainerClientPage() {
   const { memberId = '' } = useParams()
@@ -184,7 +186,7 @@ export function TrainerClientPage() {
   const coached = client?.coached ?? false
   const active = coached || (client?.purchases.some((p) => p.status === 'active') ?? false)
   const hasPt = (client?.purchases.length ?? 0) > 0
-  const [view, setView] = useView(CLIENT_VIEWS, coached ? 'profile' : active ? 'workout' : 'pt')
+  const [view, setView] = useView(CLIENT_VIEWS, coached ? 'progress' : active ? 'workout' : 'pt')
   const today = todayInIndia()
 
   return (
@@ -222,9 +224,10 @@ export function TrainerClientPage() {
               value={view}
               onChange={setView}
               options={[
-                ...(coached ? [{ value: 'profile' as const, label: 'Profile' }] : []),
+                ...(coached ? [{ value: 'progress' as const, label: 'Progress' }] : []),
                 { value: 'workout', label: 'Workout' },
                 { value: 'diet', label: 'Diet' },
+                ...(coached ? [{ value: 'profile' as const, label: 'Profile' }] : []),
                 ...(hasPt ? [{ value: 'pt' as const, label: 'PT' }] : []),
               ]}
             />
@@ -235,6 +238,7 @@ export function TrainerClientPage() {
               </p>
             </Card>
           )}
+          {coached && view === 'progress' && <MemberProgress memberId={client.memberId} />}
           {coached && view === 'profile' && <ClientProfileSection memberId={client.memberId} />}
           {active && view === 'workout' && <MemberWorkoutPlan memberId={client.memberId} />}
           {active && view === 'diet' && <MemberDietPlan memberId={client.memberId} />}

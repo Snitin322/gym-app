@@ -1,8 +1,19 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { CalendarClock, ChevronRight, CircleAlert, ClipboardList, Dumbbell, Moon, Salad } from 'lucide-react'
+import {
+  CalendarClock,
+  Camera,
+  ChevronRight,
+  CircleAlert,
+  ClipboardList,
+  Dumbbell,
+  MessageSquareText,
+  Moon,
+  Salad,
+} from 'lucide-react'
 import { dayMacros, formatPaise, inclusiveDays, todayInIndia, workoutDayFor } from '@onthec/shared'
 import { useMyMembership, useMyPt } from '../../api/admin'
+import { useMyCheckIns } from '../../api/check-ins'
 import { useMyProfile } from '../../api/coaching'
 import { useMyDietPlan } from '../../api/diet'
 import { useMySessions } from '../../api/pt-booking'
@@ -13,10 +24,15 @@ import { STATUS_BADGES, membershipSummary } from '../../lib/membership'
 import { formatDate, plural } from '../../lib/format'
 import { sessionsToAnswer, upcomingSessions } from '../../lib/pt'
 import { formatWhen, greeting } from '../../lib/time'
+import { Card } from '../../ui/Form'
+import { ProgressCharts } from '../../ui/ProgressCharts'
 import { Logo } from '../../ui/Screen'
 import { MemberShell } from './MemberShell'
 
-/** The member's home: membership at a glance, today's workout and the next PT session. Details live in the tabs. */
+/**
+ * Progress tab (the member's home): their progress graphs first, then this week's check-in, and today's
+ * workout, meals and PT at a glance. Details live in the other tabs.
+ */
 export function MemberHome() {
   const user = useSignedInUser()
   return (
@@ -28,11 +44,12 @@ export function MemberHome() {
           <h1 className="truncate text-2xl font-bold tracking-tight">{user.name.split(' ')[0]}</h1>
         </div>
       </header>
-      <MembershipGlance />
+      <ProgressGlance />
       <CoachGlance />
       <WorkoutGlance />
       <MealsGlance />
       <PtGlance />
+      <MembershipGlance />
     </MemberShell>
   )
 }
@@ -53,6 +70,54 @@ function GlanceCard({ to, label, children }: { to: string; label: string; childr
 
 function Skeleton() {
   return <div aria-hidden="true" className="h-24 animate-pulse rounded-2xl bg-surface-2" />
+}
+
+/** Graphs once there are check-ins; before that, an invitation to send the first one. */
+function ProgressGlance() {
+  const query = useMyCheckIns()
+  if (query.isPending) return <Skeleton />
+  const data = query.data
+  if (!data) return null
+  if (data.history.length === 0) {
+    return (
+      <Card className="flex flex-col gap-3">
+        <p className="text-lg font-bold">Your progress starts here</p>
+        <p className="text-sm text-muted">
+          Send a check-in each week (weight and photos) and your graphs appear here: weight, body fat and measurements
+          over time.
+        </p>
+        <Link
+          to="/check-in"
+          className="flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accent px-4 font-bold text-accent-ink"
+        >
+          <Camera aria-hidden="true" size={18} /> Send your first check-in
+        </Link>
+      </Card>
+    )
+  }
+  const current = data.current
+  return (
+    <>
+      <ProgressCharts checkIns={data.history} />
+      {!current && (
+        <GlanceCard to="/check-in" label="Weekly check-in">
+          <p className="flex items-center gap-2 font-semibold">
+            <Camera aria-hidden="true" size={18} className="text-accent" /> Weekly check-in
+          </p>
+          <p className="text-sm text-muted">Due by Sunday: weight, photos and how the week went.</p>
+        </GlanceCard>
+      )}
+      {current?.coachReply && (
+        <GlanceCard to="/check-in" label="Your coach replied">
+          <p className="flex items-center gap-2 font-semibold">
+            <MessageSquareText aria-hidden="true" size={18} className="text-accent" />{' '}
+            {current.reviewedByName?.split(' ')[0] ?? 'Your coach'} replied
+          </p>
+          <p className="line-clamp-2 text-sm text-muted">{current.coachReply}</p>
+        </GlanceCard>
+      )}
+    </>
+  )
 }
 
 /** A member with a coach but no health details yet: ask them to fill them in. */
@@ -153,7 +218,7 @@ function MealsGlance() {
   const day = (kind === 'rest' && plan.plan.rest) || plan.plan.training
   const totals = dayMacros(day, new Map(plan.foods.map((f) => [f.id, f])))
   return (
-    <GlanceCard to="/meals" label="Today’s meals">
+    <GlanceCard to="/workout?view=meals" label="Today’s meals">
       <p className="text-xs font-semibold tracking-wide text-muted uppercase">Today’s meals</p>
       <p className="flex items-center gap-2 text-lg font-bold">
         <Salad aria-hidden="true" size={18} className="text-accent" />

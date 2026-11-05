@@ -45,12 +45,21 @@ const envSchema = z
     /** Approved "Authentication" template with a copy-code button. */
     WHATSAPP_OTP_TEMPLATE: z.string().default('login_code'),
     WHATSAPP_TEMPLATE_LANGUAGE: z.string().default('en_US'),
-    WHATSAPP_API_VERSION: z.string().regex(/^v\d+\.\d+$/, 'must look like v26.0').default('v26.0'),
+    WHATSAPP_API_VERSION: z
+      .string()
+      .regex(/^v\d+\.\d+$/, 'must look like v26.0')
+      .default('v26.0'),
 
     // Razorpay (online payments). All three or none; without them the app offers desk payments only.
     RAZORPAY_KEY_ID: optionalText,
     RAZORPAY_KEY_SECRET: optionalText,
     RAZORPAY_WEBHOOK_SECRET: optionalText,
+
+    // Cloudflare R2 (private progress photos). All four or none; without them photos are off in production.
+    R2_ACCOUNT_ID: optionalText,
+    R2_ACCESS_KEY_ID: optionalText,
+    R2_SECRET_ACCESS_KEY: optionalText,
+    R2_BUCKET: optionalText,
   })
   .refine(
     (env) => {
@@ -60,6 +69,16 @@ const envSchema = z
     {
       message: 'set all three of RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET, or none',
       path: ['RAZORPAY_KEY_ID'],
+    },
+  )
+  .refine(
+    (env) => {
+      const set = [env.R2_ACCOUNT_ID, env.R2_ACCESS_KEY_ID, env.R2_SECRET_ACCESS_KEY, env.R2_BUCKET].filter(Boolean)
+      return set.length === 0 || set.length === 4
+    },
+    {
+      message: 'set all four of R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and R2_BUCKET, or none',
+      path: ['R2_ACCOUNT_ID'],
     },
   )
   .refine((env) => !env.RAZORPAY_KEY_ID || env.RAZORPAY_KEY_ID !== env.RAZORPAY_KEY_SECRET, {

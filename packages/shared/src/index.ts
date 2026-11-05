@@ -1,4 +1,5 @@
 export * from './auth'
+export * from './check-ins'
 export * from './coaching'
 export * from './dashboard'
 export * from './dates'

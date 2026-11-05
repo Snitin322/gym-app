@@ -24,6 +24,7 @@
     "@fastify/rate-limit": "^10.3.0",
     "@onthec/shared": "workspace:*",
     "@prisma/client": "^6.16.0",
+    "aws4fetch": "^1.0.20",
     "fastify": "^5.4.0",
     "jose": "^6.0.11",
     "pdfkit": "^0.17.2",

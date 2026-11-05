@@ -64,6 +64,13 @@ describe('loadEnv', () => {
     expect(env.WHATSAPP_ACCESS_TOKEN).toBeUndefined()
   })
 
+  it('needs all four R2 settings or none', () => {
+    expect(() => loadEnv({ ...base, R2_BUCKET: 'photos' })).toThrow(/R2_ACCOUNT_ID/)
+    const r2 = { R2_ACCOUNT_ID: 'acc', R2_ACCESS_KEY_ID: 'key', R2_SECRET_ACCESS_KEY: 'secret', R2_BUCKET: 'photos' }
+    expect(loadEnv({ ...base, ...r2 }).R2_BUCKET).toBe('photos')
+    expect(loadEnv({ ...base, R2_ACCOUNT_ID: '', R2_BUCKET: '' }).R2_BUCKET).toBeUndefined()
+  })
+
   it('requires the WhatsApp phone number id and token when OTP_PROVIDER=whatsapp', () => {
     expect(() => loadEnv({ ...base, OTP_PROVIDER: 'whatsapp', WHATSAPP_ACCESS_TOKEN: '' })).toThrow(
       /WHATSAPP_PHONE_NUMBER_ID[\s\S]*WHATSAPP_ACCESS_TOKEN/,

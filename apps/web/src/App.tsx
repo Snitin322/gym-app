@@ -13,12 +13,12 @@ import {
   TrainerSchedulePage,
 } from './pages/trainer/TrainerApp'
 import { MemberProfilePage, MemberPtPage, MemberWorkoutPage } from './pages/member/MemberTabs'
-import { MealsPage } from './pages/member/MealsPage'
+import { CheckInPage } from './pages/member/CheckInPage'
 import { MyHealthPage } from './pages/member/MyHealthPage'
 import { WelcomePage } from './pages/WelcomePage'
 import { GymDetailsPage } from './pages/admin/GymDetailsPage'
 import { DietPage, DietTemplatePage, FoodListPage, MemberDietPage } from './pages/admin/DietPages'
-import { MemberHealthPage } from './pages/admin/MemberHealthPage'
+import { MemberHealthPage, MemberProgressPage } from './pages/admin/MemberHealthPage'
 import { MemberPage } from './pages/admin/MemberPage'
 import { MembersPage } from './pages/admin/MembersPage'
 import { NewMemberPage } from './pages/admin/NewMemberPage'
@@ -43,7 +43,8 @@ export default function App() {
           <Route path="/pt" element={<MemberPtPage />} />
           <Route path="/profile" element={<MemberProfilePage />} />
           <Route path="/profile/health" element={<MyHealthPage />} />
-          <Route path="/meals" element={<MealsPage />} />
+          <Route path="/meals" element={<Navigate to="/workout?view=meals" replace />} />
+          <Route path="/check-in" element={<CheckInPage />} />
         </Route>
         <Route path="/trainer" element={<RequireRole roles={['trainer']} />}>
           <Route path="availability" element={<MyAvailabilityPage />} />
@@ -59,6 +60,7 @@ export default function App() {
           <Route path="members/:id" element={<MemberPage />} />
           <Route path="members/:id/health" element={<MemberHealthPage />} />
           <Route path="members/:id/diet" element={<MemberDietPage />} />
+          <Route path="members/:id/progress" element={<MemberProgressPage />} />
           <Route path="diet" element={<DietPage />} />
           <Route path="diet/foods" element={<FoodListPage />} />
           <Route path="diet/templates/:id" element={<DietTemplatePage />} />

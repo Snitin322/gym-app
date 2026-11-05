@@ -82,6 +82,8 @@ export function refreshSession(): Promise<SessionResponse | null> {
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
   body?: unknown
+  /** Sent as the raw request body with its own type (e.g. a photo), instead of JSON. */
+  file?: Blob
 }
 
 /** Fetches a file (e.g. an invoice PDF) with the access token, refreshing it once if needed. */
@@ -118,14 +120,14 @@ export async function downloadFile(path: string, filename: string) {
 }
 
 /** Calls the API with the access token, refreshing it once if it has expired. */
-export async function api<T>(path: string, { method = 'GET', body }: RequestOptions = {}): Promise<T> {
+export async function api<T>(path: string, { method = 'GET', body, file }: RequestOptions = {}): Promise<T> {
   const init = (): RequestInit => ({
     method,
     headers: {
-      ...(body !== undefined && { 'content-type': 'application/json' }),
+      ...(file ? { 'content-type': file.type } : body !== undefined && { 'content-type': 'application/json' }),
       ...(accessToken && { authorization: `Bearer ${accessToken}` }),
     },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: file ?? (body === undefined ? undefined : JSON.stringify(body)),
   })
 
   try {

@@ -31,6 +31,7 @@ export const TENANT_MODELS = [
   'Food',
   'DietPlan',
   'DietPlanVersion',
+  'CheckIn',
 ] as const
 
 const tenantModels = new Set<string>(TENANT_MODELS)

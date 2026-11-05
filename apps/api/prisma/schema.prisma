@@ -84,6 +84,7 @@ model Gym {
   foods             Food[]
   dietPlans         DietPlan[]
   dietVersions      DietPlanVersion[]
+  checkIns          CheckIn[]
 
   @@map("gyms")
 }
@@ -110,6 +111,7 @@ model User {
   dietPlansCreated     DietPlan[]            @relation("DietPlanCreatedBy")
   dietPlansUpdated     DietPlan[]            @relation("DietPlanUpdatedBy")
   dietVersionsSaved    DietPlanVersion[]
+  checkInsReviewed     CheckIn[]
   membershipsCreated   Membership[]          @relation("MembershipCreatedBy")
   freezesCreated       MembershipFreeze[]    @relation("FreezeCreatedBy")
   paymentsRecorded     Payment[]             @relation("PaymentRecordedBy")
@@ -234,6 +236,7 @@ model Member {
   coach         User?          @relation("MemberCoach", fields: [coachId], references: [id], onDelete: SetNull)
   clientProfile ClientProfile?
   dietPlan      DietPlan?
+  checkIns      CheckIn[]
   memberships   Membership[]
   payments      Payment[]
   invoices      Invoice[]
@@ -941,4 +944,38 @@ model DietPlanVersion {
   @@unique([planId, version])
   @@index([gymId])
   @@map("diet_plan_versions")
+}
+
+/// A member's weekly check-in (one per Monday–Sunday week, India). Photos live in private storage
+/// (R2); only their keys are stored. Locked for the member once their coach replies.
+model CheckIn {
+  id           String    @id @default(uuid()) @db.Uuid
+  gymId        String    @map("gym_id") @db.Uuid
+  memberId     String    @map("member_id") @db.Uuid
+  /// Monday of the week.
+  weekOf       DateTime  @map("week_of") @db.Date
+  weightKg     Float     @map("weight_kg")
+  bodyFatPct   Float?    @map("body_fat_pct")
+  waistCm      Float?    @map("waist_cm")
+  chestCm      Float?    @map("chest_cm")
+  hipsCm       Float?    @map("hips_cm")
+  armCm        Float?    @map("arm_cm")
+  thighCm      Float?    @map("thigh_cm")
+  note         String?
+  frontPhoto   String?   @map("front_photo")
+  leftPhoto    String?   @map("left_photo")
+  rightPhoto   String?   @map("right_photo")
+  coachReply   String?   @map("coach_reply")
+  reviewedAt   DateTime? @map("reviewed_at") @db.Timestamptz(3)
+  reviewedById String?   @map("reviewed_by_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym        Gym    @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  member     Member @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  reviewedBy User?  @relation(fields: [reviewedById], references: [id], onDelete: Restrict)
+
+  @@unique([memberId, weekOf])
+  @@index([gymId, reviewedAt])
+  @@map("check_ins")
 }

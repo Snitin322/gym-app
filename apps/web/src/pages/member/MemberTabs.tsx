@@ -1,4 +1,4 @@
-import { HeartPulse } from 'lucide-react'
+import { CalendarClock, HeartPulse } from 'lucide-react'
 import { isoWeekday, todayInIndia, workoutDayFor } from '@onthec/shared'
 import { useMyPt } from '../../api/admin'
 import { useMyWorkoutPlan } from '../../api/workouts'
@@ -15,13 +15,14 @@ import { MyMembershipCard } from '../MyMembershipCard'
 import { MyPtCard } from '../MyPtCard'
 import { MyPtSessions } from '../MyPtSessions'
 import { AccountCard, LinkRow, LogOutButton } from '../AccountBits'
+import { MealsView } from './MealsPage'
 import { MemberShell } from './MemberShell'
 
-const WORKOUT_VIEWS = ['today', 'week', 'plan'] as const
+const WORKOUT_VIEWS = ['today', 'week', 'meals', 'plan'] as const
 const PT_VIEWS = ['upcoming', 'book', 'history'] as const
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
-/** Workout tab: today's workout, the week to tick off, and the full plan, one view at a time. */
+/** Plan tab: today's workout, the week to tick off, meals and supplements, and the full workout plan. */
 export function MemberWorkoutPage() {
   const query = useMyWorkoutPlan()
   const [view, setView] = useView(WORKOUT_VIEWS, 'today')
@@ -29,26 +30,28 @@ export function MemberWorkoutPage() {
   const today = todayInIndia()
   return (
     <MemberShell>
-      <PageHeader title="Workout" subtitle={plan?.name} />
+      <PageHeader title="Plan" subtitle={view !== 'meals' ? plan?.name : undefined} />
+      <Segmented
+        label="Plan view"
+        value={view}
+        onChange={setView}
+        options={[
+          { value: 'today', label: 'Today' },
+          { value: 'week', label: 'My week' },
+          { value: 'meals', label: 'Meals' },
+          { value: 'plan', label: 'Full plan' },
+        ]}
+      />
+      {view === 'meals' && <MealsView />}
       <ErrorText>{errorMessage(query.error)}</ErrorText>
-      {query.data && !plan && (
+      {view !== 'meals' && query.data && !plan && (
         <Card>
           <p className="font-semibold">No workout plan yet</p>
           <p className="mt-1 text-sm text-muted">Ask the front desk or your trainer for a plan.</p>
         </Card>
       )}
-      {plan && (
+      {view !== 'meals' && plan && (
         <>
-          <Segmented
-            label="Workout view"
-            value={view}
-            onChange={setView}
-            options={[
-              { value: 'today', label: 'Today' },
-              { value: 'week', label: 'My week' },
-              { value: 'plan', label: 'Full plan' },
-            ]}
-          />
           {view === 'today' && (
             <section aria-label="Today’s workout" className="flex flex-col gap-3">
               <WorkoutDayView
@@ -68,13 +71,13 @@ export function MemberWorkoutPage() {
   )
 }
 
-/** PT tab: upcoming sessions (and ones to confirm), booking on a package, and recent sessions. */
+/** Personal training (from Profile or Home): upcoming sessions and ones to confirm, booking, history. */
 export function MemberPtPage() {
   const pt = useMyPt()
   const [view, setView] = useView(PT_VIEWS, 'upcoming')
   return (
     <MemberShell>
-      <PageHeader title="Personal training" />
+      <PageHeader title="Personal training" back={{ to: '/profile', label: 'Profile' }} />
       {pt.data?.length === 0 && (
         <Card>
           <p className="font-semibold">No PT package yet</p>
@@ -104,8 +107,9 @@ export function MemberPtPage() {
   )
 }
 
-/** Profile tab: membership details, renew, payments and invoices, account, install and log out. */
+/** Profile tab: account, health details, PT, membership details, renew, payments, install and log out. */
 export function MemberProfilePage() {
+  const pt = useMyPt()
   return (
     <MemberShell>
       <PageHeader title="Profile" />
@@ -116,6 +120,14 @@ export function MemberProfilePage() {
         text="Body, goal, health and food, for your coach"
         icon={<HeartPulse aria-hidden="true" size={20} />}
       />
+      {(pt.data?.length ?? 0) > 0 && (
+        <LinkRow
+          to="/pt"
+          title="Personal training"
+          text="Book, see and confirm your sessions"
+          icon={<CalendarClock aria-hidden="true" size={20} />}
+        />
+      )}
       <MyMembershipCard />
       <InstallHint />
       <LogOutButton />

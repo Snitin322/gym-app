@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router'
-import { ChevronRight, HeartPulse, MessageCircle, Phone, Salad } from 'lucide-react'
+import { ChartLine, ChevronRight, HeartPulse, MessageCircle, Phone, Salad } from 'lucide-react'
 import {
   addDays,
   formatPaise,
@@ -250,9 +250,14 @@ function CoachCard({
         </Button>
       </div>
       {m.coach && canSeeHealth && (
-        <CoachLink to={`/admin/members/${m.id}/health`} icon={HeartPulse}>
-          Health details
-        </CoachLink>
+        <>
+          <CoachLink to={`/admin/members/${m.id}/progress`} icon={ChartLine}>
+            Progress and check-ins
+          </CoachLink>
+          <CoachLink to={`/admin/members/${m.id}/health`} icon={HeartPulse}>
+            Health details
+          </CoachLink>
+        </>
       )}
       <CoachLink to={`/admin/members/${m.id}/diet`} icon={Salad}>
         Diet plan

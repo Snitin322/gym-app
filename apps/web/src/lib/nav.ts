@@ -3,6 +3,8 @@ import {
   CalendarCheck,
   CalendarClock,
   CalendarDays,
+  Camera,
+  ChartLine,
   ClipboardList,
   CircleUserRound,
   Dumbbell,
@@ -17,11 +19,12 @@ import {
 import type { Role } from '@onthec/shared'
 import type { TabItem } from '../ui/AppShell'
 
+/** Members: progress first, then their plan (workout and meals), the weekly check-in, and the rest. */
 export const MEMBER_TABS: TabItem[] = [
-  { to: '/home', label: 'Home', icon: House },
-  { to: '/workout', label: 'Workout', icon: Dumbbell, also: ['/meals'] },
-  { to: '/pt', label: 'PT', icon: CalendarClock },
-  { to: '/profile', label: 'Profile', icon: UserRound },
+  { to: '/home', label: 'Progress', icon: ChartLine },
+  { to: '/workout', label: 'Plan', icon: Dumbbell, also: ['/meals'] },
+  { to: '/check-in', label: 'Check-in', icon: Camera },
+  { to: '/profile', label: 'Profile', icon: UserRound, also: ['/pt'] },
 ]
 
 export const TRAINER_TABS: TabItem[] = [

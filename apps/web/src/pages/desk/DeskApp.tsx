@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { Building2, ClipboardList, Dumbbell, IdCard, Megaphone, Salad, UserPlus } from 'lucide-react'
+import { CheckInsToReview } from '../MemberProgress'
 import { useStaff } from '../../api/admin'
 import { usePtDisputes, useUnmarkedSessions } from '../../api/pt-booking'
 import { useSignedInUser } from '../../auth/AuthContext'
@@ -45,6 +46,8 @@ export function DeskToday() {
           <span className="hidden min-[400px]:inline">Add member</span>
         </Link>
       </header>
+      {/* The owner coaches too: their clients' check-ins waiting for a reply. */}
+      {user.role === 'owner' && <CheckInsToReview linkTo={(id) => `/admin/members/${id}/progress`} />}
       <Dashboard />
     </DeskShell>
   )

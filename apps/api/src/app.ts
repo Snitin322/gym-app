@@ -8,6 +8,7 @@ import type { Env } from './env'
 import { AppError, registerErrorHandling } from './errors'
 import { createAuthenticate } from './plugins/auth'
 import { authRoutes } from './routes/auth'
+import { checkInRoutes } from './routes/check-ins'
 import { coachingRoutes } from './routes/coaching'
 import { dietRoutes } from './routes/diet'
 import { dashboardRoutes } from './routes/dashboard'
@@ -26,6 +27,7 @@ import { membersRoutes } from './routes/members'
 import { plansRoutes } from './routes/plans'
 import { usersRoutes } from './routes/users'
 import type { OtpSender } from './services/auth/senders'
+import { photoStoreFromEnv, type PhotoStore } from './storage'
 
 export interface AppDeps {
   env: Env
@@ -35,6 +37,8 @@ export interface AppDeps {
   now?: () => Date
   /** Razorpay; defaults to the one configured in env (null = desk payments only). */
   razorpay?: RazorpayGateway | null
+  /** Photo storage; defaults to R2 from env (memory in development and tests, none if unset in production). */
+  photoStore?: PhotoStore | null
 }
 
 const API_PREFIX = '/api/v1'
@@ -84,6 +88,8 @@ export async function buildApp(deps: AppDeps) {
   await app.register(leadsRoutes({ authenticate }), { prefix: API_PREFIX })
   await app.register(coachingRoutes({ authenticate }), { prefix: API_PREFIX })
   await app.register(dietRoutes({ authenticate, today }), { prefix: API_PREFIX })
+  const store = deps.photoStore === undefined ? photoStoreFromEnv(env) : deps.photoStore
+  await app.register(checkInRoutes({ authenticate, today, store }), { prefix: API_PREFIX })
 
   const gateway = deps.razorpay === undefined ? createRazorpayGateway(env) : deps.razorpay
   await app.register(onlineRoutes({ authenticate, gateway, today }), { prefix: API_PREFIX })

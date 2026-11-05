@@ -83,7 +83,7 @@ describe('coaching: trainer', () => {
     'GET /members/mem-1/profile': ok(profileView()),
   }
 
-  it('a coaching client opens on Profile, with health flags first', async () => {
+  it('a coaching client opens on Progress; Profile shows health flags first', async () => {
     renderAt('/trainer/clients', routes)
     const user = userEvent.setup()
     const row = await screen.findByRole('link', { name: 'Asha Patel' })
@@ -91,7 +91,13 @@ describe('coaching: trainer', () => {
     await user.click(row)
 
     // No PT package, so no PT view.
-    expect((await screen.findAllByRole('tab')).map((t) => t.textContent)).toEqual(['Profile', 'Workout', 'Diet'])
+    expect((await screen.findAllByRole('tab')).map((t) => t.textContent)).toEqual([
+      'Progress',
+      'Workout',
+      'Diet',
+      'Profile',
+    ])
+    await user.click(screen.getByRole('tab', { name: 'Profile' }))
     const health = await screen.findByRole('region', { name: 'Health' })
     expect(within(health).getByText('Thyroid (hypo)')).toBeTruthy()
     expect(within(health).getByText('Peanuts')).toBeTruthy()
@@ -101,7 +107,7 @@ describe('coaching: trainer', () => {
   })
 
   it('the coach edits the profile in a sheet', async () => {
-    const { callsTo } = renderAt('/trainer/clients/mem-1', {
+    const { callsTo } = renderAt('/trainer/clients/mem-1?view=profile', {
       ...routes,
       'PUT /members/mem-1/profile': (body) => ok(profileView({ profile: { ...profile, ...(body as object) } })),
     })

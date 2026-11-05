@@ -908,6 +908,49 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 
 ---
 
+## 20. Coaching: weekly check-in and progress (C3)
+
+Photos need R2 set up first (docs/R2_SETUP.md). Without it, the check-in has two steps and no photos.
+
+**CK-01 — New tabs** · Member A
+
+**Expected:** Tabs are **Progress · Plan · Check-in · Profile**. Plan has Today · My week · Meals · Full plan. A member with PT finds **Personal training** in Profile (and the next session on Progress).
+- [ ] Pass / [ ] Fail
+
+**CK-02 — First check-in** · Member A (no check-ins yet)
+1. Progress shows **Your progress starts here** → **Send your first check-in**.
+2. Step 1: weight; tap **Add body fat and measurements**, fill waist. **Next**.
+3. Step 2: add front, left and right photos (camera or gallery). **Next**.
+4. Step 3: a note → **Send check-in**.
+
+**Expected:** "Check-in sent"; the card shows the weight, waist, the three photos and the note, with "Ravi will reply here". **Update this week's check-in** lets you change it.
+- [ ] Pass / [ ] Fail
+
+**CK-03 — Coach replies** · trainer (Member A's coach)
+1. Today shows **Check-ins to reply to · 1** → tap Member A.
+2. Progress view: graph, then the check-in. Tap a photo to see it large.
+3. Write a reply → **Send reply**.
+
+**Expected:** "Reply sent"; the check-in leaves the Today list. Member A sees the reply on Check-in and **(coach) replied** on Progress, and can no longer change that week.
+- [ ] Pass / [ ] Fail
+
+**CK-04 — Graph** · Member A (after two or more weekly check-ins; the desk can't backdate them, so this needs two weeks of testing)
+
+**Expected:** Progress shows **Body weight** large with the change since the first point and 1M / 3M / 6M / All. Small cards for body fat and each measurement entered; tapping one makes it the large graph. Readable in dark mode.
+- [ ] Pass / [ ] Fail
+
+**CK-05 — Privacy** · admin, another trainer, owner
+
+**Expected:** An admin and other trainers can't open Member A's progress or photos. The owner can: member page → Coach card → **Progress and check-ins**. A photo link stops working after about 15 minutes (reload the page to get a fresh one).
+- [ ] Pass / [ ] Fail
+
+**CK-06 — Owner as coach** · owner (coach of Member B)
+
+**Expected:** When Member B sends a check-in, the desk Today shows **Check-ins to reply to**, opening Member B's progress page with the reply box.
+- [ ] Pass / [ ] Fail
+
+---
+
 ## Reporting a failure
 
 Copy this for each ❌ and send it to me (a screenshot helps a lot):

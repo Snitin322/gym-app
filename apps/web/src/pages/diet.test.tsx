@@ -146,7 +146,7 @@ describe('diet: member', () => {
     waterLitres: 3.5,
   }
 
-  it('Home shows today’s calories; Meals shows the day, supplements and water', async () => {
+  it('Home shows today’s calories; Plan → Meals shows the day, supplements and water', async () => {
     renderAt('/home', {
       'POST /auth/refresh': ok(session(sessionUser({ id: 'user-9', role: 'member', name: 'Asha Patel' }))),
       'GET /me/diet-plan': ok({ plan: dietPlan(plan) }),
@@ -167,7 +167,8 @@ describe('diet: member', () => {
     expect(card.textContent).toContain('2 meals · 1 supplement')
     await user.click(card)
 
-    expect(await screen.findByRole('heading', { name: 'Meals' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Plan' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Meals', selected: true })).toBeTruthy()
     const breakfast = screen.getByRole('region', { name: 'Breakfast' })
     expect(within(breakfast).getByText('3 eggs')).toBeTruthy()
     expect(within(breakfast).getByText('8:00 am')).toBeTruthy()

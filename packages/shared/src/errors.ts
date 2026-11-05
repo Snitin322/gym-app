@@ -73,6 +73,9 @@ export const ErrorCode = {
   HEALTH_CONSENT_REQUIRED: 'HEALTH_CONSENT_REQUIRED',
   FOOD_NAME_TAKEN: 'FOOD_NAME_TAKEN',
   UNKNOWN_FOOD: 'UNKNOWN_FOOD',
+  CHECK_IN_REVIEWED: 'CHECK_IN_REVIEWED',
+  PHOTOS_NOT_SET_UP: 'PHOTOS_NOT_SET_UP',
+  BAD_PHOTO: 'BAD_PHOTO',
 } as const
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode]
