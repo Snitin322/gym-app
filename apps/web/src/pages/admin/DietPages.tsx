@@ -250,7 +250,7 @@ function FoodRow({ food: f, onEdit }: { food: Food; onEdit: () => void }) {
           {!f.active && <span className="ml-2 text-xs font-semibold text-muted uppercase">Inactive</span>}
         </span>
         <span className="block text-sm text-muted">
-          {f.kcal} kcal {per} · P {f.proteinG} · C {f.carbsG} · F {f.fatG}
+          {f.kcal} kcal {per} · P&nbsp;{f.proteinG} · C&nbsp;{f.carbsG} · F&nbsp;{f.fatG}
         </span>
       </button>
       <Button
