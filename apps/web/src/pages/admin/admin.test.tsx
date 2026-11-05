@@ -122,7 +122,7 @@ describe('access', () => {
       within(menu)
         .getAllByRole('link')
         .map((l) => l.textContent),
-    ).toEqual(['Today', 'Members', 'PT', 'Leads', 'Plans', 'Workouts', 'Staff', 'Gym details', 'Account'])
+    ).toEqual(['Today', 'Members', 'PT', 'Leads', 'Plans', 'Workouts', 'Diet', 'Staff', 'Gym details', 'Account'])
   })
 
   it('More lists the other screens; they keep the More tab highlighted', async () => {
@@ -134,7 +134,7 @@ describe('access', () => {
       within(more)
         .getAllByRole('link')
         .map((l) => l.getAttribute('href')),
-    ).toEqual(['/admin/leads', '/admin/plans', '/admin/workouts', '/admin/staff', '/admin/gym'])
+    ).toEqual(['/admin/leads', '/admin/plans', '/admin/workouts', '/admin/diet', '/admin/staff', '/admin/gym'])
     expect(screen.getByRole('button', { name: 'Log out' })).toBeTruthy()
 
     await user.click(within(more).getByRole('link', { name: /Plans/ }))

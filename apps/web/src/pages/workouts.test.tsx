@@ -284,7 +284,7 @@ describe('members’ plans', () => {
     renderAt('/trainer/clients/mem-1')
 
     expect(await screen.findByRole('heading', { name: 'Asha Patel' })).toBeTruthy()
-    expect(screen.getByRole('tab', { name: 'Plan', selected: true })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Workout', selected: true })).toBeTruthy()
     await screen.findByRole('option', { name: /Beginner split/ })
     await user.selectOptions(await screen.findByLabelText('Start from'), 'tpl-1')
     await user.click(screen.getByRole('button', { name: 'Give plan' }))

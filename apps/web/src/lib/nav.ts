@@ -10,6 +10,7 @@ import {
   House,
   IdCard,
   Megaphone,
+  Salad,
   UserRound,
   UsersRound,
 } from 'lucide-react'
@@ -18,7 +19,7 @@ import type { TabItem } from '../ui/AppShell'
 
 export const MEMBER_TABS: TabItem[] = [
   { to: '/home', label: 'Home', icon: House },
-  { to: '/workout', label: 'Workout', icon: Dumbbell },
+  { to: '/workout', label: 'Workout', icon: Dumbbell, also: ['/meals'] },
   { to: '/pt', label: 'PT', icon: CalendarClock },
   { to: '/profile', label: 'Profile', icon: UserRound },
 ]
@@ -34,6 +35,7 @@ const MORE_SCREENS = [
   '/admin/leads',
   '/admin/plans',
   '/admin/workouts',
+  '/admin/diet',
   '/admin/staff',
   '/admin/trainers',
   '/admin/gym',
@@ -56,6 +58,7 @@ export function deskSidebar(role: Role): TabItem[] {
     { to: '/admin/leads', label: 'Leads', icon: Megaphone },
     { to: '/admin/plans', label: 'Plans', icon: ClipboardList },
     { to: '/admin/workouts', label: 'Workouts', icon: Dumbbell },
+    { to: '/admin/diet', label: 'Diet', icon: Salad },
     { to: '/admin/staff', label: 'Staff', icon: IdCard, also: ['/admin/trainers'] },
     ...(role === 'owner' ? [{ to: '/admin/gym', label: 'Gym details', icon: Building2 }] : []),
     { to: '/admin/more', label: 'Account', icon: CircleUserRound },

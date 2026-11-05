@@ -81,6 +81,9 @@ model Gym {
   workoutLogs       WorkoutLog[]
   leads             Lead[]
   clientProfiles    ClientProfile[]
+  foods             Food[]
+  dietPlans         DietPlan[]
+  dietVersions      DietPlanVersion[]
 
   @@map("gyms")
 }
@@ -104,6 +107,9 @@ model User {
   member               Member?               @relation("MemberUser")
   coachingClients      Member[]              @relation("MemberCoach")
   clientProfilesSaved  ClientProfile[]
+  dietPlansCreated     DietPlan[]            @relation("DietPlanCreatedBy")
+  dietPlansUpdated     DietPlan[]            @relation("DietPlanUpdatedBy")
+  dietVersionsSaved    DietPlanVersion[]
   membershipsCreated   Membership[]          @relation("MembershipCreatedBy")
   freezesCreated       MembershipFreeze[]    @relation("FreezeCreatedBy")
   paymentsRecorded     Payment[]             @relation("PaymentRecordedBy")
@@ -227,6 +233,7 @@ model Member {
   user          User           @relation("MemberUser", fields: [userId], references: [id], onDelete: Restrict)
   coach         User?          @relation("MemberCoach", fields: [coachId], references: [id], onDelete: SetNull)
   clientProfile ClientProfile?
+  dietPlan      DietPlan?
   memberships   Membership[]
   payments      Payment[]
   invoices      Invoice[]
@@ -858,4 +865,80 @@ model ClientProfile {
 
   @@index([gymId])
   @@map("client_profiles")
+}
+
+enum FoodUnit {
+  g
+  ml
+  piece
+
+  @@map("food_unit")
+}
+
+/// The gym's food list. Macros are per 100 g, per 100 ml or per piece; foods are deactivated, never deleted.
+model Food {
+  id        String   @id @default(uuid()) @db.Uuid
+  gymId     String   @map("gym_id") @db.Uuid
+  name      String
+  unit      FoodUnit
+  /// For pieces: "egg", "roti", "scoop".
+  pieceName String?  @map("piece_name")
+  proteinG  Float    @map("protein_g")
+  carbsG    Float    @map("carbs_g")
+  fatG      Float    @map("fat_g")
+  kcal      Int
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym Gym @relation(fields: [gymId], references: [id], onDelete: Restrict)
+
+  @@unique([gymId, name])
+  @@index([gymId])
+  @@map("foods")
+}
+
+/// A diet plan: a template (member_id null) or one member's own copy. Meals and supplements are one
+/// document, validated by the shared Zod schema. Every save keeps the previous version.
+model DietPlan {
+  id          String   @id @default(uuid()) @db.Uuid
+  gymId       String   @map("gym_id") @db.Uuid
+  memberId    String?  @unique @map("member_id") @db.Uuid
+  name        String
+  notes       String?
+  plan        Json
+  version     Int      @default(1)
+  createdById String   @map("created_by_id") @db.Uuid
+  updatedById String   @map("updated_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  gym       Gym               @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  member    Member?           @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  createdBy User              @relation("DietPlanCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy User              @relation("DietPlanUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  versions  DietPlanVersion[]
+
+  @@index([gymId])
+  @@map("diet_plans")
+}
+
+model DietPlanVersion {
+  id        String   @id @default(uuid()) @db.Uuid
+  gymId     String   @map("gym_id") @db.Uuid
+  planId    String   @map("plan_id") @db.Uuid
+  version   Int
+  name      String
+  notes     String?
+  plan      Json
+  savedById String   @map("saved_by_id") @db.Uuid
+  savedAt   DateTime @map("saved_at") @db.Timestamptz(3)
+
+  gym      Gym      @relation(fields: [gymId], references: [id], onDelete: Restrict)
+  dietPlan DietPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  savedBy  User     @relation(fields: [savedById], references: [id], onDelete: Restrict)
+
+  @@unique([planId, version])
+  @@index([gymId])
+  @@map("diet_plan_versions")
 }

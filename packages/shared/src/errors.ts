@@ -71,6 +71,8 @@ export const ErrorCode = {
   // Coaching
   NOT_A_COACH: 'NOT_A_COACH',
   HEALTH_CONSENT_REQUIRED: 'HEALTH_CONSENT_REQUIRED',
+  FOOD_NAME_TAKEN: 'FOOD_NAME_TAKEN',
+  UNKNOWN_FOOD: 'UNKNOWN_FOOD',
 } as const
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode]

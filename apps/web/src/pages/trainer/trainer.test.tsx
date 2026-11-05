@@ -147,7 +147,7 @@ describe('trainer app', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('a client page shows Plan, Tracking and PT; ended packages only show PT', async () => {
+  it('a client page shows Workout, Diet and PT; ended packages only show PT', async () => {
     renderAt('/trainer/clients', {
       'GET /members/mem-1/workout-plan': ok({ member: { id: 'mem-1', name: 'Asha Patel' }, plan: null }),
     })
@@ -156,7 +156,7 @@ describe('trainer app', () => {
 
     expect(await screen.findByRole('heading', { name: 'Asha Patel' })).toBeTruthy()
     expect(screen.getByRole('link', { name: 'Call Asha Patel' }).getAttribute('href')).toBe('tel:+919876500001')
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Plan', 'Tracking', 'PT'])
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Workout', 'Diet', 'PT'])
     expect(await screen.findByText(/No workout plan yet/)).toBeTruthy()
     await user.click(screen.getByRole('tab', { name: 'PT' }))
     expect(screen.getByText('9 of 12 sessions left')).toBeTruthy()

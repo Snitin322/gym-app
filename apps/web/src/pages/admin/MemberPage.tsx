@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router'
-import { ChevronRight, HeartPulse, MessageCircle, Phone } from 'lucide-react'
+import { ChevronRight, HeartPulse, MessageCircle, Phone, Salad } from 'lucide-react'
 import {
   addDays,
   formatPaise,
@@ -250,16 +250,27 @@ function CoachCard({
         </Button>
       </div>
       {m.coach && canSeeHealth && (
-        <Link
-          to={`/admin/members/${m.id}/health`}
-          className="mt-3 flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-3 font-semibold hover:bg-line/50"
-        >
-          <HeartPulse aria-hidden="true" size={20} className="text-accent" />
-          <span className="flex-1">Health details</span>
-          <ChevronRight aria-hidden="true" size={20} className="text-muted" />
-        </Link>
+        <CoachLink to={`/admin/members/${m.id}/health`} icon={HeartPulse}>
+          Health details
+        </CoachLink>
       )}
+      <CoachLink to={`/admin/members/${m.id}/diet`} icon={Salad}>
+        Diet plan
+      </CoachLink>
     </Card>
+  )
+}
+
+function CoachLink({ to, icon: Icon, children }: { to: string; icon: typeof Salad; children: string }) {
+  return (
+    <Link
+      to={to}
+      className="mt-3 flex items-center gap-3 rounded-xl bg-surface-2 px-3 py-3 font-semibold hover:bg-line/50"
+    >
+      <Icon aria-hidden="true" size={20} className="text-accent" />
+      <span className="flex-1">{children}</span>
+      <ChevronRight aria-hidden="true" size={20} className="text-muted" />
+    </Link>
   )
 }
 

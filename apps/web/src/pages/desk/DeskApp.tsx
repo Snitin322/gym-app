@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { Building2, ClipboardList, Dumbbell, IdCard, Megaphone, UserPlus } from 'lucide-react'
+import { Building2, ClipboardList, Dumbbell, IdCard, Megaphone, Salad, UserPlus } from 'lucide-react'
 import { useStaff } from '../../api/admin'
 import { usePtDisputes, useUnmarkedSessions } from '../../api/pt-booking'
 import { useSignedInUser } from '../../auth/AuthContext'
@@ -138,6 +138,7 @@ export function DeskMorePage() {
         <LinkRow to="/admin/leads" title="Leads" text="Enquiries and follow-ups" icon={icon(Megaphone)} />
         <LinkRow to="/admin/plans" title="Plans" text="Prices, lengths, freeze limits" icon={icon(ClipboardList)} />
         <LinkRow to="/admin/workouts" title="Workouts" text="Exercise library and weekly plans" icon={icon(Dumbbell)} />
+        <LinkRow to="/admin/diet" title="Diet" text="Food list and diet templates" icon={icon(Salad)} />
         <LinkRow to="/admin/staff" title="Staff" text="Trainers, admins and their hours" icon={icon(IdCard)} />
         {user.role === 'owner' && (
           <LinkRow to="/admin/gym" title="Gym details" text="Address, GSTIN, invoices" icon={icon(Building2)} />

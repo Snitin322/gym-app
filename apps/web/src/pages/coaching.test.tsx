@@ -91,7 +91,7 @@ describe('coaching: trainer', () => {
     await user.click(row)
 
     // No PT package, so no PT view.
-    expect((await screen.findAllByRole('tab')).map((t) => t.textContent)).toEqual(['Profile', 'Plan', 'Tracking'])
+    expect((await screen.findAllByRole('tab')).map((t) => t.textContent)).toEqual(['Profile', 'Workout', 'Diet'])
     const health = await screen.findByRole('region', { name: 'Health' })
     expect(within(health).getByText('Thyroid (hypo)')).toBeTruthy()
     expect(within(health).getByText('Peanuts')).toBeTruthy()

@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { CalendarClock, ChevronRight, CircleAlert, ClipboardList, Dumbbell, Moon } from 'lucide-react'
-import { formatPaise, inclusiveDays, todayInIndia, workoutDayFor } from '@onthec/shared'
+import { CalendarClock, ChevronRight, CircleAlert, ClipboardList, Dumbbell, Moon, Salad } from 'lucide-react'
+import { dayMacros, formatPaise, inclusiveDays, todayInIndia, workoutDayFor } from '@onthec/shared'
 import { useMyMembership, useMyPt } from '../../api/admin'
 import { useMyProfile } from '../../api/coaching'
+import { useMyDietPlan } from '../../api/diet'
 import { useMySessions } from '../../api/pt-booking'
 import { useMyWorkoutPlan } from '../../api/workouts'
 import { useSignedInUser } from '../../auth/AuthContext'
+import { useTodaysDietDay } from '../../lib/diet'
 import { STATUS_BADGES, membershipSummary } from '../../lib/membership'
 import { formatDate, plural } from '../../lib/format'
 import { sessionsToAnswer, upcomingSessions } from '../../lib/pt'
@@ -29,6 +31,7 @@ export function MemberHome() {
       <MembershipGlance />
       <CoachGlance />
       <WorkoutGlance />
+      <MealsGlance />
       <PtGlance />
     </MemberShell>
   )
@@ -137,6 +140,29 @@ function WorkoutGlance() {
         {day.rest ? 'Rest day' : day.title || (done ? 'Workout' : 'Nothing planned')}
       </p>
       {done && <p className="text-sm text-muted">{plural(day.items.length, 'exercise')}</p>}
+    </GlanceCard>
+  )
+}
+
+/** Today's meals at a glance: calories and protein (shown once the member has a diet plan). */
+function MealsGlance() {
+  const query = useMyDietPlan()
+  const kind = useTodaysDietDay()
+  const plan = query.data?.plan
+  if (!plan) return null
+  const day = (kind === 'rest' && plan.plan.rest) || plan.plan.training
+  const totals = dayMacros(day, new Map(plan.foods.map((f) => [f.id, f])))
+  return (
+    <GlanceCard to="/meals" label="Today’s meals">
+      <p className="text-xs font-semibold tracking-wide text-muted uppercase">Today’s meals</p>
+      <p className="flex items-center gap-2 text-lg font-bold">
+        <Salad aria-hidden="true" size={18} className="text-accent" />
+        {totals.kcal.toLocaleString('en-IN')} kcal · {Math.round(totals.proteinG)} g protein
+      </p>
+      <p className="text-sm text-muted">
+        {plural(day.meals.length, 'meal')}
+        {plan.plan.supplements.length > 0 && ` · ${plural(plan.plan.supplements.length, 'supplement')}`}
+      </p>
     </GlanceCard>
   )
 }

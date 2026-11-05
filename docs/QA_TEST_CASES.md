@@ -868,6 +868,46 @@ Book a session that starts within the next 2–3 hours (set the trainer's hours 
 
 ---
 
+## 19. Coaching: diet and supplements (C2)
+
+**DI-01 — Food list** · owner or admin
+1. More → **Diet** → **Food list** → **Add common foods**.
+2. **Add food**: "Poha (cooked)", per 100 g, protein 2.5, carbs 23, fat 2 (leave calories empty).
+
+**Expected:** About 35 foods appear, e.g. "Egg (whole) · 78 kcal per egg". The new food shows about 120 kcal per 100 g (worked out). Tapping a food opens it for editing; **Hide** greys it out.
+- [ ] Pass / [ ] Fail
+
+**DI-02 — Diet template** · owner
+1. Diet → **New template**. Name it, add foods to Breakfast and Lunch, set times.
+2. **Rest day** → **Make a rest-day version** → remove one food.
+3. **Supplements** → add Whey protein, 1 scoop, After workout. Water 3.
+4. **Create template**.
+
+**Expected:** Totals update as you change amounts. The template is listed with its training-day calories.
+- [ ] Pass / [ ] Fail
+
+**DI-03 — Coach gives a diet** · trainer (coach of Member A)
+1. Clients → Member A → **Diet** → pick the template → **Start diet**.
+2. **Edit diet** → **Add food** to Dinner (search "chick") → change the amount → **Save diet**.
+
+**Expected:** "Diet saved"; version 2. Typing a food that isn't listed offers "Add … to the food list".
+- [ ] Pass / [ ] Fail
+
+**DI-04 — Member sees meals** · Member A
+1. Home → **Today's meals** card → open it.
+
+**Expected:** Daily calories, protein, carbs and fat; each meal with time, foods and amounts ("2 rotis", "150 g"); supplements with dose and timing; water. On a rest day of their workout plan it opens on **Rest day**.
+- [ ] Pass / [ ] Fail
+
+**DI-05 — Who can change a diet** · admin, another trainer
+1. As admin: Member A → Coach card → **Diet plan** → edit and save.
+2. As a trainer who isn't Member A's coach and has no PT with them: Member A isn't in Clients.
+
+**Expected:** The desk can edit; other trainers can't reach it.
+- [ ] Pass / [ ] Fail
+
+---
+
 ## Reporting a failure
 
 Copy this for each ❌ and send it to me (a screenshot helps a lot):
